@@ -158,7 +158,7 @@ class CodeIssuer
             $locked->forceFill([
                 'code' => $this->generateCode($campaign),
                 'issued_at' => now(),
-                'expires_at' => now()->addSeconds($this->sessionSeconds()),
+                'expires_at' => now()->addSeconds(Settings::codeSessionSeconds()),
             ])->save();
 
             return (string) $locked->code;
@@ -226,13 +226,6 @@ class CodeIssuer
     private function limitReached(Campaign $campaign): bool
     {
         return $campaign->daily_limit > 0 && $campaign->issuedToday() >= $campaign->daily_limit;
-    }
-
-    private function sessionSeconds(): int
-    {
-        $seconds = Settings::int('code_session_seconds');
-
-        return $seconds > 0 ? $seconds : 600;
     }
 
     private function generateCode(Campaign $campaign): string
