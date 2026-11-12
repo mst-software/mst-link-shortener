@@ -13,10 +13,27 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('username')->unique();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('member');
+            $table->string('status')->default('active');
+            $table->string('api_token', 24)->unique();
+            $table->string('referral_code', 7)->unique();
+            $table->foreignId('referred_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('balance_micro')->default(0);
+            $table->unsignedBigInteger('processing_micro')->default(0);
+            $table->string('fullname')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('address')->nullable();
+            $table->string('district')->nullable();
+            $table->string('province')->nullable();
+            $table->string('country')->nullable();
+            $table->text('traffic_source')->nullable();
+            $table->unsignedTinyInteger('default_level')->default(1);
+            $table->string('payout_method')->nullable();
+            $table->json('payout_details')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

@@ -1,6 +1,8 @@
-@props(['name', 'placeholder', 'type' => 'text', 'maxlength' => null, 'id' => null, 'toggle' => false])
+@props(['name', 'placeholder', 'type' => 'text', 'maxlength' => null, 'id' => null, 'toggle' => false, 'value' => null])
 
-<div class="form-group {{ $type }} required">
+@php($error = $errors->first($name))
+
+<div @class(['form-group', $type, 'required', 'has-error' => $error !== ''])>
   @if ($toggle)
     <div class="password-wrap">
       <input type="{{ $type }}" name="{{ $name }}" placeholder="{{ $placeholder }}" class="form-control" required="required" @if ($maxlength) maxlength="{{ $maxlength }}" @endif id="{{ $id ?? $name }}" value="">
@@ -10,8 +12,8 @@
       </button>
     </div>
   @else
-    <input type="{{ $type }}" name="{{ $name }}" placeholder="{{ $placeholder }}" class="form-control" required="required" @if ($maxlength) maxlength="{{ $maxlength }}" @endif id="{{ $id ?? $name }}" value="">
+    <input type="{{ $type }}" name="{{ $name }}" placeholder="{{ $placeholder }}" class="form-control" required="required" @if ($maxlength) maxlength="{{ $maxlength }}" @endif id="{{ $id ?? $name }}" value="{{ $type === 'password' ? '' : ($value ?? old($name)) }}">
   @endif
   {{ $slot }}
-  <span class="help-block"></span>
+  <span class="help-block">{{ $error }}</span>
 </div>

@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 test('payout rates page renders', function () {
     $this->get(route('payout-rates'))
         ->assertOk()

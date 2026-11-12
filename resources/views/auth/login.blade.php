@@ -6,13 +6,13 @@
 @section('content')
   <p class="login-box-msg">Sign in to start your session</p>
 
-  <div id="flash"></div>
+  <div id="flash">@include('auth.partials.status')</div>
   <form method="post" accept-charset="utf-8" id="signin-form" action="{{ route('login') }}" novalidate>
     @csrf
     <x-auth.input name="username" placeholder="Username or email address" maxlength="150" />
     <x-auth.input name="password" type="password" placeholder="Password" />
     <div class="form-group checkbox">
-      <label for="remember-me"><input type="checkbox" name="remember_me" value="1" id="remember-me">Remember me</label>
+      <label for="remember-me"><input type="checkbox" name="remember_me" value="1" id="remember-me" @checked(old('remember_me'))>Remember me</label>
       <span class="help-block"></span>
     </div>
 

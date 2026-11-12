@@ -1,0 +1,32 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\Notice;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Notice>
+ */
+class NoticeFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'title' => fake()->sentence(4),
+            'body' => fake()->paragraph(),
+            'is_published' => true,
+            'published_at' => now()->subHour(),
+        ];
+    }
+
+    public function draft(): static
+    {
+        return $this->state(fn (): array => ['is_published' => false, 'published_at' => null]);
+    }
+}

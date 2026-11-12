@@ -1,0 +1,16 @@
+/* Admin area: same AdminLTE entry as the member area with a purple header to tell the two apart */
+@import './member.css';
+
+.admin-area .main-header .logo,
+.admin-area .main-header .navbar {
+    background-color: #605ca8;
+}
+
+.admin-area .main-header .logo:hover,
+.admin-area .main-header .navbar .sidebar-toggle:hover {
+    background-color: #5a5698;
+}
+
+.admin-area .sidebar-menu > li.active > a {
+    border-left-color: #605ca8;
+}
