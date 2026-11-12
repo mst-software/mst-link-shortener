@@ -2,7 +2,11 @@
 
 namespace App\Enums;
 
+use App\Contracts\CaptchaVerifier;
 use App\Services\Settings;
+use App\Services\Views\HCaptchaVerifier;
+use App\Services\Views\RecaptchaVerifier;
+use App\Services\Views\TurnstileVerifier;
 
 enum CaptchaProvider: string
 {
@@ -16,6 +20,18 @@ enum CaptchaProvider: string
     public static function current(): self
     {
         return self::tryFrom((string) Settings::get('captcha_provider')) ?? self::Turnstile;
+    }
+
+    /**
+     * The verifier that checks responses of this provider with its siteverify API.
+     */
+    public function verifier(): CaptchaVerifier
+    {
+        return match ($this) {
+            self::Turnstile => app(TurnstileVerifier::class),
+            self::HCaptcha => app(HCaptchaVerifier::class),
+            self::Recaptcha => app(RecaptchaVerifier::class),
+        };
     }
 
     public function label(): string
