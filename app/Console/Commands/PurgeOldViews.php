@@ -24,6 +24,7 @@ class PurgeOldViews extends Command
 
         View::query()
             ->where('status', '!=', ViewStatus::Pending)
+            ->whereNull('campaign_id')
             ->where('created_at', '<', $cutoff)
             ->where(function ($query): void {
                 // Aggregated views, plus invalid/cancelled ones that are never aggregated.
