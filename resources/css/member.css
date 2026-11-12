@@ -1,0 +1,65 @@
+/* Member area: AdminLTE 2 look, loaded only by layouts/member.blade.php */
+@import '../vendor/adminlte/bootstrap.min.css';
+@import '../vendor/adminlte/all.css';
+@import '../vendor/adminlte/AdminLTE.min.css';
+@import '../vendor/adminlte/skin-blue.min.css';
+
+/* Sidebar "Shorten a new link" button */
+.main-sidebar .shorten-button {
+    margin: 0;
+    border-radius: 0;
+    border-width: 0 0 1px;
+}
+
+@media (min-width: 768px) {
+    .sidebar-mini.sidebar-collapse .main-sidebar .shorten-button {
+        height: 46px;
+        padding: 0;
+    }
+
+    .sidebar-mini.sidebar-collapse .main-sidebar .shorten-button > :first-child {
+        width: 50px;
+        border-right: 0;
+    }
+
+    .sidebar-mini.sidebar-collapse .main-sidebar .shorten-button > span {
+        display: none;
+    }
+}
+
+/* Shorten form box, toggled by the sidebar button */
+.box-short {
+    display: none;
+    margin-bottom: 10px;
+}
+
+.box-short .box-body {
+    overflow: hidden;
+}
+
+/* LinkCash logo next to the sidebar toggle */
+.main-header .member-brand {
+    float: left;
+    padding: 12px 15px;
+}
+
+.main-header .member-brand img {
+    display: block;
+    height: 26px;
+    width: auto;
+}
+
+.main-header .user-menu .user-icon {
+    float: left;
+    font-size: 22px;
+    line-height: 20px;
+    margin-right: 10px;
+}
+
+.main-header .user-menu .user-footer form {
+    margin: 0;
+}
+
+.small-box .icon {
+    top: 10px;
+}
