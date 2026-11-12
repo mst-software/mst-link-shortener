@@ -2,6 +2,8 @@
 
 namespace App\Services\Views;
 
+use App\Enums\VisitMode;
+
 final readonly class StepInfo
 {
     public function __construct(
@@ -11,6 +13,9 @@ final readonly class StepInfo
         public ?int $dwellSeconds = null,
         public ?string $token = null,
         public bool $captchaRequired = false,
+        public VisitMode $mode = VisitMode::Wait,
+        /** @var array<string, mixed>|null Keyword mode data for the visitor page. */
+        public ?array $keyword = null,
     ) {}
 
     /**
