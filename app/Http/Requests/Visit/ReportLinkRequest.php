@@ -32,7 +32,10 @@ class ReportLinkRequest extends FormRequest
     {
         return [
             'alias' => ['required', 'string', 'max:32'],
-            'reason' => ['required', 'string', Rule::in(self::REASONS)],
+            'choice' => ['required_without:reason', 'nullable', 'string', Rule::in(self::REASONS)],
+            // Older clients send "reason" instead of "choice".
+            'reason' => ['required_without:choice', 'nullable', 'string', Rule::in(self::REASONS)],
+            'captcha_response' => ['required', 'string', 'max:4096'],
             'detail' => ['nullable', 'string', 'max:1000'],
         ];
     }
@@ -45,8 +48,23 @@ class ReportLinkRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reason.required' => 'Please choose what went wrong.',
+            'reason.required_without' => 'Please choose what went wrong.',
             'reason.in' => 'Please choose what went wrong.',
+            'choice.required_without' => 'Please choose what went wrong.',
+            'choice.in' => 'Please choose what went wrong.',
+            'captcha_response.required' => 'Please verify that you are human.',
+        ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'captcha_response' => 'captcha',
         ];
     }
 }

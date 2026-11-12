@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\ViewStatus;
+use App\Models\CodeAttempt;
 use App\Models\View;
 use App\Models\ViewDedup;
 use App\Models\VisitSession;
@@ -36,6 +37,15 @@ class PurgeOldViews extends Command
                     ->where('status', '!=', ViewStatus::Pending)
                     ->delete();
             });
+
+        // Code attempts are useless a day after their code expired (or after they started without ever getting a code).
+        $attemptCutoff = now()->subDay();
+        CodeAttempt::query()
+            ->where(function ($query) use ($attemptCutoff): void {
+                $query->where('expires_at', '<', $attemptCutoff)
+                    ->orWhere(fn ($unissued) => $unissued->whereNull('expires_at')->where('started_at', '<', $attemptCutoff));
+            })
+            ->delete();
 
         // Expired dedup keys and finished or expired visit sessions are useless after their window.
         ViewDedup::query()->where('expires_at', '<', now())->delete();

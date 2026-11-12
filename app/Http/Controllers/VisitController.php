@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\CaptchaVerifier;
 use App\Contracts\CountryResolver;
 use App\Enums\CaptchaProvider;
+use App\Enums\VisitMode;
 use App\Http\Requests\Visit\CheckCaptchaRequest;
 use App\Http\Requests\Visit\ReportLinkRequest;
 use App\Http\Requests\Visit\StepInfoRequest;
 use App\Models\FraudFlag;
 use App\Models\Link;
+use App\Models\VisitSession;
 use App\Services\Views\StepInfo;
 use App\Services\Views\StepResult;
 use App\Services\Views\StepTokenService;
 use App\Services\Views\VisitFlow;
 use App\Services\Views\VisitorContext;
+use App\Services\Visits\CodeRedeemer;
+use App\Services\Visits\CodeResult;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,6 +38,7 @@ class VisitController extends Controller
         private VisitFlow $flow,
         private StepTokenService $tokens,
         private CountryResolver $countries,
+        private CaptchaVerifier $captcha,
     ) {}
 
     /**
@@ -105,22 +111,67 @@ class VisitController extends Controller
     {
         $link = $this->activeLinkOrFail($request->string('alias')->toString());
         $token = $request->string('token')->toString();
+        $fingerprint = $request->filled('fingerprint') ? $request->string('fingerprint')->toString() : null;
+        $captchaResponse = $request->filled('captcha_response') ? $request->string('captcha_response')->toString() : null;
 
         // The signed token names its session, so a missing cookie is recorded as a rule failure instead of a dead end.
-        $session = $this->flow->findSession($link, $this->tokens->sessionId($token));
+        // A keyword session has no token and is found by its cookie.
+        $session = $token !== ''
+            ? $this->flow->findSession($link, $this->tokens->sessionId($token))
+            : $this->flow->findSession($link, $this->cookieValue($request));
 
         if ($session === null) {
-            return $this->errorResponse(StepResult::Expired);
+            return $this->errorResponse($token !== '' ? StepResult::Expired : StepResult::NoCookie);
+        }
+
+        if ($session->mode === VisitMode::Keyword) {
+            return $this->checkCode($request, $link, $session, $fingerprint, $captchaResponse);
+        }
+
+        // A wait mode session is finished with the token of its last step only.
+        if ($token === '') {
+            return $this->errorResponse(StepResult::BadToken);
         }
 
         $result = $this->flow->finish(
             $session,
             $token,
-            $request->filled('fingerprint') ? $request->string('fingerprint')->toString() : null,
-            $request->filled('captcha_response') ? $request->string('captcha_response')->toString() : null,
+            $fingerprint,
+            $captchaResponse,
             $this->cookieValue($request) === $session->getKey(),
             $this->context($request),
         );
+
+        if (! $result->isFinished()) {
+            return $this->errorResponse($result->error ?? StepResult::BadToken);
+        }
+
+        return response()->json(['destination' => $link->url]);
+    }
+
+    /**
+     * The code step of a keyword session. A refused code answers 422 with the remaining failures;
+     * an accepted code always returns the destination, even when the view turns out invalid.
+     */
+    private function checkCode(
+        CheckCaptchaRequest $request,
+        Link $link,
+        VisitSession $session,
+        ?string $fingerprint,
+        ?string $captchaResponse,
+    ): JsonResponse {
+        $result = $this->flow->finishKeyword(
+            $session,
+            $request->string('code')->toString(),
+            $fingerprint,
+            $captchaResponse,
+            $this->cookieValue($request) === $session->getKey(),
+            $this->context($request),
+        );
+
+        if ($result->codeError !== null) {
+            return $this->codeErrorResponse($result->codeError, $session);
+        }
 
         if (! $result->isFinished()) {
             return $this->errorResponse($result->error ?? StepResult::BadToken);
@@ -136,14 +187,25 @@ class VisitController extends Controller
     {
         $link = $this->activeLinkOrFail($request->string('alias')->toString());
 
+        $context = $this->context($request);
+
+        if (! $this->captcha->verify($request->string('captcha_response')->toString(), $context->ip)) {
+            return $this->errorResponse(StepResult::CaptchaFailed);
+        }
+
+        $choice = $request->filled('choice') ? $request->string('choice')->toString() : $request->string('reason')->toString();
+        $session = $this->flow->findSession($link, $this->cookieValue($request));
+
         FraudFlag::query()->create([
             'user_id' => $link->user_id,
             'link_id' => $link->getKey(),
             'reason' => 'visitor_report',
             'details' => [
-                'reason' => $request->string('reason')->toString(),
+                'reason' => $choice,
+                'choice' => $choice,
                 'detail' => $request->filled('detail') ? $request->string('detail')->toString() : null,
-                'ip' => $this->context($request)->ip,
+                'campaign_id' => $session?->campaign_id,
+                'ip' => $context->ip,
             ],
         ]);
 
@@ -157,12 +219,23 @@ class VisitController extends Controller
         }
 
         return response()->json([
+            'mode' => $info->mode->value,
             'step' => $info->step,
             'total_steps' => $info->totalSteps,
             'dwell_seconds' => $info->dwellSeconds,
             'token' => $info->token,
             'captcha_required' => $info->captchaRequired,
+            ...($info->keyword ?? []),
         ]);
+    }
+
+    private function codeErrorResponse(CodeResult $result, VisitSession $session): JsonResponse
+    {
+        return response()->json([
+            'error' => $result->errorKey(),
+            'message' => $result->label(),
+            'failures_left' => CodeRedeemer::failuresLeft($session),
+        ], 422);
     }
 
     private function errorResponse(StepResult $result): JsonResponse
