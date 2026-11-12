@@ -6,3 +6,5 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 });
+
+require __DIR__.'/admin-notices.php';

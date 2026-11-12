@@ -94,7 +94,7 @@ class EarningsReleaser
             return;
         }
 
-        $this->wallet->credit($referrer, $commission, TransactionAction::ReferralCommission, $reference, 'Referral commission');
+        $this->wallet->credit($referrer, $commission, TransactionAction::ReferralCommission, (string) $user->id, 'Referral commission for release '.$reference);
 
         DailyStat::query()
             ->firstOrCreate(['user_id' => $referrer->id, 'stat_date' => now()->utc()->toDateString()])

@@ -67,6 +67,7 @@ it('pays the referrer a separate commission without reducing the referred user',
         ->and($referrer->refresh()->balance_micro)->toBe(1_200)
         ->and($commission->action)->toBe(TransactionAction::ReferralCommission)
         ->and($commission->amount_micro)->toBe(1_200)
+        ->and($commission->reference_id)->toBe((string) $user->id)
         ->and(DailyStat::query()->where('user_id', $referrer->id)->sole()->ref_earn_micro)->toBe(1_200);
 });
 
