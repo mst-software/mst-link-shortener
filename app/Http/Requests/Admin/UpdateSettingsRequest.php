@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\CaptchaProvider;
+use App\Enums\VisitMode;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +23,17 @@ class UpdateSettingsRequest extends FormRequest
         'session_minutes',
         'view_purge_days',
         'alias_length',
+        'code_session_seconds',
+    ];
+
+    /**
+     * Hosts accepted for the tutorial video link.
+     *
+     * @var list<string>
+     */
+    public const VIDEO_HOSTS = [
+        'youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtube-nocookie.com',
+        'vimeo.com', 'www.vimeo.com', 'player.vimeo.com',
     ];
 
     public function authorize(): bool
@@ -43,6 +56,14 @@ class UpdateSettingsRequest extends FormRequest
             'view_purge_days' => ['required', 'integer', 'min:7', 'max:365'],
             'alias_length' => ['required', 'integer', 'min:6', 'max:12'],
             'captcha_provider' => ['required', Rule::enum(CaptchaProvider::class)],
+            'visit_mode' => ['required', Rule::in(['auto', ...array_column(VisitMode::cases(), 'value')])],
+            'code_session_seconds' => ['required', 'integer', 'min:120', 'max:3600'],
+            'tutorial_video_url' => [
+                'nullable', 'string', 'max:255', 'url:https',
+                fn (string $attribute, mixed $value, Closure $fail) => in_array(strtolower((string) parse_url((string) $value, PHP_URL_HOST)), self::VIDEO_HOSTS, true)
+                    ? null
+                    : $fail('The tutorial video link must be a YouTube or Vimeo link.'),
+            ],
         ];
 
         foreach (CaptchaProvider::cases() as $provider) {
@@ -68,6 +89,9 @@ class UpdateSettingsRequest extends FormRequest
             'view_purge_days' => 'raw view retention',
             'alias_length' => 'generated alias length',
             'captcha_provider' => 'captcha provider',
+            'visit_mode' => 'visit mode',
+            'code_session_seconds' => 'code session length',
+            'tutorial_video_url' => 'tutorial video link',
         ];
     }
 }

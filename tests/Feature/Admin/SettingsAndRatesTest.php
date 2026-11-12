@@ -25,6 +25,9 @@ function settingsPayload(array $overrides = []): array
         'view_purge_days' => 60,
         'alias_length' => 6,
         'captcha_provider' => 'turnstile',
+        'visit_mode' => 'auto',
+        'code_session_seconds' => 600,
+        'tutorial_video_url' => '',
     ], $overrides);
 }
 

@@ -32,6 +32,9 @@ class SettingController extends Controller
                 'session_minutes' => Settings::int('session_minutes'),
                 'view_purge_days' => Settings::int('view_purge_days'),
                 'alias_length' => Settings::int('alias_length'),
+                'code_session_seconds' => Settings::int('code_session_seconds'),
+                'visit_mode' => (string) Settings::get('visit_mode', 'auto'),
+                'tutorial_video_url' => (string) Settings::get('tutorial_video_url', ''),
             ],
             'providers' => CaptchaProvider::cases(),
             'currentProvider' => CaptchaProvider::current(),
@@ -50,6 +53,8 @@ class SettingController extends Controller
 
         Settings::set('min_withdraw_micro', Money::toMicro($data['min_withdraw_usd']));
         Settings::set('captcha_provider', $data['captcha_provider']);
+        Settings::set('visit_mode', $data['visit_mode']);
+        Settings::set('tutorial_video_url', $data['tutorial_video_url'] ?? '');
 
         foreach (CaptchaProvider::cases() as $provider) {
             Settings::set($provider->value.'_site_key', $data[$provider->value.'_site_key'] ?? '');
