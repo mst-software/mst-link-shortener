@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             CpmRateSeeder::class,
             AdminSeeder::class,
+            AdSlotSeeder::class,
         ]);
 
         User::factory()->create([
