@@ -24,7 +24,9 @@ class CheckCaptchaRequest extends FormRequest
     {
         return [
             'alias' => ['required', 'string', 'max:32'],
-            'token' => ['required', 'string', 'max:512'],
+            // Required for a wait mode session; a keyword session sends the code instead.
+            'token' => ['nullable', 'string', 'max:512'],
+            'code' => ['nullable', 'string', 'max:32'],
             'fingerprint' => ['nullable', 'string', 'regex:/\A[A-Za-z0-9]{16,64}\z/'],
             'captcha_response' => ['nullable', 'string', 'max:4096'],
         ];
