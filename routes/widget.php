@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('widget')
     ->middleware(['throttle:60,1', WidgetCors::class])
     ->group(function () {
-        Route::post('start', [WidgetController::class, 'start'])->name('widget.start');
+        Route::post('start', [WidgetController::class, 'start'])->middleware('throttle:widget-start')->name('widget.start');
         Route::post('progress', [WidgetController::class, 'progress'])->name('widget.progress');
         Route::post('code', [WidgetController::class, 'code'])->name('widget.code');
         Route::options('{any}', fn () => response()->noContent())->where('any', '.*')->name('widget.options');

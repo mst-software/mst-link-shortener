@@ -103,6 +103,7 @@ class WidgetController extends Controller
             null => response()->json($result),
             'too_early' => response()->json($result, 422),
             'campaign_unavailable' => response()->json($result, 403),
+            'too_many_attempts' => response()->json($result, 429),
             default => response()->json($result, 400),
         };
     }

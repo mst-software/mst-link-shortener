@@ -312,3 +312,77 @@ it('re-checks the daily limit when the code is issued and never overshoots it', 
     expect(CodeAttempt::query()->whereNotNull('code')->count())->toBe(1)
         ->and(CodeAttempt::query()->whereKey(CodeAttempt::query()->whereNull('code')->value('id'))->exists())->toBeTrue();
 });
+
+it('continues the open attempt of the same browser instead of adding rows', function (): void {
+    $campaign = widgetCampaign();
+    $first = widgetStart($campaign, 'page-load-one');
+
+    $second = widgetPost('start', [
+        'campaign' => $campaign->widget_key,
+        'page_load_id' => 'page-load-two',
+    ])->assertOk()->json('attempt_token');
+
+    expect($second)->toBe($first)
+        ->and(CodeAttempt::query()->count())->toBe(1);
+});
+
+it('does not reuse an attempt of another browser or IP', function (): void {
+    $campaign = widgetCampaign();
+    widgetStart($campaign);
+
+    $this->postJson('/widget/start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-x2'], [
+        'Origin' => 'https://advertiser.test',
+        'User-Agent' => 'Mozilla/5.0 AnotherBrowser',
+    ])->assertOk();
+
+    $this->postJson('/widget/start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-x3'], [
+        'Origin' => 'https://advertiser.test',
+        'User-Agent' => 'Mozilla/5.0 WidgetTest',
+    ], )->assertOk();
+
+    $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.50'])
+        ->postJson('/widget/start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-x4'], [
+            'Origin' => 'https://advertiser.test',
+            'User-Agent' => 'Mozilla/5.0 WidgetTest',
+        ])->assertOk();
+
+    expect(CodeAttempt::query()->count())->toBe(3);
+});
+
+it('caps the attempts of one IP per campaign per UTC day', function (): void {
+    $campaign = widgetCampaign();
+
+    foreach (range(1, 5) as $i) {
+        $this->postJson('/widget/start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-'.$i], [
+            'Origin' => 'https://advertiser.test',
+            'User-Agent' => 'Mozilla/5.0 Browser'.$i,
+        ])->assertOk();
+    }
+
+    $this->postJson('/widget/start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-x6'], [
+        'Origin' => 'https://advertiser.test',
+        'User-Agent' => 'Mozilla/5.0 Browser6',
+    ])->assertStatus(429)->assertJsonPath('error', 'too_many_attempts');
+
+    expect(CodeAttempt::query()->count())->toBe(5);
+
+    $this->travelTo(now('UTC')->addDay()->startOfDay()->addMinute());
+
+    $this->postJson('/widget/start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-x7'], [
+        'Origin' => 'https://advertiser.test',
+        'User-Agent' => 'Mozilla/5.0 Browser6',
+    ])->assertOk();
+});
+
+it('throttles widget start to twenty requests a minute per IP', function (): void {
+    $campaign = widgetCampaign();
+
+    foreach (range(1, 20) as $i) {
+        widgetPost('start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'page-load-'.$i])->assertOk();
+    }
+
+    widgetPost('start', ['campaign' => $campaign->widget_key, 'page_load_id' => 'p21'])->assertStatus(429);
+
+    // The other endpoints keep their own limit.
+    widgetPost('progress', ['attempt_token' => 'x'])->assertStatus(400);
+});

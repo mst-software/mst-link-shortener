@@ -6,6 +6,7 @@ use App\Models\Campaign;
 use App\Models\CodeAttempt;
 use App\Services\Settings;
 use App\Services\Views\VisitorContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -13,7 +14,7 @@ use RuntimeException;
  * Drives the widget's two-stage wait on the server clock and hands out the code.
  *
  * Every method returns either a payload array or an error array
- * (`['error' => 'too_early'|'campaign_unavailable'|'bad_token', ...]`).
+ * (`['error' => 'too_early'|'campaign_unavailable'|'too_many_attempts'|'bad_token', ...]`).
  */
 class CodeIssuer
 {
@@ -65,6 +66,17 @@ class CodeIssuer
     ): array {
         if ($existing !== null && ! $this->isFinished($existing)) {
             return $this->payload($existing, $campaign);
+        }
+
+        // A browser that asks again without its token continues its open attempt instead of adding rows.
+        $open = $this->openAttempt($campaign, $context);
+
+        if ($open !== null) {
+            return $this->payload($open, $campaign);
+        }
+
+        if ($this->tooManyAttempts($campaign, $context)) {
+            return ['error' => 'too_many_attempts'];
         }
 
         if ($this->limitReached($campaign)) {
@@ -222,6 +234,36 @@ class CodeIssuer
     {
         return $attempt->used_at !== null
             || ($attempt->code !== null && $attempt->expires_at !== null && $attempt->expires_at->isPast());
+    }
+
+    /**
+     * The newest attempt of this IP and browser on the campaign that is neither used nor expired.
+     */
+    private function openAttempt(Campaign $campaign, VisitorContext $context): ?CodeAttempt
+    {
+        return CodeAttempt::query()
+            ->where('campaign_id', $campaign->id)
+            ->where('ip', $context->ip)
+            ->where('ua_hash', $context->uaHash)
+            ->whereNull('used_at')
+            ->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->where('started_at', '>', now()->subDay())
+            ->latest('started_at')
+            ->first();
+    }
+
+    /**
+     * Attempts one IP may start per campaign per UTC day, so a script cannot farm codes by forging page loads.
+     */
+    private function tooManyAttempts(Campaign $campaign, VisitorContext $context): bool
+    {
+        $started = CodeAttempt::query()
+            ->where('campaign_id', $campaign->id)
+            ->where('ip', $context->ip)
+            ->whereBetween('started_at', [now('UTC')->startOfDay(), now('UTC')->endOfDay()])
+            ->count();
+
+        return $started >= max(1, Settings::int('widget_attempts_per_ip_per_day'));
     }
 
     private function limitReached(Campaign $campaign): bool

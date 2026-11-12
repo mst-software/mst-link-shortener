@@ -24,6 +24,7 @@ return [
         'captcha_provider' => 'turnstile',
         'visit_mode' => 'auto',
         'code_session_seconds' => 600,
+        'widget_attempts_per_ip_per_day' => 5,
         'tutorial_video_url' => '',
     ],
 
