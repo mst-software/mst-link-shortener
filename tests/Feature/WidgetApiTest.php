@@ -293,3 +293,22 @@ it('starts a fresh attempt instead of showing a code that was already used', fun
         ->and(CodeAttempt::query()->where('code', $usedCode)->count())->toBe(1)
         ->and(CodeAttempt::query()->count())->toBe(2);
 });
+
+it('re-checks the daily limit when the code is issued and never overshoots it', function (): void {
+    $campaign = widgetCampaign(['daily_limit' => 1]);
+    $token = widgetStart($campaign);
+
+    $this->travel(61)->seconds();
+    widgetPost('progress', ['attempt_token' => $token, 'page_load_id' => 'page-load-two'])->assertOk();
+    $this->travel(16)->seconds();
+
+    // Another visitor takes the last code of the day while this attempt waits.
+    CodeAttempt::factory()->issued()->create(['campaign_id' => $campaign->id]);
+
+    widgetPost('code', ['attempt_token' => $token])
+        ->assertForbidden()
+        ->assertJsonPath('error', 'campaign_unavailable');
+
+    expect(CodeAttempt::query()->whereNotNull('code')->count())->toBe(1)
+        ->and(CodeAttempt::query()->whereKey(CodeAttempt::query()->whereNull('code')->value('id'))->exists())->toBeTrue();
+});

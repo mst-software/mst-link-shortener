@@ -144,27 +144,27 @@ class CodeIssuer
             return ['error' => 'too_early', 'remaining_seconds' => $remaining];
         }
 
-        if ($this->limitReached($campaign)) {
-            return ['error' => 'campaign_unavailable'];
-        }
-
-        $code = DB::transaction(function () use ($attempt, $campaign): string {
+        return DB::transaction(function () use ($attempt, $campaign): array {
+            // The campaign row is locked first so concurrent requests count and issue one at a time.
+            $lockedCampaign = Campaign::query()->lockForUpdate()->findOrFail($campaign->id);
             $locked = CodeAttempt::query()->lockForUpdate()->findOrFail($attempt->id);
 
             if ($locked->code !== null) {
-                return $locked->code;
+                return ['code' => $locked->code];
+            }
+
+            if ($this->limitReached($lockedCampaign)) {
+                return ['error' => 'campaign_unavailable'];
             }
 
             $locked->forceFill([
-                'code' => $this->generateCode($campaign),
+                'code' => $this->generateCode($lockedCampaign),
                 'issued_at' => now(),
                 'expires_at' => now()->addSeconds(Settings::codeSessionSeconds()),
             ])->save();
 
-            return (string) $locked->code;
+            return ['code' => (string) $locked->code];
         });
-
-        return ['code' => $code];
     }
 
     /**
