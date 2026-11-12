@@ -1,6 +1,4 @@
-/*! LinkCash code widget. Plain JS, no dependencies. Embed:
- *  <script async src="https://YOUR-DOMAIN/js/widget.js" data-campaign="WIDGET_KEY"></script>
- */
+/*! LinkCash code widget. Plain JS. Embed with data-campaign="WIDGET_KEY". */
 (function () {
   'use strict';
 
@@ -28,7 +26,7 @@
       new Date().getTimezoneOffset(), navigator.hardwareConcurrency || 0].join('|');
     var h = 5381;
     for (var i = 0; i < raw.length; i++) { h = ((h << 5) + h + raw.charCodeAt(i)) >>> 0; }
-    return ('00000000' + h.toString(16)).slice(-8) + ('00000000' + raw.length.toString(16)).slice(-8);
+    return h.toString(16);
   }
 
   function storage() {
@@ -40,15 +38,14 @@
   }
 
   function getToken() { try { return localStorage.getItem(storeKey); } catch (e) { return null; } }
-  function setToken(t) { try { localStorage.setItem(storeKey, t); } catch (e) { /* ignored */ } }
-  function clearToken() { try { localStorage.removeItem(storeKey); } catch (e) { /* ignored */ } }
+  function setToken(t) { try { localStorage.setItem(storeKey, t); } catch (e) {} }
+  function clearToken() { try { localStorage.removeItem(storeKey); } catch (e) {} }
 
   var CSS = '.lcw{box-sizing:border-box;max-width:560px;margin:24px auto;padding:0 12px;text-align:center;' +
     'font:600 15px/1.4 Arial,Helvetica,sans-serif;color:#333}' +
-    '.lcw *{box-sizing:border-box}' +
     '.lcw-btn{display:inline-block;max-width:100%;padding:11px 22px;border:0;border-radius:8px;background:#e8202f;' +
     'color:#fff;font:inherit;font-weight:700;cursor:pointer;word-wrap:break-word}' +
-    '.lcw-btn[disabled]{cursor:default;opacity:.95}' +
+    '.lcw-btn[disabled]{cursor:default}' +
     '.lcw-code{display:inline-flex;align-items:center;gap:10px;max-width:100%}' +
     '.lcw-copy{width:40px;height:40px;padding:0;border:0;border-radius:8px;background:#e8202f;color:#fff;cursor:pointer}' +
     '.lcw-copy svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2}' +
@@ -85,7 +82,6 @@
   function post(path, data) {
     return fetch(base + '/widget/' + path, {
       method: 'POST',
-      mode: 'cors',
       credentials: 'omit',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(data)
@@ -142,7 +138,6 @@
     copy.type = 'button';
     copy.className = 'lcw-copy';
     copy.title = 'Copy code';
-    copy.setAttribute('aria-label', 'Copy code');
     copy.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/>' +
       '<path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
     copy.addEventListener('click', function () { copyText(code); });
@@ -163,7 +158,7 @@
       area.style.opacity = '0';
       document.body.appendChild(area);
       area.select();
-      try { document.execCommand('copy'); done(); } catch (e) { /* ignored */ }
+      try { document.execCommand('copy'); done(); } catch (e) {}
       document.body.removeChild(area);
     }
   }
@@ -175,7 +170,6 @@
     fail();
   }
 
-  /** Render the stage the server reports; startedHere is true on the page that began the attempt. */
   function apply(data, startedHere) {
     if (data.stage === 3 && data.code) { return showCode(data.code); }
 
