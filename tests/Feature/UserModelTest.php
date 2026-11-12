@@ -67,3 +67,47 @@ it('provides a label for every enum case', function () {
         ->and(PayoutMethod::BankTransfer->label())->toBe('Bank Transfer')
         ->and(PayoutMethod::Usdt->label())->toBe('USDT');
 });
+
+it('retries when a generated referral code or api token is already taken', function () {
+    $existing = User::factory()->create(['referral_code' => 'TAKEN12', 'api_token' => str_repeat('T', 24)]);
+
+    $codes = ['TAKEN12', 'FRESH34'];
+    $tokens = [str_repeat('T', 24), str_repeat('F', 24)];
+    Str::createRandomStringsUsing(function (int $length) use (&$codes, &$tokens): string {
+        return match ($length) {
+            7 => array_shift($codes),
+            24 => array_shift($tokens),
+            default => str_repeat('r', $length),
+        };
+    });
+
+    try {
+        $user = User::factory()->create(['referral_code' => null, 'api_token' => null]);
+    } finally {
+        Str::createRandomStringsNormally();
+    }
+
+    expect($user->referral_code)->toBe('FRESH34')
+        ->and($user->api_token)->toBe(str_repeat('F', 24))
+        ->and($existing->referral_code)->toBe('TAKEN12');
+});
+
+it('does not allow privileged fields to be mass assigned', function () {
+    $user = new User([
+        'username' => 'mallory',
+        'role' => 'admin',
+        'status' => 'banned',
+        'balance_micro' => 999,
+        'referred_by' => 1,
+        'api_token' => 'x',
+        'referral_code' => 'y',
+    ]);
+
+    expect($user->username)->toBe('mallory')
+        ->and($user->isAdmin())->toBeFalse()
+        ->and($user->isActive())->toBeTrue()
+        ->and($user->balance_micro)->toBe(0)
+        ->and($user->referred_by)->toBeNull()
+        ->and($user->api_token)->toBeNull()
+        ->and($user->referral_code)->toBeNull();
+});

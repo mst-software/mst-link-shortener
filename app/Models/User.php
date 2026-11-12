@@ -27,13 +27,6 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
-        'role',
-        'status',
-        'api_token',
-        'referral_code',
-        'referred_by',
-        'balance_micro',
-        'processing_micro',
         'fullname',
         'phone_number',
         'address',
@@ -52,8 +45,8 @@ class User extends Authenticatable
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'role' => 'member',
-        'status' => 'active',
+        'role' => UserRole::Member->value,
+        'status' => UserStatus::Active->value,
         'balance_micro' => 0,
         'processing_micro' => 0,
         'default_level' => 1,
@@ -76,9 +69,21 @@ class User extends Authenticatable
     protected static function booted(): void
     {
         static::creating(function (User $user): void {
-            $user->api_token ??= Str::random(24);
-            $user->referral_code ??= Str::random(7);
+            $user->api_token ??= static::generateUnique('api_token', 24);
+            $user->referral_code ??= static::generateUnique('referral_code', 7);
         });
+    }
+
+    /**
+     * Generate a random string that is not yet used in the given column.
+     */
+    protected static function generateUnique(string $column, int $length): string
+    {
+        do {
+            $value = Str::random($length);
+        } while (static::query()->where($column, $value)->exists());
+
+        return $value;
     }
 
     /**
