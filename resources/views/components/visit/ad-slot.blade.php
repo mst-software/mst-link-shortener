@@ -2,6 +2,7 @@
 @if ($slots->isNotEmpty())
   {{-- Ad code is trusted admin input and is printed unescaped by design. The container never wraps the Continue button. --}}
   <div class="ad-container ad-container-{{ $placement->value }}" data-ad-placement="{{ $placement->value }}" @if ($placement->isStepBound()) data-ad-step-bound hidden @endif>
+    <p class="ad-label">Sponsored</p>
     @if ($placement->isStepBound())
       <template>
     @endif
