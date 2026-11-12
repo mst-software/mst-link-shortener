@@ -30,6 +30,9 @@
 .visit-step { margin: 0 0 6px; font-family: Roboto, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #038018; }
 .visit-title { margin: 0 0 20px; font-size: 24px; font-weight: 900; color: #222; }
 
+.ad-container { margin: 0 auto 20px; max-width: 100%; overflow: hidden; text-align: center; }
+.ad-container[hidden] { display: none; }
+
 .visit-countdown { display: flex; flex-direction: column; align-items: center; margin: 0 auto 20px; }
 .visit-countdown[hidden] { display: none; }
 .visit-seconds { display: flex; align-items: center; justify-content: center; width: 84px; height: 84px; border: 5px solid #b8de01; border-radius: 50%; font-family: Roboto, sans-serif; font-size: 32px; font-weight: 700; color: #038018; }

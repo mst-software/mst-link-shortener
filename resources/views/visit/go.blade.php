@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="visit-container">
-  {{-- Ad slot "top" goes here (added by the ad slots task). --}}
+  <x-visit.ad-slot :placement="App\Enums\AdPlacement::Top" />
 
   <section
     id="visit"
@@ -22,7 +22,11 @@
     <p id="visit-step" class="visit-step">Loading&hellip;</p>
     <h1 class="visit-title">Your link is almost ready</h1>
 
-    {{-- Ad slot for the current step goes here (added by the ad slots task). --}}
+    {{-- Step ads render hidden; visit.js shows the one for the current step. They are siblings of the button, never its parent. --}}
+    <x-visit.ad-slot :placement="App\Enums\AdPlacement::Step1" />
+    <x-visit.ad-slot :placement="App\Enums\AdPlacement::Step2" />
+    <x-visit.ad-slot :placement="App\Enums\AdPlacement::Step3" />
+    <x-visit.ad-slot :placement="App\Enums\AdPlacement::Final" />
 
     <div id="visit-countdown" class="visit-countdown" aria-live="polite" hidden>
       <span id="visit-seconds" class="visit-seconds">0</span>
@@ -42,7 +46,7 @@
     <button type="button" class="visit-report-open" data-report-open>Report an error</button>
   </section>
 
-  {{-- Ad slot "bottom" goes here (added by the ad slots task). --}}
+  <x-visit.ad-slot :placement="App\Enums\AdPlacement::Bottom" />
 
   <section class="visit-cta">
     <h2>Ready to earn money?</h2>
