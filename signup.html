@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Create an Account</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Register a new membership">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link href="//fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic" rel="stylesheet">
+    <link rel="stylesheet" href="assets/auth.css"/>
+</head>
+<body class="hold-transition login-page">
+
+<div class="login-box">
+    <div class="login-logo">
+        <a href="index.html"><img src="assets/logo-poppins-dark.png" alt="LinkCash" /></a>
+    </div>
+    <!-- /.login-logo -->
+    <div class="login-box-body">
+
+        <div id="flash"></div>
+
+<p class="login-box-msg">Register a new membership</p>
+
+<form method="post" accept-charset="utf-8" id="signup-form" action="signup.html" novalidate>
+<div class="form-group text required"><input type="text" name="username" placeholder="Username" class="form-control" required="required" maxlength="150" id="username" value=""/><span class="help-block"></span></div>
+<div class="form-group email required"><input type="email" name="email" placeholder="Email" class="form-control" required="required" maxlength="254" id="email" value=""/><span class="help-block"></span></div>
+<div class="form-group password required"><input type="password" name="password" placeholder="Password" class="form-control" required="required" id="password" value=""/><span class="help-block"></span></div>
+<div class="form-group password required"><input type="password" name="password_compare" placeholder="Re-enter Password" class="form-control" required="required" id="password-compare"/><span class="help-block"></span></div>
+
+<div class="form-group">
+    <div class="form-group checkbox required"><label for="accept"><input type="checkbox" name="accept" value="1" required="required" id="accept"><b>I agree to the <a href='terms.html' target='_blank'>Terms of Use</a> and <a href='privacy.html' target='_blank'>Privacy Policy</a>.</b></label><span class="help-block"></span></div></div>
+
+<button class="btn btn-primary btn-block btn-flat btn-captcha" id="invisibleCaptchaSignup" type="submit">Register</button>
+</form>
+<div class="social-auth-links text-center">
+    <p>- OR -</p>
+</div>
+
+<a href="signin.html" class="text-center">I already have a membership</a>
+
+    </div>
+    <!-- /.login-box-body -->
+</div>
+<!-- /.login-box -->
+
+<footer>
+    <div class="container text-center"></div>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+$(function () {
+  /* ---- Thanh thông báo cookie ---- */
+  var seen = false; try { seen = localStorage.getItem('lc_cookie') === '1'; } catch (e) {}
+  if (!seen) {
+    $('body').append('<div id="cookie-pop"><div class="container-fluid"><div class="col-xs-9"><div class="cookie-message">This website uses cookies to ensure you get the best experience on our website. <a href="privacy.html" target="_blank"><b>Learn more</b></a></div></div><div class="col-xs-3"><div class="cookie-confirm"><button id="got-cookie" class="btn btn-default" type="submit">Got it!</button></div></div></div></div>');
+    $(document).on('click', '#got-cookie', function () {
+      try { localStorage.setItem('lc_cookie', '1'); } catch (e) {}
+      $('#cookie-pop').remove();
+    });
+  }
+
+  /* ---- Kiểm tra form (demo, chưa nối backend) ---- */
+  function error($input, msg) { $input.closest('.form-group').addClass('has-error').find('.help-block').first().text(msg); }
+  $('#signup-form').on('submit', function (e) {
+    e.preventDefault();
+    $('.form-group').removeClass('has-error').find('.help-block').text('');
+    $('#flash').empty();
+    var ok = true;
+    if (!$.trim($('#username').val())) { error($('#username'), 'This field cannot be left empty'); ok = false; }
+    else if (!/^[A-Za-z0-9_]{3,}$/.test($('#username').val())) { error($('#username'), 'Use at least 3 letters, numbers or underscores'); ok = false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($.trim($('#email').val()))) { error($('#email'), 'The provided value is invalid'); ok = false; }
+    if ($('#password').val().length < 6) { error($('#password'), 'The password must be at least 6 characters long'); ok = false; }
+    if ($('#password-compare').val() !== $('#password').val()) { error($('#password-compare'), 'The passwords do not match'); ok = false; }
+    if (!$('#accept').prop('checked')) { error($('#accept'), 'You must agree to the Terms of Use and Privacy Policy'); ok = false; }
+    if (ok) $('#flash').html('<div class="alert alert-success">Demo only: registration is not connected to a backend yet.</div>');
+  });
+});
+</script>
+</body>
+</html>
