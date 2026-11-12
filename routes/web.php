@@ -10,6 +10,7 @@ use App\Http\Controllers\LegalController;
 use App\Http\Controllers\LinkInfoController;
 use App\Http\Controllers\LinkShortenController;
 use App\Http\Controllers\PayoutRateController;
+use App\Http\Controllers\QuickLinkController;
 use App\Http\Controllers\ReferralRedirectController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,5 +32,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('links/shorten', LinkShortenController::class)->name('links.shorten');
     Route::get('{alias}/info', LinkInfoController::class)->name('link.info');
 });
+
+Route::get('st', QuickLinkController::class)->middleware('throttle:api')->name('quick-link');
 
 // visit routes are registered below this line (Task 15)

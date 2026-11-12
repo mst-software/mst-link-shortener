@@ -28,6 +28,7 @@ Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(
     Route::prefix('tools')->name('tools.')->group(function () {
         Route::get('quick', [ToolController::class, 'quick'])->name('quick');
         Route::get('mass-shrinker', [ToolController::class, 'massShrinker'])->name('mass-shrinker');
+        Route::post('mass-shrinker', [ToolController::class, 'massShrink'])->name('mass-shrinker.submit');
         Route::get('full', [ToolController::class, 'fullPageScript'])->name('full');
         Route::get('api', [ToolController::class, 'api'])->name('api');
     });
