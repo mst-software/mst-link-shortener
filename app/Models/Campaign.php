@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Campaign extends Model
 {
@@ -75,6 +76,18 @@ class Campaign extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
         ];
+    }
+
+    /**
+     * A random widget key that no campaign uses yet.
+     */
+    public static function generateWidgetKey(): string
+    {
+        do {
+            $key = Str::lower(Str::random(24));
+        } while (self::query()->where('widget_key', $key)->exists());
+
+        return $key;
     }
 
     /**
