@@ -34,6 +34,14 @@ class VisitController extends Controller
 
     private const COOKIE_MINUTES = 60 * 24 * 30;
 
+    /**
+     * Layout states the local preview can show; the first one of each mode is the default.
+     */
+    private const PREVIEW_STATES = [
+        'keyword' => ['idle', 'typed', 'ready', 'error', 'low', 'expired', 'locked', 'locked-hour', 'report'],
+        'wait' => ['counting', 'done', 'final'],
+    ];
+
     public function __construct(
         private VisitFlow $flow,
         private StepTokenService $tokens,
@@ -73,7 +81,7 @@ class VisitController extends Controller
             ->view('visit.go', [
                 'alias' => $link->alias,
                 'captchaProvider' => $captcha,
-                'preview' => app()->isLocal() && $request->query('preview') === 'keyword' ? $this->keywordPreview() : null,
+                'preview' => $this->preview($request),
             ])
             ->header('Cache-Control', 'no-store');
     }
@@ -214,20 +222,64 @@ class VisitController extends Controller
     }
 
     /**
-     * Sample keyword-mode data for previewing the layout locally with "?preview=keyword".
+     * Sample data for previewing the layout locally without a visit session:
+     * "?preview=keyword|wait", optionally with "&state=..." (see PREVIEW_STATES) and "&video=youtube|vimeo".
      *
+     * @return array<string, mixed>|null
+     */
+    private function preview(Request $request): ?array
+    {
+        $mode = $request->query('preview');
+
+        if (! app()->isLocal() || ! in_array($mode, ['keyword', 'wait'], true)) {
+            return null;
+        }
+
+        $state = $request->query('state');
+        $state = in_array($state, self::PREVIEW_STATES[$mode], true) ? $state : self::PREVIEW_STATES[$mode][0];
+
+        return [
+            ...($mode === 'keyword' ? $this->keywordPreview($state, $request->query('video')) : $this->waitPreview($state)),
+            'preview_state' => $state,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function keywordPreview(): array
+    private function keywordPreview(string $state, mixed $video): array
     {
         return [
             'mode' => 'keyword',
             'keyword' => 'how to repot a houseplant',
             'display_domain' => 'example-adv***.com',
             'images' => ['google' => null, 'button' => null, 'position' => null],
-            'session_seconds_left' => 600,
-            'tutorial_video_url' => '',
+            'session_seconds_left' => match ($state) {
+                'low' => 45,
+                'expired' => 0,
+                default => 600,
+            },
+            'tutorial_video_url' => match ($video) {
+                'youtube' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                'vimeo' => 'https://vimeo.com/76979871',
+                default => '',
+            },
             'captcha_required' => true,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function waitPreview(string $state): array
+    {
+        return [
+            'mode' => 'wait',
+            'step' => $state === 'final' ? 3 : 1,
+            'total_steps' => 3,
+            'dwell_seconds' => $state === 'counting' ? 15 : 0,
+            'token' => 'preview',
+            'captcha_required' => $state === 'final',
         ];
     }
 
