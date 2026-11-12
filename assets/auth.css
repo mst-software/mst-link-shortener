@@ -1,0 +1,75 @@
+/* Trang đăng nhập / đăng ký / quên mật khẩu.
+   Khung giao diện dựng lại theo AdminLTE + Bootstrap 3 (giống trang auth của link1s.top). */
+*, *:before, *:after { box-sizing: border-box; }
+html { font-size: 10px; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 400; font-size: 14px; line-height: 1.42857143; color: #333;
+  background: #d2d6de; overflow-x: hidden; overflow-y: auto;
+}
+a { color: #3c8dbc; text-decoration: none; background-color: transparent; }
+a:hover, a:active, a:focus { outline: none; text-decoration: none; color: #72afd2; }
+img { vertical-align: middle; border: 0; }
+p { margin: 0 0 10px; }
+b { font-weight: 700; }
+button, input { font-family: inherit; font-size: inherit; line-height: inherit; margin: 0; }
+label { display: inline-block; max-width: 100%; margin-bottom: 5px; color: #038018; font-weight: 700; }
+.text-center { text-align: center; }
+
+/* Hộp đăng nhập */
+.login-box { width: 360px; margin: 7% auto; }
+@media (max-width: 768px) { .login-box { width: 90%; margin-top: 20px; } }
+.login-logo { font-size: 35px; text-align: center; margin-bottom: 25px; font-weight: 300; }
+.login-logo a { color: #444; }
+.login-logo img { width: 240px; max-width: 100%; height: auto; }
+.login-box-body { background: #fff; padding: 20px; border-top: 0; color: #666; }
+.login-box-msg { margin: 0; text-align: center; padding: 0 20px 20px 20px; }
+
+/* Form */
+.form-group { margin-bottom: 15px; }
+.form-control {
+  display: block; width: 100%; height: 34px; padding: 6px 12px; font-size: 14px; line-height: 1.42857143;
+  color: #555; background-color: #fff; background-image: none; border: 1px solid #d2d6de; border-radius: 0; box-shadow: none;
+  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+.form-control:focus { border-color: #3c8dbc; box-shadow: none; outline: 0; }
+.form-control::placeholder { color: #999; opacity: 1; }
+.help-block { display: block; margin-top: 5px; margin-bottom: 10px; color: #737373; }
+.has-error label, .has-error .help-block { color: #dd4b39; }
+.has-error .form-control { border-color: #dd4b39; box-shadow: none; }
+.checkbox { position: relative; display: block; margin-top: 10px; margin-bottom: 10px; }
+.checkbox label { min-height: 20px; padding-left: 20px; margin-bottom: 0; font-weight: 400; cursor: pointer; }
+.checkbox input[type=checkbox] { position: absolute; margin-top: 4px; margin-left: -20px; }
+
+/* Nút */
+.btn {
+  display: inline-block; margin-bottom: 0; font-weight: 400; text-align: center; white-space: nowrap; vertical-align: middle;
+  touch-action: manipulation; cursor: pointer; background-image: none; border: 1px solid transparent; padding: 6px 12px;
+  font-size: 14px; line-height: 1.42857143; border-radius: 4px; user-select: none;
+}
+.btn:focus { outline: 5px auto -webkit-focus-ring-color; outline-offset: -2px; }
+.btn-primary { color: #fff; background-color: #3c8dbc; border-color: #367fa9; }
+.btn-primary:hover, .btn-primary:focus { color: #fff; background-color: #367fa9; border-color: #204d74; }
+.btn-default { color: #333; background-color: #fff; border-color: #ccc; }
+.btn-default:hover, .btn-default:focus { color: #333; background-color: #e6e6e6; border-color: #adadad; }
+.btn-block { display: block; width: 100%; }
+.btn-flat { border-radius: 0; box-shadow: none; border-width: 1px; }
+
+.social-auth-links { margin: 10px 0; }
+
+/* Thông báo */
+.alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 3px; }
+.alert-success { color: #3c763d; background-color: #dff0d8; border-color: #d6e9c6; }
+.alert-danger { color: #a94442; background-color: #f2dede; border-color: #ebccd1; }
+
+/* Thanh thông báo cookie (như trang gốc) */
+footer { margin-top: 0; }
+#cookie-pop { position: sticky; bottom: 0; z-index: 10000; width: 100%; background-color: #038018; padding: 15px 0; }
+#cookie-pop .container-fluid { padding-right: 15px; padding-left: 15px; margin: 0 auto; }
+#cookie-pop .container-fluid:after { content: ""; display: table; clear: both; }
+#cookie-pop .col-xs-9, #cookie-pop .col-xs-3 { float: left; padding: 0 15px; min-height: 1px; }
+#cookie-pop .col-xs-9 { width: 75%; }
+#cookie-pop .col-xs-3 { width: 25%; }
+.cookie-message { color: #fff; padding: 20px 0; }
+.cookie-message a { color: #fff; }
+.cookie-confirm { text-align: right; padding-top: 15px; }
