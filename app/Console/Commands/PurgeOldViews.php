@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Enums\ViewStatus;
 use App\Models\View;
+use App\Models\ViewDedup;
+use App\Models\VisitSession;
 use App\Services\Settings;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,17 +22,24 @@ class PurgeOldViews extends Command
         $deleted = 0;
 
         View::query()
-            ->whereNotNull('aggregated_at')
             ->where('status', '!=', ViewStatus::Pending)
             ->where('created_at', '<', $cutoff)
+            ->where(function ($query): void {
+                // Aggregated views, plus invalid/cancelled ones that are never aggregated.
+                $query->whereNotNull('aggregated_at')
+                    ->orWhereIn('status', [ViewStatus::Invalid, ViewStatus::Cancelled]);
+            })
             ->select('id')
             ->chunkById(1000, function (Collection $chunk) use (&$deleted): void {
                 $deleted += View::query()
                     ->whereKey($chunk->modelKeys())
-                    ->whereNotNull('aggregated_at')
                     ->where('status', '!=', ViewStatus::Pending)
                     ->delete();
             });
+
+        // Expired dedup keys and finished or expired visit sessions are useless after their window.
+        ViewDedup::query()->where('expires_at', '<', now())->delete();
+        VisitSession::query()->where('expires_at', '<', now()->subDay())->whereDoesntHave('view')->delete();
 
         $this->info('Purged '.$deleted.' views.');
 

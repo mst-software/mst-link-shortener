@@ -5,6 +5,7 @@ use App\Models\DailyStat;
 use App\Models\Link;
 use App\Models\User;
 use App\Models\View;
+use App\Services\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -102,4 +103,19 @@ it('purges old aggregated views but keeps recent and pending ones', function () 
         ->and(View::query()->whereKey($oldPending->id)->exists())->toBeTrue()
         ->and(View::query()->whereKey($oldNotAggregated->id)->exists())->toBeTrue()
         ->and(View::query()->whereKey($recent->id)->exists())->toBeTrue();
+});
+
+it('purges old invalid and cancelled views even when they were never aggregated', function () {
+    $user = User::factory()->create();
+    $old = now()->subDays(Settings::int('view_purge_days') + 5);
+
+    $invalid = makeView($user, ['status' => ViewStatus::Invalid, 'created_at' => $old]);
+    $cancelled = makeView($user, ['status' => ViewStatus::Cancelled, 'created_at' => $old]);
+    $pending = makeView($user, ['status' => ViewStatus::Pending, 'created_at' => $old]);
+
+    $this->artisan('views:purge')->assertSuccessful();
+
+    expect(View::query()->whereKey($invalid->id)->exists())->toBeFalse()
+        ->and(View::query()->whereKey($cancelled->id)->exists())->toBeFalse()
+        ->and(View::query()->whereKey($pending->id)->exists())->toBeTrue();
 });
