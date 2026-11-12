@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+@import './site.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --breakpoint-sm: 768px;
+    --breakpoint-md: 992px;
+    --breakpoint-lg: 1200px;
+
+    --color-g: #038018;
+    --color-lime: #bfe217;
+    --color-lime2: #b8de01;
+    --color-sky: #00aeef;
+
+    --font-lato: Lato, sans-serif;
+    --font-roboto: Roboto, sans-serif;
+}
