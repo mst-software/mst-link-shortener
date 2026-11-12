@@ -28,6 +28,7 @@ Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(
     Route::post('links/restore', [LinkController::class, 'restore'])->name('links.restore');
 
     Route::get('withdraws', [WithdrawController::class, 'index'])->name('withdraws');
+    Route::post('withdraws', [WithdrawController::class, 'store'])->name('withdraws.store');
 
     Route::prefix('tools')->name('tools.')->group(function () {
         Route::get('quick', [ToolController::class, 'quick'])->name('quick');

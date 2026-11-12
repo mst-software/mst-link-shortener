@@ -7,7 +7,7 @@
       ['label' => 'Blocked networks', 'icon' => 'ban', 'route' => 'admin.blocked-networks'],
       ['label' => 'Fraud flags', 'icon' => 'flag', 'route' => 'admin.fraud-flags'],
       ['label' => 'Links', 'icon' => 'link', 'route' => 'admin.links'],
-      ['label' => 'Withdrawals', 'icon' => 'dollar-sign', 'route' => 'admin.withdrawals'],
+      ['label' => 'Withdrawals', 'icon' => 'dollar-sign', 'route' => 'admin.withdrawals.index'],
       ['label' => 'Notices', 'icon' => 'bell', 'route' => 'admin.notices'],
       ['label' => 'Support', 'icon' => 'life-ring', 'route' => 'admin.support'],
   ];
