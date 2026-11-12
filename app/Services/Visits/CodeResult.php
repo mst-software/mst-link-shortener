@@ -9,6 +9,7 @@ enum CodeResult: string
     case Expired = 'expired';
     case WrongDevice = 'wrong_device';
     case Locked = 'locked';
+    case LockedHourly = 'locked_hourly';
 
     /**
      * Error key returned to the visitor page for a refused code.
@@ -20,7 +21,7 @@ enum CodeResult: string
             self::Invalid => 'invalid_code',
             self::Expired => 'expired_code',
             self::WrongDevice => 'wrong_device',
-            self::Locked => 'locked',
+            self::Locked, self::LockedHourly => 'locked',
         };
     }
 
@@ -35,6 +36,7 @@ enum CodeResult: string
             self::Expired => 'This code has expired. Please get a new code.',
             self::WrongDevice => 'This code was issued to another browser. Please get the code with this browser.',
             self::Locked => 'Too many wrong codes. Please open the link again.',
+            self::LockedHourly => 'Too many wrong codes from your network. Please try again in about an hour.',
         };
     }
 }

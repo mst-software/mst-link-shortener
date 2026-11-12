@@ -36,7 +36,7 @@ class CodeRedeemer
         $hourlyKey = $this->hourlyKey($session, $context);
 
         if (RateLimiter::tooManyAttempts($hourlyKey, self::MAX_HOURLY_FAILURES)) {
-            return CodeResult::Locked;
+            return CodeResult::LockedHourly;
         }
 
         $code = strtolower(trim($code));
@@ -65,6 +65,11 @@ class CodeRedeemer
                 return $attempt->visit_session_id === $locked->getKey()
                     ? CodeResult::Accepted
                     : $this->fail($locked, $hourlyKey, CodeResult::Invalid);
+            }
+
+            // A code issued before the visit began cannot belong to this visit.
+            if ($attempt->issued_at === null || $attempt->issued_at->lt($locked->created_at)) {
+                return $this->fail($locked, $hourlyKey, CodeResult::Invalid);
             }
 
             if ($attempt->expires_at === null || ! $attempt->expires_at->isFuture()) {

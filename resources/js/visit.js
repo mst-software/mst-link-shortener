@@ -601,7 +601,7 @@ $(function () {
 
       if (xhr.status === 422 && body.error === 'locked') {
         state.busy = false;
-        stopAll('Too many wrong codes. Please open the link again to start over.', true);
+        stopAll(body.message || 'Too many wrong codes. Please open the link again to start over.', true);
         return;
       }
 

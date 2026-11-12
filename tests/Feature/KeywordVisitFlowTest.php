@@ -286,7 +286,8 @@ it('locks the session after five wrong codes', function () {
     submitCode($session, 'wrong1')->assertStatus(422)->assertJson(['error' => 'locked', 'failures_left' => 0]);
 
     // Even the right code is refused now.
-    submitCode($session, 'abc234')->assertStatus(422)->assertJson(['error' => 'locked']);
+    submitCode($session, 'abc234')->assertStatus(422)->assertJson(['error' => 'locked'])
+        ->assertJsonFragment(['message' => 'Too many wrong codes. Please open the link again.']);
 
     expect($session->fresh()->status)->toBe(VisitStatus::Failed)
         ->and($attempt->fresh()->used_at)->toBeNull();
@@ -300,7 +301,8 @@ it('locks an IP after ten wrong codes in an hour on one campaign even across ses
     $session = anotherKeywordSession();
     issueCode($this->campaign);
 
-    submitCode($session, 'abc234')->assertStatus(422)->assertJson(['error' => 'locked']);
+    submitCode($session, 'abc234')->assertStatus(422)->assertJson(['error' => 'locked'])
+        ->assertJsonFragment(['message' => 'Too many wrong codes from your network. Please try again in about an hour.']);
 });
 
 it('still returns the destination but marks the view invalid when the code came from another IP', function () {

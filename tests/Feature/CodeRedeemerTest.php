@@ -108,5 +108,25 @@ it('locks an IP after ten failures per hour on a campaign', function () {
 
     attemptFor($this->campaign);
 
-    expect($this->redeemer->redeem($this->session, 'abc234', $this->context))->toBe(CodeResult::Locked);
+    expect($this->redeemer->redeem($this->session, 'abc234', $this->context))->toBe(CodeResult::LockedHourly);
+});
+
+it('refuses a code issued before the visit session began without consuming it', function () {
+    $attempt = attemptFor($this->campaign, ['issued_at' => $this->session->created_at->copy()->subSecond()]);
+
+    expect($this->redeemer->redeem($this->session, 'abc234', $this->context))->toBe(CodeResult::Invalid)
+        ->and($this->session->fresh()->code_failures)->toBe(1)
+        ->and($attempt->fresh()->used_at)->toBeNull();
+});
+
+it('accepts a code issued after the visit session began', function () {
+    attemptFor($this->campaign, ['issued_at' => $this->session->created_at->copy()->addSecond()]);
+
+    expect($this->redeemer->redeem($this->session, 'abc234', $this->context))->toBe(CodeResult::Accepted);
+});
+
+it('tells the visitor to try again in about an hour when the IP limiter trips', function () {
+    expect(CodeResult::LockedHourly->label())->toContain('about an hour')
+        ->and(CodeResult::LockedHourly->errorKey())->toBe('locked')
+        ->and(CodeResult::Locked->label())->toBe('Too many wrong codes. Please open the link again.');
 });
