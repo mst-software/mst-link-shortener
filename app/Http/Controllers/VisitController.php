@@ -64,7 +64,7 @@ class VisitController extends Controller
     /**
      * The single visitor page. Every step runs on it through AJAX, without reloading.
      */
-    public function show(string $alias): Response
+    public function show(Request $request, string $alias): Response
     {
         $link = $this->activeLinkOrFail($alias);
         $captcha = CaptchaProvider::current();
@@ -73,6 +73,7 @@ class VisitController extends Controller
             ->view('visit.go', [
                 'alias' => $link->alias,
                 'captchaProvider' => $captcha,
+                'preview' => app()->isLocal() && $request->query('preview') === 'keyword' ? $this->keywordPreview() : null,
             ])
             ->header('Cache-Control', 'no-store');
     }
@@ -210,6 +211,24 @@ class VisitController extends Controller
         ]);
 
         return response()->json(['message' => 'Thank you. Your report has been sent.']);
+    }
+
+    /**
+     * Sample keyword-mode data for previewing the layout locally with "?preview=keyword".
+     *
+     * @return array<string, mixed>
+     */
+    private function keywordPreview(): array
+    {
+        return [
+            'mode' => 'keyword',
+            'keyword' => 'how to repot a houseplant',
+            'display_domain' => 'example-adv***.com',
+            'images' => ['google' => null, 'button' => null, 'position' => null],
+            'session_seconds_left' => 600,
+            'tutorial_video_url' => '',
+            'captcha_required' => true,
+        ];
     }
 
     private function stepResponse(StepInfo $info): JsonResponse
