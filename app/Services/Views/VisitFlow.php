@@ -329,7 +329,7 @@ class VisitFlow
      */
     private function deviceHoldsCode(VisitSession $session): bool
     {
-        if ($session->campaign_id === null) {
+        if ($session->campaign_id === null || Campaign::query()->find($session->campaign_id)?->isBlocked() !== false) {
             return false;
         }
 

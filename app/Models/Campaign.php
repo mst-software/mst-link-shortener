@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\ReviewStatus;
+use App\Enums\UserStatus;
+use App\Services\Settings;
 use Database\Factories\CampaignFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -92,7 +94,9 @@ class Campaign extends Model
     }
 
     /**
-     * Campaigns that are switched on and inside their optional date window.
+     * Campaigns that are switched on and inside their optional date window. A campaign with an
+     * advertiser behind it must also be approved, belong to an active advertiser and have a wallet
+     * that can pay for at least one more view.
      *
      * @param  Builder<Campaign>  $query
      * @return Builder<Campaign>
@@ -101,8 +105,31 @@ class Campaign extends Model
     {
         return $query
             ->where('is_active', true)
+            ->where(fn (Builder $owned) => $owned->whereNull('user_id')->orWhere(fn (Builder $advertiser) => $advertiser
+                ->where('review_status', ReviewStatus::Approved)
+                ->whereHas('owner', fn (Builder $owner) => $owner
+                    ->where('status', UserStatus::Active)
+                    ->whereRaw('users.balance_micro >= COALESCE(campaigns.price_micro, ?)', [Settings::int('advertiser_default_price_micro')]))))
             ->where(fn (Builder $window) => $window->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
             ->where(fn (Builder $window) => $window->whereNull('ends_at')->orWhere('ends_at', '>=', now()));
+    }
+
+    /**
+     * Whether an admin decision or the advertiser's account state forbids this campaign from serving
+     * anyone, even a visitor who already holds a code. A wallet that ran out does not count: the
+     * visitor may finish the visit that was already started.
+     */
+    public function isBlocked(): bool
+    {
+        if ($this->user_id === null) {
+            return false;
+        }
+
+        $this->loadMissing('owner');
+
+        return $this->review_status !== ReviewStatus::Approved
+            || $this->owner === null
+            || $this->owner->status !== UserStatus::Active;
     }
 
     /**
