@@ -53,6 +53,7 @@ Bad: `update stuff`, `Fix: Bug.`, `feat: add stats and fix navbar and update css
 - One PR per branch, opened only when the task is done. Title follows the commit style (English). Body: 2-5 short English bullets (what, why, how it was verified, anything not verified).
 - Push with `git push -u origin HEAD`. Do not force-push shared branches.
 - PRs target `main` of `mst-software/mst-link-shortener` and are merged on GitHub as merge commits. Do not merge unless the user says to. When asked to merge several PRs, merge in dependency order and resolve conflicts by keeping both sides.
+- **Merging into `main` happens only through a GitHub pull request** (`gh pr create`, then `gh pr merge --merge` once the user says to merge). Never merge into `main` locally: no `git merge` into `main`, no `git push` to `main`, no fast-forwarding `main`. Merging one work branch into another work branch locally (to combine a feature's parts) is fine; only `main` is protected.
 - For UI changes, verify in a browser (desktop and mobile width) before opening the PR and say so in the body.
 - Never commit: `.env*`, `vendor/`, `node_modules/`, `public/build`, `storage` contents, `.playwright-cli/` and `.playwright/` output (may contain credentials), debug screenshots or recordings, personal paths, IPs or keys.
 
