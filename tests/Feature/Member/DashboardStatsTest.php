@@ -150,7 +150,7 @@ it('lists at most ten top links ordered by views then earnings', function () {
     $response = $this->actingAs($this->member)->get(route('member.popular-link'))->assertOk();
 
     $response->assertDontSee('stranger.test');
-    $response->assertSeeInOrder([$links[11]->url, 'tie-high.test', 'tie-low.test', $links[10]->url]);
+    $response->assertSeeInOrder(['tie-high.test', $links[11]->url, 'tie-low.test', $links[10]->url]);
     expect(substr_count($response->getContent(), '<td>'.'1'.'</td>'))->toBe(1)
         ->and(preg_match_all('/<td class="text-right">/', $response->getContent()))->toBe(20);
 });
