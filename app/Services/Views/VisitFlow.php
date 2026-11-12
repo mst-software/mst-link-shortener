@@ -323,8 +323,9 @@ class VisitFlow
     }
 
     /**
-     * Whether the device of the session got a code of its campaign that it can still use: not
-     * expired and not used by another session, or already used by this session.
+     * Whether the device of the session got a code of its campaign that it can still use: issued to
+     * the same browser and IP after the session began, not expired and not used by another session,
+     * or already used by this session.
      */
     private function deviceHoldsCode(VisitSession $session): bool
     {
@@ -337,7 +338,10 @@ class VisitFlow
             ->where('ua_hash', $session->ua_hash)
             ->whereNotNull('code')
             ->where(function (Builder $query) use ($session): void {
-                $query->where(fn (Builder $unused) => $unused->whereNull('used_at')->where('expires_at', '>', now()))
+                $query->where(fn (Builder $unused) => $unused->whereNull('used_at')
+                    ->where('expires_at', '>', now())
+                    ->where('ip', $session->ip)
+                    ->where('issued_at', '>=', $session->created_at))
                     ->orWhere('visit_session_id', $session->getKey());
             })
             ->exists();

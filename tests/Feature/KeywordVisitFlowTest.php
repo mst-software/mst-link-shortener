@@ -409,3 +409,19 @@ it('uses one fallback for a non-positive code session length everywhere', functi
 
     expect(app(VisitFlow::class)->sessionSecondsLeft($session))->toBe(600);
 });
+
+it('does not let a code of another IP keep the session in keyword mode', function () {
+    $session = openKeywordLink();
+    issueCode($this->campaign, 'abc234', ['ip' => '198.51.100.7']);
+    $this->campaign->update(['is_active' => false]);
+
+    keywordInfo($session)->assertOk()->assertJson(['mode' => 'wait']);
+});
+
+it('does not let a code issued before the session began keep it in keyword mode', function () {
+    issueCode($this->campaign, 'abc234', ['issued_at' => now()->subMinute()]);
+    $session = openKeywordLink();
+    $this->campaign->update(['is_active' => false]);
+
+    keywordInfo($session)->assertOk()->assertJson(['mode' => 'wait']);
+});
