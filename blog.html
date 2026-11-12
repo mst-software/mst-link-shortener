@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog - LinkCash</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <meta name="description" content="News, tips and guides for LinkCash publishers.">
+
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,700,900|Lato:400,700,900,400i&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Breakpoint trùng Bootstrap 3 của trang tham khảo: sm 768 / md 992 / lg 1200
+    tailwind.config = {
+      theme: {
+        screens: { sm: '768px', md: '992px', lg: '1200px' },
+        extend: {
+          colors: { g: '#038018', lime: '#bfe217', lime2: '#b8de01', sky: '#00aeef' },
+          fontFamily: { lato: ['Lato', 'sans-serif'], roboto: ['Roboto', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="blog">
+
+<!-- Navigation -->
+<nav id="mainNav" class="fixed top-0 inset-x-0 z-50 font-roboto uppercase">
+  <div class="container flex flex-wrap items-center justify-between">
+    <!-- Logo -->
+    <a href="index.html" class="flex items-center h-[44px] sm:h-[52px] text-white" style="margin-left:-15px; padding-left:15px;">
+      <img src="assets/logo-poppins-white.png" alt="LinkCash" class="h-[34px] sm:h-[38px] w-auto">
+    </a>
+
+    <button id="navToggle" type="button" aria-label="Toggle navigation" class="sm:hidden bg-white rounded px-[10px] py-[9px] mr-[15px] my-1 border border-white">
+      <span class="block w-[22px] h-[2px] bg-g rounded-sm"></span>
+      <span class="block w-[22px] h-[2px] bg-g rounded-sm mt-1"></span>
+      <span class="block w-[22px] h-[2px] bg-g rounded-sm mt-1"></span>
+    </button>
+
+    <ul id="navMenu" class="hidden sm:flex w-full sm:w-auto list-none m-0 p-0 flex-col sm:flex-row">
+      <li><a class="nav-link" data-page="home" href="index.html">Home</a></li>
+      <li><a class="nav-link" data-page="rates" href="payout-rates.html">Publisher Rates</a></li>
+      <li><a class="nav-link" data-page="blog" href="blog.html">Blog</a></li>
+      <li><a class="nav-link" data-page="login" href="signin.html">Login</a></li>
+      <li><a class="nav-link" data-page="signup" href="signup.html">Sign Up</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Header -->
+<header class="shorten inner">
+  <div class="section-inner">
+    <div class="container">
+      <div id="particles-js">
+        <div class="particles">
+          <div class="intro-text">
+            <div class="intro-lead-in anim-zoom">Blog</div>
+            <p class="intro-sub anim-up">News, tips and guides to help you earn more with every link.</p>
+          </div>
+        </div>
+        <canvas id="particles-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="page-body">
+  <div class="container">
+    <div class="chips reveal">
+      <button class="chip on" data-filter="all" type="button">All</button>
+      <button class="chip" data-filter="tips" type="button">Tips</button>
+      <button class="chip" data-filter="guide" type="button">Guides</button>
+      <button class="chip" data-filter="news" type="button">Announcements</button>
+    </div>
+
+    <div class="flex flex-wrap -mx-[15px]" id="postGrid">
+      <div class="w-full sm:w-1/2 md:w-1/3 px-[15px] mb-8 reveal post" data-cat="tips">
+        <article class="blog-card" data-post="0" tabindex="0">
+          <div class="blog-thumb"><i class="sp sp-f5"></i></div>
+          <div class="blog-body">
+            <div class="blog-meta"><span class="tag-pill">Tips</span> &nbsp; November 10, 2026</div>
+            <h4>5 Ways to Get More Views From Your Short Links</h4>
+            <p>Small changes in how you share links can noticeably increase the number of valid views.</p>
+            <span class="blog-more">Read more &rarr;</span>
+          </div>
+        </article>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 px-[15px] mb-8 reveal post" data-cat="news">
+        <article class="blog-card" data-post="1" tabindex="0">
+          <div class="blog-thumb"><i class="sp sp-f7"></i></div>
+          <div class="blog-body">
+            <div class="blog-meta"><span class="tag-pill">Announcement</span> &nbsp; November 5, 2026</div>
+            <h4>Rates Review: New Levels for Southeast Asia</h4>
+            <p>We reviewed our rates and added more earning options for popular regions.</p>
+            <span class="blog-more">Read more &rarr;</span>
+          </div>
+        </article>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 px-[15px] mb-8 reveal post" data-cat="guide">
+        <article class="blog-card" data-post="2" tabindex="0">
+          <div class="blog-thumb"><i class="sp sp-f3"></i></div>
+          <div class="blog-body">
+            <div class="blog-meta"><span class="tag-pill">Guide</span> &nbsp; October 28, 2026</div>
+            <h4>How the 12% Referral Program Works</h4>
+            <p>Invite friends and earn a share of their income for life, without reducing theirs.</p>
+            <span class="blog-more">Read more &rarr;</span>
+          </div>
+        </article>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 px-[15px] mb-8 reveal post" data-cat="guide">
+        <article class="blog-card" data-post="3" tabindex="0">
+          <div class="blog-thumb"><i class="sp sp-f9"></i></div>
+          <div class="blog-body">
+            <div class="blog-meta"><span class="tag-pill">Guide</span> &nbsp; October 20, 2026</div>
+            <h4>Why Some Views Are Not Counted</h4>
+            <p>A quick explanation of the checks that decide whether a view is valid.</p>
+            <span class="blog-more">Read more &rarr;</span>
+          </div>
+        </article>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 px-[15px] mb-8 reveal post" data-cat="tips">
+        <article class="blog-card" data-post="4" tabindex="0">
+          <div class="blog-thumb"><i class="sp sp-f1"></i></div>
+          <div class="blog-body">
+            <div class="blog-meta"><span class="tag-pill">Tips</span> &nbsp; October 12, 2026</div>
+            <h4>Where to Share Your Links Safely</h4>
+            <p>Choose places that keep your account healthy and your traffic clean.</p>
+            <span class="blog-more">Read more &rarr;</span>
+          </div>
+        </article>
+      </div>
+      <div class="w-full sm:w-1/2 md:w-1/3 px-[15px] mb-8 reveal post" data-cat="news">
+        <article class="blog-card" data-post="5" tabindex="0">
+          <div class="blog-thumb"><i class="sp sp-f6"></i></div>
+          <div class="blog-body">
+            <div class="blog-meta"><span class="tag-pill">Announcement</span> &nbsp; October 3, 2026</div>
+            <h4>Withdrawals: Methods and Processing Times</h4>
+            <p>See how and when you get paid once you reach the minimum payout.</p>
+            <span class="blog-more">Read more &rarr;</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Bài viết (popup) -->
+<div id="postModal" role="dialog" aria-modal="true">
+  <div class="box">
+    <button class="close" type="button" aria-label="Close">&times;</button>
+    <div class="blog-meta" id="pMeta"></div>
+    <h3 id="pTitle"></h3>
+    <div id="pBody"></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-top">
+    <div class="container">
+      <div class="flex flex-wrap -mx-[15px]">
+        <div class="w-full md:w-5/12 px-[15px] mb-8 footer-brand">
+          <a href="index.html"><img src="assets/logo-poppins-white.png" alt="LinkCash" class="h-[44px] w-auto"></a>
+          <p>Shorten your links, share them anywhere and get paid for every valid view. Clear rates, fast payouts and a support team that answers.</p>
+          <div class="pay-icons">
+            <img src="assets/banktransfer.png" alt="Bank transfer">
+            <img src="assets/paypal.png" alt="PayPal">
+            <img src="assets/bitcoin.png" alt="Bitcoin">
+          </div>
+        </div>
+        <div class="w-1/2 md:w-3/12 px-[15px] mb-8">
+          <h5>Quick links</h5>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="payout-rates.html">Publisher Rates</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="signin.html">Sign In</a></li>
+            <li><a href="signup.html">Sign Up</a></li>
+          </ul>
+        </div>
+        <div class="w-1/2 md:w-4/12 px-[15px] mb-8">
+          <h5>Legal</h5>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Use</a></li>
+            <li><a href="payout-rates.html#view-policy">View Counting Policy</a></li>
+            <li><a href="index.html#contact">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="separator"><div class="container"></div></div>
+
+  <div class="footer-bottom">
+    <div class="container flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="copyright">Copyright &copy; LinkCash <span id="year">2026</span>. All rights reserved.</div>
+      <div class="dev-credit">Developed by <a href="https://www.facebook.com/mstsoftware.vn" target="_blank" rel="noopener">MST Software</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/site.js"></script>
+<script>
+$(function () {
+  var posts = [
+    { title: "5 Ways to Get More Views From Your Short Links", meta: "November 10, 2026 · Tips", body: "<p>Share links where your audience already pays attention: a group, a channel or a post people read to the end. Traffic from people who really want the content is far more likely to pass every step and count as a valid view.</p><p>Put the short link next to a clear call to action, tell visitors what they will get, and avoid misleading buttons. Visitors who know what to expect are less likely to leave early, which protects your completion rate.</p><p>Check your statistics regularly. Look at which countries, devices and sources bring the most income and focus on them. Never use bots or auto-refreshers: they are filtered out and can get your account suspended.</p>" },
+    { title: "Rates Review: New Levels for Southeast Asia", meta: "November 5, 2026 · Announcement", body: "<p>Our team reviews publisher rates regularly and raises them whenever advertisers pay more. This month we updated several countries across Southeast Asia and added clearer level names in the rates table.</p><p>You can always see the latest numbers on the <a href=\"payout-rates.html\">Publisher Rates</a> page, and use the calculator there to estimate your earnings before you share a link.</p>" },
+    { title: "How the 12% Referral Program Works", meta: "October 28, 2026 · Guide", body: "<p>When someone signs up with your referral link, you receive 12% of what they earn, for as long as their account is active. The bonus is paid on top of their earnings, so they never lose anything.</p><p>Find your referral link in the dashboard and share it with friends. Self-referrals and fake accounts are not allowed and the bonus from them can be removed, see the <a href=\"terms.html\">Terms of Use</a>.</p>" },
+    { title: "Why Some Views Are Not Counted", meta: "October 20, 2026 · Guide", body: "<p>A view is paid only when the visitor is unique within 24 hours, stays on the page long enough, has JavaScript and cookies enabled, finishes every step and reaches the destination. Visits from bots, VPNs, proxies and datacenter networks are rejected.</p><p>Read the full rules in our <a href=\"payout-rates.html#view-policy\">View Counting Policy</a>. If you believe a view was rejected by mistake, contact support with the short link and the date.</p>" },
+    { title: "Where to Share Your Links Safely", meta: "October 12, 2026 · Tips", body: "<p>Good places include your own website, a community you belong to, email newsletters and social posts. Always follow the rules of each platform.</p><p>Do not share links to adult, gambling or scam content, and never promote links with misleading titles. Our scanner checks every link and violations can lead to cancelled earnings.</p>" },
+    { title: "Withdrawals: Methods and Processing Times", meta: "October 3, 2026 · Announcement", body: "<p>You can request a withdrawal as soon as your available balance reaches the minimum payout. We support bank transfer, PayPal and USDT (BEP20).</p><p>Requests are reviewed and processed within 1&ndash;7 days. New earnings stay pending for a short review period first, which helps us filter invalid traffic and keeps payments reliable for everyone.</p>" }
+  ];
+
+  /* Lọc theo chuyên mục */
+  $('.chip').on('click', function () {
+    var f = $(this).data('filter');
+    $('.chip').removeClass('on'); $(this).addClass('on');
+    $('.post').each(function () {
+      var show = f === 'all' || $(this).data('cat') === f;
+      $(this).toggle(show);
+      if (show) $(this).addClass('in');
+    });
+  });
+
+  /* Mở / đóng bài viết */
+  function open(i) {
+    var p = posts[i];
+    $('#pMeta').text(p.meta); $('#pTitle').text(p.title); $('#pBody').html(p.body);
+    $('#postModal').addClass('open'); $('body').css('overflow', 'hidden');
+  }
+  function close() { $('#postModal').removeClass('open'); $('body').css('overflow', ''); }
+  $('.blog-card').on('click keydown', function (e) {
+    if (e.type === 'keydown' && e.key !== 'Enter') return;
+    open($(this).data('post'));
+  });
+  $('#postModal').on('click', function (e) { if (e.target === this || $(e.target).hasClass('close')) close(); });
+  $(document).on('keydown', function (e) { if (e.key === 'Escape') close(); });
+});
+</script>
+</body>
+</html>
