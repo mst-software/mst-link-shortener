@@ -73,3 +73,13 @@ footer { margin-top: 0; }
 .cookie-message { color: #fff; padding: 20px 0; }
 .cookie-message a { color: #fff; }
 .cookie-confirm { text-align: right; padding-top: 15px; }
+
+/* Điện thoại: chữ trong ô nhập 16px để iOS không tự phóng to; nút cao hơn cho dễ bấm */
+@media (max-width: 767px) {
+  .form-control { font-size: 16px; height: 40px; }
+  .btn-block { padding: 10px 12px; font-size: 16px; }
+  .login-box { margin-top: 24px; }
+  .cookie-message { padding: 10px 0; }
+  #cookie-pop .col-xs-9 { width: 68%; }
+  #cookie-pop .col-xs-3 { width: 32%; }
+}
