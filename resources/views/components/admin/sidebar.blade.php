@@ -1,12 +1,12 @@
 @php
   $menu = [
       ['label' => 'Dashboard', 'icon' => 'tachometer-alt', 'route' => 'admin.dashboard'],
-      ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings'],
-      ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates'],
-      ['label' => 'Ad slots', 'icon' => 'ad', 'route' => 'admin.ad-slots'],
-      ['label' => 'Blocked networks', 'icon' => 'ban', 'route' => 'admin.blocked-networks'],
-      ['label' => 'Fraud flags', 'icon' => 'flag', 'route' => 'admin.fraud-flags'],
-      ['label' => 'Links', 'icon' => 'link', 'route' => 'admin.links'],
+      ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings.edit'],
+      ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates.index'],
+      ['label' => 'Ad slots', 'icon' => 'ad', 'route' => 'admin.ad-slots.index'],
+      ['label' => 'Blocked networks', 'icon' => 'ban', 'route' => 'admin.blocked-networks.index'],
+      ['label' => 'Fraud flags', 'icon' => 'flag', 'route' => 'admin.fraud-flags.index'],
+      ['label' => 'Links', 'icon' => 'link', 'route' => 'admin.links.index'],
       ['label' => 'Withdrawals', 'icon' => 'dollar-sign', 'route' => 'admin.withdrawals.index'],
       ['label' => 'Notices', 'icon' => 'bell', 'route' => 'admin.notices'],
       ['label' => 'Support', 'icon' => 'life-ring', 'route' => 'admin.support'],

@@ -8,22 +8,6 @@
   <x-page-header title="Publisher Rates" subtitle="Know exactly how much you earn. Rates are per 1,000 valid views and depend on the visitor's country and the level you choose." />
 
   @php
-    $rates = [
-      ['Vietnam', 4.50, 6.00, 7.50],
-      ['United States', 12.00, 16.00, 20.00],
-      ['United Kingdom', 10.00, 13.00, 16.00],
-      ['Canada', 9.00, 12.00, 15.00],
-      ['Australia', 9.00, 12.00, 14.00],
-      ['Germany', 8.00, 11.00, 13.00],
-      ['France', 7.00, 9.00, 11.00],
-      ['Japan', 6.00, 8.00, 10.00],
-      ['Thailand', 3.50, 4.50, 5.50],
-      ['Philippines', 2.50, 3.50, 4.50],
-      ['Indonesia', 3.00, 4.00, 5.00],
-      ['India', 2.00, 3.00, 4.00],
-      ['All other countries', 1.50, 2.00, 2.50],
-    ];
-
     $policyRules = [
       ['Unique visitor', 'Each visitor counts for only one paid view every 24 hours, identified by their IP address and browser fingerprint together.', '24 hours'],
       ['Time on page', 'Measured on the server with a signed token, so it cannot be skipped by editing the page.', '&ge; 10 seconds'],
@@ -56,7 +40,7 @@
                   <tr>
                     <td>{{ $country }}</td>
                     @foreach ([$levelOne, $levelTwo, $levelThree] as $rate)
-                      <td class="num" data-v="{{ number_format($rate, 2) }}">${{ number_format($rate, 2) }}</td>
+                      <td class="num" data-v="{{ number_format($rate, 2, '.', '') }}">${{ number_format($rate, 2) }}</td>
                     @endforeach
                   </tr>
                 @endforeach

@@ -162,6 +162,50 @@ $(function () {
     post($visit.data('info-url'), data).done(renderStep).fail(handleError);
   }
 
+  /* ---------- Step ads ---------- */
+
+  function activateAd($container) {
+    var template = $container.children('template').get(0);
+
+    if (!template || $container.data('loaded')) {
+      return;
+    }
+
+    var fragment = template.content.cloneNode(true);
+
+    /* Scripts cloned from a template do not run, so rebuild them. */
+    $(fragment).find('script').each(function () {
+      var copy = document.createElement('script');
+
+      $.each(this.attributes, function (i, attr) {
+        copy.setAttribute(attr.name, attr.value);
+      });
+      copy.text = this.text;
+      this.parentNode.replaceChild(copy, this);
+    });
+
+    $container.append(fragment).data('loaded', true);
+  }
+
+  function showStepAds(step, isFinal) {
+    var wanted = ['step' + step];
+
+    if (isFinal) {
+      wanted.push('final');
+    }
+
+    $('[data-ad-step-bound]').each(function () {
+      var $container = $(this);
+      var show = wanted.indexOf($container.data('ad-placement')) !== -1;
+
+      $container.prop('hidden', !show);
+
+      if (show) {
+        activateAd($container);
+      }
+    });
+  }
+
   function renderStep(info) {
     state.busy = false;
     state.step = info.step;
@@ -171,6 +215,7 @@ $(function () {
     state.captchaResponse = '';
 
     $step.text('Step ' + info.step + ' of ' + info.total_steps);
+    showStepAds(info.step, state.captchaRequired);
     $captcha.prop('hidden', true);
     setButton('Please wait…', false);
     runCountdown(Math.max(0, parseInt(info.dwell_seconds, 10) || 0));
