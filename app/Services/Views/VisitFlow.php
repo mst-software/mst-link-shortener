@@ -71,10 +71,20 @@ class VisitFlow
      */
     public function isResumable(VisitSession $session, VisitorContext $context): bool
     {
-        return $session->status === VisitStatus::InProgress
+        $resumable = $session->status === VisitStatus::InProgress
             && $session->finished_at === null
             && $session->expires_at->isFuture()
             && hash_equals($session->ua_hash, $context->uaHash);
+
+        // The code window of a keyword session is shorter than the session itself; once it is over
+        // the visitor must start again instead of being sent back to a page that says "expired".
+        if ($resumable && $session->mode === VisitMode::Keyword && $this->sessionSecondsLeft($session) <= 0) {
+            $session->forceFill(['status' => VisitStatus::Expired])->save();
+
+            return false;
+        }
+
+        return $resumable;
     }
 
     /**
@@ -307,7 +317,7 @@ class VisitFlow
      */
     public function sessionSecondsLeft(VisitSession $session): int
     {
-        $endsAt = $session->created_at->getTimestamp() + max(0, Settings::int('code_session_seconds'));
+        $endsAt = $session->created_at->getTimestamp() + Settings::codeSessionSeconds();
 
         return max(0, $endsAt - now()->getTimestamp());
     }

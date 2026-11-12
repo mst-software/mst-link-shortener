@@ -13,6 +13,7 @@ use App\Models\View;
 use App\Models\VisitSession;
 use App\Services\Settings;
 use App\Services\Views\FakeCaptchaVerifier;
+use App\Services\Views\VisitFlow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
@@ -372,4 +373,39 @@ it('stores the choice and the campaign of the session in the report', function (
     expect($flag->reason)->toBe('visitor_report')
         ->and($flag->details['choice'])->toBe('page_not_shown')
         ->and($flag->details['campaign_id'])->toBe($this->campaign->id);
+});
+
+it('starts a fresh session when the code window of the old keyword session is over', function () {
+    $old = openKeywordLink();
+
+    Carbon::setTestNow(now()->addSeconds(601));
+
+    $this->withCookie(VisitController::COOKIE, $old->getKey())->get('/Kw1abc')->assertRedirect('/go/Kw1abc');
+
+    $new = VisitSession::query()->latest('created_at')->latest('id')->firstOrFail();
+
+    expect($new->getKey())->not->toBe($old->getKey())
+        ->and($old->fresh()->status)->toBe(VisitStatus::Expired)
+        ->and(VisitSession::query()->count())->toBe(2);
+});
+
+it('resumes the keyword session while the code window is still open', function () {
+    $old = openKeywordLink();
+
+    Carbon::setTestNow(now()->addSeconds(300));
+
+    $this->withCookie(VisitController::COOKIE, $old->getKey())->get('/Kw1abc')->assertRedirect('/go/Kw1abc');
+
+    expect(VisitSession::query()->count())->toBe(1)
+        ->and($old->fresh()->status)->toBe(VisitStatus::InProgress);
+});
+
+it('uses one fallback for a non-positive code session length everywhere', function () {
+    Settings::set('code_session_seconds', 0);
+
+    expect(Settings::codeSessionSeconds())->toBe(600);
+
+    $session = openKeywordLink();
+
+    expect(app(VisitFlow::class)->sessionSecondsLeft($session))->toBe(600);
 });
