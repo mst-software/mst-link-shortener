@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LinkCash - Best URL Shortener To Earn Money</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <meta name="description"content="Free URL shortener where every valid visit earns you money.">
+
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,700,900|Lato:400,700,900,400i&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Breakpoint trùng Bootstrap 3 của trang tham khảo: sm 768 / md 992 / lg 1200
+    tailwind.config = {
+      corePlugins: { preflight: true },
+      theme: {
+        screens: { sm: '768px', md: '992px', lg: '1200px' },
+        extend: {
+          colors: { g: '#038018', lime: '#bfe217', lime2: '#b8de01', sky: '#00aeef' },
+          fontFamily: { lato: ['Lato', 'sans-serif'], roboto: ['Roboto', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="home">
+
+<!-- Navigation -->
+<nav id="mainNav" class="fixed top-0 inset-x-0 z-50 font-roboto uppercase">
+  <div class="container flex flex-wrap items-center justify-between">
+    <!-- Logo -->
+    <a href="index.html" class="flex items-center h-[44px] sm:h-[52px] text-white" style="margin-left:-15px; padding-left:15px;">
+      <img src="assets/logo-poppins-white.png" alt="LinkCash" class="h-[34px] sm:h-[38px] w-auto">
+    </a>
+
+    <button id="navToggle" type="button" aria-label="Toggle navigation" class="sm:hidden bg-white rounded px-[10px] py-[9px] mr-[15px] my-1 border border-white">
+      <span class="block w-[22px] h-[2px] bg-g rounded-sm"></span>
+      <span class="block w-[22px] h-[2px] bg-g rounded-sm mt-1"></span>
+      <span class="block w-[22px] h-[2px] bg-g rounded-sm mt-1"></span>
+    </button>
+
+    <ul id="navMenu" class="hidden sm:flex w-full sm:w-auto list-none m-0 p-0 flex-col sm:flex-row">
+      <li><a class="nav-link" data-page="home" href="index.html">Home</a></li>
+      <li><a class="nav-link" data-page="rates" href="payout-rates.html">Publisher Rates</a></li>
+      <li><a class="nav-link" data-page="blog" href="blog.html">Blog</a></li>
+      <li><a class="nav-link" data-page="login" href="signin.html">Login</a></li>
+      <li><a class="nav-link" data-page="signup" href="signup.html">Sign Up</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Header -->
+<header class="shorten">
+  <div class="section-inner">
+    <div class="container">
+      <div id="particles-js">
+        <div class="particles">
+          <div class="intro-text">
+            <div class="intro-lead-in anim-zoom">Shorten URLs and</div>
+            <div class="intro-heading shimmer">earn money</div>
+            <div class="anim-up">
+              <div class="sm:mx-auto" style="max-width:100%">
+                <form id="shorten" class="inline-block max-w-full" novalidate>
+                  <div class="relative mb-[15px]">
+                    <input type="text" id="url" class="url" placeholder="Your URL Here" autocomplete="off">
+                    <button type="submit" aria-label="Shorten"><img src="assets/right-arrow.png" alt=""></button>
+                  </div>
+                </form>
+                <div class="add-link-result"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <canvas id="particles-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Steps -->
+<section class="steps">
+  <div class="container text-center">
+    <div class="section-title reveal">
+      <h3 class="section-subheading section-subheading-edit">It's just three steps</h3>
+      <h2 class="section-heading">How You <b>Start</b>?</h2>
+    </div>
+
+    <div class="flex flex-wrap -mx-[15px] reveal">
+      <div class="w-full sm:w-1/3 px-[15px]">
+        <div class="step">
+          <div class="step-img"><i class="sp sp-step1"></i></div>
+          <h4 class="step-heading">Create an account</h4>
+          <div class="step-content"></div>
+          <div class="step-num"><span>1</span></div>
+        </div>
+      </div>
+      <div class="w-full sm:w-1/3 px-[15px]">
+        <div class="step">
+          <div class="step-img"><i class="sp sp-step2"></i></div>
+          <h4 class="step-heading">Shorten your link</h4>
+          <div class="step-content"></div>
+          <div class="step-num"><span>2</span></div>
+        </div>
+      </div>
+      <div class="w-full sm:w-1/3 px-[15px]">
+        <div class="step">
+          <div class="step-img"><i class="sp sp-step3"></i></div>
+          <h4 class="step-heading">Earn Money</h4>
+          <div class="step-content"></div>
+          <div class="step-num"><span>3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"><div class="container"></div></div>
+
+<!-- Features -->
+<section class="features">
+  <div class="container text-center">
+    <div class="section-title reveal">
+      <h3 class="section-subheading">Earn extra money</h3>
+      <h2 class="section-heading">Why join us?</h2>
+    </div>
+
+    <div class="flex flex-wrap -mx-[15px]">
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature">
+        <div class="feature-img"><i class="sp sp-f1"></i></div>
+        <h4 class="feature-heading">What is LinkCash?</h4>
+        <div class="feature-content">LinkCash is a completely free tool where you can create short links, which apart from being free, you get paid! So, now you can make money from home, when managing and protecting your links.</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature">
+        <div class="feature-img"><i class="sp sp-f2"></i></div>
+        <h4 class="feature-heading">How and how much do I earn?</h4>
+        <div class="feature-content">How can you start making money with LinkCash? It's just 3 steps: create an account, create a link and post it - for every visit, you earn money. It's just that easy!</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature">
+        <div class="feature-img"><i class="sp sp-f3"></i></div>
+        <h4 class="feature-heading">12% Referral Bonus</h4>
+        <div class="feature-content">The LinkCash referral program is a great way to spread the word of this great service and to earn even more money with your short links! Refer friends and receive 12% of their earnings for life!</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature">
+        <div class="feature-img"><i class="sp sp-f4"></i></div>
+        <h4 class="feature-heading">Featured Administration Panel</h4>
+        <div class="feature-content">Control all of the features from the administration panel with a click of a button.</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature">
+        <div class="feature-img"><i class="sp sp-f5"></i></div>
+        <h4 class="feature-heading">Detailed Stats</h4>
+        <div class="feature-content">Know your audience. Analyse in detail what brings you the most income and what strategies you should adapt.</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature">
+        <div class="feature-img"><i class="sp sp-f6"></i></div>
+        <h4 class="feature-heading">Low Minimum Payout</h4>
+        <div class="feature-content">You are required to earn only $5.0 before you will be paid. We can pay all users via bank transfer, PayPal and more.</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature last">
+        <div class="feature-img"><i class="sp sp-f7"></i></div>
+        <h4 class="feature-heading">Highest Rates</h4>
+        <div class="feature-content">Make the most out of your traffic with our always increasing rates.</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature last">
+        <div class="feature-img"><i class="sp sp-f8"></i></div>
+        <h4 class="feature-heading">API</h4>
+        <div class="feature-content">Shorten links more quickly with easy to use API and bring your creative and advanced ideas to life.</div>
+      </div></div>
+
+      <div class="w-full sm:w-1/3 px-[15px] reveal"><div class="feature last">
+        <div class="feature-img"><i class="sp sp-f9"></i></div>
+        <h4 class="feature-heading">Support</h4>
+        <div class="feature-content">A dedicated support team is ready to help with any questions you may have.</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="stats">
+  <div class="container">
+    <div class="section-title text-center reveal">
+      <h3 class="section-subheading">Numbers speak for themselves</h3>
+      <h2 class="section-heading">Fast Growing</h2>
+    </div>
+    <div class="flex flex-wrap -mx-[15px]">
+      <div class="w-full sm:w-1/3 px-[15px] text-center">
+        <div class="stat reveal">
+          <div class="stat-img"><i class="sp sp-clicks"></i></div>
+          <div class="stat-num" data-target="68217828">0</div>
+          <div class="stat-text">Total Clicks</div>
+        </div>
+      </div>
+      <div class="w-full sm:w-1/3 px-[15px] text-center">
+        <div class="stat reveal">
+          <div class="stat-img"><i class="sp sp-links"></i></div>
+          <div class="stat-num" data-target="15768989">0</div>
+          <div class="stat-text">Total Links</div>
+        </div>
+      </div>
+      <div class="w-full sm:w-1/3 px-[15px] text-center">
+        <div class="stat reveal">
+          <div class="stat-img"><i class="sp sp-users"></i></div>
+          <div class="stat-num" data-target="79837">0</div>
+          <div class="stat-text">Registered users</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="separator"><div class="container"></div></div>
+
+<!-- Contact -->
+<section id="contact">
+  <div class="container">
+    <div class="section-title text-center reveal">
+      <h3 class="section-subheading">Contact Us</h3>
+      <h2 class="section-heading">Get in touch!</h2>
+    </div>
+
+    <form id="contact-form" novalidate>
+      <div class="flex flex-wrap -mx-[15px]">
+        <div class="w-full md:w-1/2 px-[15px]">
+          <div class="form-group">
+            <label for="name">Your Name *</label>
+            <input type="text" name="name" class="form-control" id="name">
+            <p class="text-danger"></p>
+          </div>
+          <div class="form-group">
+            <label for="email">Your Email *</label>
+            <input type="text" name="email" class="form-control" id="email">
+            <p class="text-danger"></p>
+          </div>
+          <div class="form-group">
+            <label for="subject">Your Subject *</label>
+            <input type="text" name="subject" class="form-control" id="subject">
+            <p class="text-danger"></p>
+          </div>
+        </div>
+        <div class="w-full md:w-1/2 px-[15px]">
+          <div class="form-group">
+            <label for="message">Your Message *</label>
+            <textarea name="message" class="form-control" id="message" rows="5"></textarea>
+            <p class="text-danger"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="accept" class="cursor-pointer"><input type="checkbox" name="accept" id="accept"><b> I consent to having this website store my submitted information so they can respond to my inquiry</b></label>
+        <p class="text-danger"></p>
+      </div>
+
+      <div class="text-center">
+        <div id="success" class="mb-3"></div>
+        <button class="btn-contact btn-ripple" type="submit">Send Message</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-top">
+    <div class="container">
+      <div class="flex flex-wrap -mx-[15px]">
+        <div class="w-full md:w-5/12 px-[15px] mb-8 footer-brand">
+          <a href="index.html"><img src="assets/logo-poppins-white.png" alt="LinkCash" class="h-[44px] w-auto"></a>
+          <p>Shorten your links, share them anywhere and get paid for every valid view. Clear rates, fast payouts and a support team that answers.</p>
+          <div class="pay-icons">
+            <img src="assets/banktransfer.png" alt="Bank transfer">
+            <img src="assets/paypal.png" alt="PayPal">
+            <img src="assets/bitcoin.png" alt="Bitcoin">
+          </div>
+        </div>
+        <div class="w-1/2 md:w-3/12 px-[15px] mb-8">
+          <h5>Quick links</h5>
+          <ul class="footer-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="payout-rates.html">Publisher Rates</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="signin.html">Sign In</a></li>
+            <li><a href="signup.html">Sign Up</a></li>
+          </ul>
+        </div>
+        <div class="w-1/2 md:w-4/12 px-[15px] mb-8">
+          <h5>Legal</h5>
+          <ul class="footer-links">
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms of Use</a></li>
+            <li><a href="payout-rates.html#view-policy">View Counting Policy</a></li>
+            <li><a href="index.html#contact">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="separator"><div class="container"></div></div>
+
+  <div class="footer-bottom">
+    <div class="container flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="copyright">Copyright &copy; LinkCash <span id="year">2026</span>. All rights reserved.</div>
+      <div class="dev-credit">Developed by <a href="https://www.facebook.com/mstsoftware.vn" target="_blank" rel="noopener">MST Software</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/site.js"></script>
+<script>
+$(function () {
+  /* ---- Đếm số thống kê khi cuộn tới ---- */
+  var counted = false;
+  function countUp() {
+    var $first = $('.stat-num').first();
+    if (counted || $first.offset().top > $(window).scrollTop() + $(window).height() - 60) return;
+    counted = true;
+    $('.stat-num').each(function () {
+      var $el = $(this), target = +$el.data('target');
+      $({ n: 0 }).animate({ n: target }, {
+        duration: 1800,
+        step: function (v) { $el.text(Math.floor(v).toLocaleString('de-DE')); },
+        complete: function () { $el.text(target.toLocaleString('de-DE')); }
+      });
+    });
+  }
+  $(window).on('scroll resize', countUp); countUp();
+
+  /* ---- Rút gọn link (demo, chưa nối backend) ---- */
+  function validUrl(v) {
+    try { return new URL(/^https?:\/\//i.test(v) ? v : 'http://' + v).hostname.indexOf('.') > 0; }
+    catch (e) { return false; }
+  }
+  function alias(n) {
+    var c = 'abcdefghijkmnpqrstuvwxyz23456789', s = '';
+    for (var i = 0; i < n; i++) s += c.charAt(Math.floor(Math.random() * c.length));
+    return s;
+  }
+  $('#shorten').on('submit', function (e) {
+    e.preventDefault();
+    var v = $.trim($('#url').val()), $r = $('.add-link-result').empty();
+    if (!v) return $r.html('<span class="err">Please enter the URL you want to shorten.</span>');
+    if (!validUrl(v)) return $r.html('<span class="err">Invalid URL.</span>');
+    var short = 'https://lnkcash.com/' + alias(6);
+    $r.html('<div class="result"><input readonly value="' + short + '"><button type="button" class="copy">Copy</button></div>');
+  });
+  $(document).on('click', '.add-link-result .copy', function () {
+    var $b = $(this), $i = $b.siblings('input').select();
+    var done = function () { $b.text('Copied!'); setTimeout(function () { $b.text('Copy'); }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText($i.val()).then(done, done); else { document.execCommand('copy'); done(); }
+  });
+
+  /* ---- Form liên hệ (demo) ---- */
+  $('#contact-form').on('submit', function (e) {
+    e.preventDefault();
+    var f = this, ok = true;
+    $('#contact-form .text-danger').text('');
+    function err(el, msg) { $(el).closest('.form-group').find('.text-danger').text(msg); ok = false; }
+    if (!$.trim(f.name.value)) err(f.name, 'Please enter your name.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($.trim(f.email.value))) err(f.email, 'Please enter a valid email.');
+    if (!$.trim(f.subject.value)) err(f.subject, 'Please enter a subject.');
+    if (!$.trim(f.message.value)) err(f.message, 'Please enter your message.');
+    if (!f.accept.checked) err(f.accept, 'You must agree before sending.');
+    if (!ok) return;
+    $('#success').html('<div class="text-g font-bold">Your message has been sent, we will reply soon!</div>');
+    f.reset();
+  });
+});
+</script>
+</body>
+</html>
