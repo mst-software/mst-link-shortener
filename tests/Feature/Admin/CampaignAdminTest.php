@@ -3,6 +3,7 @@
 use App\Models\Campaign;
 use App\Models\User;
 use App\Services\Settings;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -179,3 +180,36 @@ test('invalid visit settings are rejected', function (array $overrides, string $
     'plain http video' => [['tutorial_video_url' => 'http://www.youtube.com/watch?v=abc'], 'tutorial_video_url'],
     'other video host' => [['tutorial_video_url' => 'https://example.com/video'], 'tutorial_video_url'],
 ]);
+
+test('a public suffix cannot be used as the campaign domain', function (string $domain) {
+    $this->actingAs($this->admin)
+        ->post(route('admin.campaigns.store'), campaignPayload(['domain' => $domain]))
+        ->assertSessionHasErrors('domain');
+
+    expect(Campaign::query()->count())->toBe(0);
+})->with(['co.uk', 'com.vn', 'CO.UK', 'https://com.vn/path']);
+
+test('a site below a two-label suffix is still accepted', function () {
+    $this->actingAs($this->admin)
+        ->post(route('admin.campaigns.store'), campaignPayload(['domain' => 'shop.co.uk']))
+        ->assertSessionHasNoErrors();
+
+    expect(Campaign::query()->first()->domain)->toBe('shop.co.uk');
+});
+
+test('localhost domains are refused outside a local environment', function (string $domain) {
+    $this->actingAs($this->admin)
+        ->post(route('admin.campaigns.store'), campaignPayload(['domain' => $domain]))
+        ->assertSessionHasErrors('domain');
+})->with(['localhost', '127.0.0.1']);
+
+test('localhost domains are accepted in a local environment', function (string $domain) {
+    $this->app->detectEnvironment(fn () => 'local');
+    $this->withoutMiddleware(ValidateCsrfToken::class);
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.campaigns.store'), campaignPayload(['domain' => $domain]))
+        ->assertSessionHasNoErrors();
+
+    expect(Campaign::query()->first()->domain)->toBe($domain);
+})->with(['localhost', '127.0.0.1']);
