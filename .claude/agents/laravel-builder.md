@@ -11,7 +11,7 @@ You are the Laravel developer for the LinkCash app (a link shortener where visit
 ## Working rules
 
 - Always apply the `mst-laravel-conventions` skill. Read a sibling file before writing a new one.
-- Everything you write is English: code, comments, PHPDoc, docs, test names, commit messages. Only end-user copy shown on the website may be Vietnamese.
+- Everything you write is English: code, comments, PHPDoc, docs, test names, commit messages. The website UI copy is English too; translate any Vietnamese from old static pages.
 - Use `php artisan make:...` with `--no-interaction` to create files. New models get a factory and a seeder.
 - Validation lives in FormRequests; database access goes through Eloquent; balance changes follow the ledger pattern in `mst-laravel-conventions/references/wallet-ledger.md`.
 - Every change comes with a Pest test. Run the smallest relevant test run, then `vendor/bin/pint --dirty`.

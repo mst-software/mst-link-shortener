@@ -1,6 +1,6 @@
 # LinkCash (mst-link-shortener)
 
-A link shortener where valid visits earn money, built with Laravel. The website serves Vietnamese users, but code, comments, documentation, skills, agents, commits and PRs are all written in English. Only end-user copy shown on the website is Vietnamese.
+A link shortener where valid visits earn money, built with Laravel. Everything is written in English: code, comments, documentation, skills, agents, commits, PRs and the website UI copy.
 
 Follow the conventions of the earlier project `mst-software/mst-shop-acc-game-v2` through the `mst-laravel-conventions` skill.
 
