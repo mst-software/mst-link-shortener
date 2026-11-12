@@ -260,3 +260,12 @@ test('the campaign list runs the same number of queries for any number of campai
 
     expect($countQueries())->toBe($one);
 });
+
+test('a Vimeo tutorial video link is accepted and the visitor script can embed it', function () {
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.update'), visitSettingsPayload(['tutorial_video_url' => 'https://vimeo.com/123456789']))
+        ->assertSessionHasNoErrors();
+
+    expect(Settings::get('tutorial_video_url'))->toBe('https://vimeo.com/123456789')
+        ->and(file_get_contents(resource_path('js/visit.js')))->toContain('https://player.vimeo.com/video/');
+});

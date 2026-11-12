@@ -357,11 +357,23 @@ $(function () {
   }
 
   function youtubeEmbedUrl(url) {
-    var match = String(url || '').match(
+    var text = String(url || '');
+    var match = text.match(
       /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{11})/
     );
 
-    return match ? 'https://www.youtube-nocookie.com/embed/' + match[1] : null;
+    if (match) {
+      return 'https://www.youtube-nocookie.com/embed/' + match[1];
+    }
+
+    /* Vimeo: https://vimeo.com/ID, https://vimeo.com/ID/HASH (unlisted) or https://player.vimeo.com/video/ID */
+    match = text.match(/^https?:\/\/(?:www\.|player\.)?vimeo\.com\/(?:video\/)?(\d{6,12})(?:\/([0-9a-f]{6,20}))?(?:[/?#]|$)/i);
+
+    if (match) {
+      return 'https://player.vimeo.com/video/' + match[1] + (match[2] ? '?h=' + match[2] : '');
+    }
+
+    return null;
   }
 
   function fillGuide(info) {
