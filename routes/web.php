@@ -13,6 +13,7 @@ use App\Http\Controllers\LinkShortenController;
 use App\Http\Controllers\PayoutRateController;
 use App\Http\Controllers\QuickLinkController;
 use App\Http\Controllers\ReferralRedirectController;
+use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -41,4 +42,19 @@ Route::middleware(['auth', 'active'])->group(function () {
 
 Route::get('st', QuickLinkController::class)->middleware('throttle:api')->name('quick-link');
 
-// visit routes are registered below this line (Task 15)
+
+/*
+|--------------------------------------------------------------------------
+| Visitor flow: KEEP THIS BLOCK LAST
+|--------------------------------------------------------------------------
+|
+| "/{alias}" is a catch-all for short links. Every other route (for example
+| "/{alias}/info" and "/links/*") must be registered ABOVE this comment.
+|
+*/
+
+Route::post('links/get-link-info', [VisitController::class, 'info'])->name('visit.info');
+Route::post('links/check-captcha', [VisitController::class, 'checkCaptcha'])->name('visit.check-captcha');
+Route::post('links/report', [VisitController::class, 'report'])->middleware('throttle:5,1')->name('visit.report');
+Route::get('go/{alias}', [VisitController::class, 'show'])->where('alias', '[A-Za-z0-9_-]{3,32}')->name('visit.show');
+Route::get('{alias}', [VisitController::class, 'start'])->where('alias', '[A-Za-z0-9_-]{3,32}')->name('visit.start');

@@ -21,6 +21,7 @@ class VisitSession extends Model
     protected $fillable = [
         'link_id',
         'ip',
+        'ip_changed',
         'ua_hash',
         'fingerprint',
         'country',
@@ -40,6 +41,7 @@ class VisitSession extends Model
      */
     protected $attributes = [
         'current_step' => 1,
+        'ip_changed' => false,
         'country' => 'XX',
         'status' => 'in_progress',
     ];
@@ -52,6 +54,7 @@ class VisitSession extends Model
     protected function casts(): array
     {
         return [
+            'ip_changed' => 'boolean',
             'level' => 'integer',
             'current_step' => 'integer',
             'status' => VisitStatus::class,

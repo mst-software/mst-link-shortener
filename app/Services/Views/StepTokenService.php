@@ -38,31 +38,23 @@ class StepTokenService
     }
 
     /**
+     * The session id a token was issued for, or null when the token is malformed or not signed by this app.
+     */
+    public function sessionId(string $token): ?string
+    {
+        $sessionId = $this->claims($token)['sid'] ?? null;
+
+        return is_string($sessionId) ? $sessionId : null;
+    }
+
+    /**
      * Verify a token for the step. A valid token is consumed: it cannot be used again.
      */
     public function verify(VisitSession $session, int $step, string $token, string $uaHash): TokenResult
     {
-        $parts = explode('.', $token);
+        $claims = $this->claims($token);
 
-        if (count($parts) !== 2) {
-            return TokenResult::Tampered;
-        }
-
-        [$payload, $signature] = $parts;
-        $providedSignature = $this->base64UrlDecode($signature);
-
-        // Re-encoding rejects non-canonical base64 (altered unused trailing bits) that decodes to the same bytes.
-        if (
-            $providedSignature === null
-            || $this->base64UrlEncode($providedSignature) !== $signature
-            || ! hash_equals($this->sign($payload), $providedSignature)
-        ) {
-            return TokenResult::Tampered;
-        }
-
-        $claims = json_decode($this->base64UrlDecode($payload) ?? '', true);
-
-        if (! is_array($claims) || ($claims['sid'] ?? null) !== $session->getKey()) {
+        if ($claims === null || ($claims['sid'] ?? null) !== $session->getKey()) {
             return TokenResult::Tampered;
         }
 
@@ -75,6 +67,36 @@ class StepTokenService
         }
 
         return $this->consume($session, $token) ? TokenResult::Valid : TokenResult::Reused;
+    }
+
+    /**
+     * Decode the payload of a token whose signature is valid.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function claims(string $token): ?array
+    {
+        $parts = explode('.', $token);
+
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        [$payload, $signature] = $parts;
+        $providedSignature = $this->base64UrlDecode($signature);
+
+        // Re-encoding rejects non-canonical base64 (altered unused trailing bits) that decodes to the same bytes.
+        if (
+            $providedSignature === null
+            || $this->base64UrlEncode($providedSignature) !== $signature
+            || ! hash_equals($this->sign($payload), $providedSignature)
+        ) {
+            return null;
+        }
+
+        $claims = json_decode($this->base64UrlDecode($payload) ?? '', true);
+
+        return is_array($claims) ? $claims : null;
     }
 
     /**

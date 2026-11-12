@@ -21,6 +21,7 @@ return [
         'session_minutes' => 30,
         'view_purge_days' => 60,
         'alias_length' => 6,
+        'captcha_provider' => 'turnstile',
     ],
 
 ];

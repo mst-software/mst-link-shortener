@@ -24,6 +24,14 @@ class ViewDedup extends Model
     ];
 
     /**
+     * Dedup key of a paid view: one per link, IP address and browser fingerprint.
+     */
+    public static function keyFor(int $linkId, string $ip, string $fingerprint): string
+    {
+        return hash('sha256', $linkId.'|'.$ip.'|'.$fingerprint);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
