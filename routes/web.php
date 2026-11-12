@@ -42,6 +42,11 @@ Route::middleware(['auth', 'active'])->group(function () {
 
 Route::get('st', QuickLinkController::class)->middleware('throttle:api')->name('quick-link');
 
+// Local-only fake advertiser site for trying the widget (must stay above the visitor catch-all).
+if (app()->isLocal()) {
+    require __DIR__.'/demo.php';
+}
+
 /*
 |--------------------------------------------------------------------------
 | Visitor flow: KEEP THIS BLOCK LAST
