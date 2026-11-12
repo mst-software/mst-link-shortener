@@ -19,10 +19,10 @@ class ShortenController extends Controller
 
         try {
             $link = $this->tokenShortener->shorten(
-                $request->query('api'),
-                $request->query('url'),
-                $request->query('alias'),
-                $request->filled('level') ? (int) $request->query('level') : null,
+                $this->stringInput($request, 'api'),
+                $this->stringInput($request, 'url'),
+                $this->stringInput($request, 'alias'),
+                $request->integer('level') ?: null,
             );
         } catch (InvalidLinkException $exception) {
             return $this->respond($isText ? response($exception->getMessage()) : response()->json([
@@ -48,5 +48,15 @@ class ShortenController extends Controller
         $response->headers->set('Access-Control-Allow-Origin', '*');
 
         return $response;
+    }
+
+    /**
+     * Read a query value only when it is a non-empty string (arrays become null).
+     */
+    private function stringInput(Request $request, string $key): ?string
+    {
+        $value = $request->query($key);
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

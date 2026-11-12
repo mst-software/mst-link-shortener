@@ -18,15 +18,25 @@ class QuickLinkController extends Controller
     {
         try {
             $link = $this->tokenShortener->shorten(
-                $request->query('api'),
-                $request->query('url'),
-                $request->query('alias'),
-                $request->filled('level') ? (int) $request->query('level') : null,
+                $this->stringInput($request, 'api'),
+                $this->stringInput($request, 'url'),
+                $this->stringInput($request, 'alias'),
+                $request->integer('level') ?: null,
             );
         } catch (InvalidLinkException $exception) {
             return response($exception->getMessage(), 422)->header('Content-Type', 'text/plain');
         }
 
         return response(url($link->alias))->header('Content-Type', 'text/plain');
+    }
+
+    /**
+     * Read a query value only when it is a non-empty string (arrays become null).
+     */
+    private function stringInput(Request $request, string $key): ?string
+    {
+        $value = $request->query($key);
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

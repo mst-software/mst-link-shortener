@@ -57,3 +57,9 @@ it('rate limits to 60 calls per minute', function () {
 
     $this->getJson('/api?api=rate-limited&url=https://example.com/a')->assertStatus(429);
 });
+
+test('array query parameters return a json error instead of a server error', function () {
+    $this->getJson('/api?api[]=x&url[]=y&format=json')
+        ->assertOk()
+        ->assertJson(['status' => 'error']);
+});
