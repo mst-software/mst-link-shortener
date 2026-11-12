@@ -1,8 +1,8 @@
 @php
   $menu = [
       ['label' => 'Dashboard', 'icon' => 'tachometer-alt', 'route' => 'admin.dashboard'],
-      ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings'],
-      ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates'],
+      ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings.edit'],
+      ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates.index'],
       ['label' => 'Ad slots', 'icon' => 'ad', 'route' => 'admin.ad-slots'],
       ['label' => 'Blocked networks', 'icon' => 'ban', 'route' => 'admin.blocked-networks'],
       ['label' => 'Fraud flags', 'icon' => 'flag', 'route' => 'admin.fraud-flags'],
