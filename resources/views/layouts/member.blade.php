@@ -27,6 +27,33 @@
       </a>
       <div class="navbar-custom-menu">
         <ul class="nav navbar-nav">
+          @php($latestNotices = \App\Models\Notice::query()->published()->limit(3)->get(['id', 'title', 'published_at', 'created_at']))
+          <li class="dropdown notifications-menu">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-label="Notifications">
+              <i class="fa fa-bell"></i>
+              @if ($latestNotices->isNotEmpty())
+                <span class="label label-warning">{{ $latestNotices->count() }}</span>
+              @endif
+            </a>
+            <ul class="dropdown-menu">
+              <li class="header">Latest notifications</li>
+              <li>
+                <ul class="menu">
+                  @forelse ($latestNotices as $latestNotice)
+                    <li>
+                      <a href="{{ route('member.notify') }}">
+                        <i class="fa fa-bullhorn text-aqua"></i> {{ \Illuminate\Support\Str::limit($latestNotice->title, 40) }}
+                        <small class="text-muted">{{ ($latestNotice->published_at ?? $latestNotice->created_at)->format('d/m/Y') }}</small>
+                      </a>
+                    </li>
+                  @empty
+                    <li><a href="{{ route('member.notify') }}">No notifications yet</a></li>
+                  @endforelse
+                </ul>
+              </li>
+              <li class="footer"><a href="{{ route('member.notify') }}">View all</a></li>
+            </ul>
+          </li>
           <li class="dropdown user user-menu">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
               <i class="fa fa-user-circle user-icon"></i>
