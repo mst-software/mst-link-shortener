@@ -63,3 +63,22 @@
 .small-box .icon {
     top: 10px;
 }
+
+/* Password toggle and strength checklist (change password page) */
+.password-wrap{position:relative}
+.password-wrap .form-control{padding-right:42px}
+.pw-toggle{position:absolute;top:0;right:0;width:42px;height:34px;padding:0;border:0;background:transparent;color:#777;line-height:34px;text-align:center}
+.pw-toggle:hover,.pw-toggle:focus{color:#333;outline:0}
+.pw-toggle i{vertical-align:middle}
+.pw-toggle .pw-eye-off{display:none}
+.pw-toggle.on .pw-eye-on{display:none}
+.pw-toggle.on .pw-eye-off{display:inline-block}
+.pw-meter{height:4px;margin-top:6px;border-radius:2px;background:#e5e7eb}
+.pw-meter i{display:block;width:0;height:100%;border-radius:2px;transition:width .2s,background .2s}
+.pw-text{display:block;min-height:16px;margin-top:4px;color:#777}
+.pw-rules{margin:6px 0 0;padding:0;list-style:none;font-size:12px;color:#999}
+.pw-rules li{position:relative;padding-left:20px;line-height:20px;transition:color .2s}
+.pw-rules li:before{content:"";position:absolute;left:2px;top:5px;width:10px;height:10px;border:1px solid #ccc;border-radius:50%;box-sizing:border-box;transition:all .2s}
+.pw-rules li.met{color:#00a65a}
+.pw-rules li.met:before{content:"\2713";border-color:#00a65a;background:#00a65a;color:#fff;font-size:8px;line-height:9px;text-align:center}
+.pw-toggle{height:34px}
