@@ -102,8 +102,14 @@ class User extends Authenticatable
             'payout_details' => 'array',
             'balance_micro' => 'integer',
             'processing_micro' => 'integer',
+            'terms_accepted_at' => 'datetime',
             'default_level' => 'integer',
         ];
+    }
+
+    public function isAdvertiser(): bool
+    {
+        return $this->role === UserRole::Advertiser;
     }
 
     public function isAdmin(): bool
