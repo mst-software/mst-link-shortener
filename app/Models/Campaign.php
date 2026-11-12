@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\ReviewStatus;
 use Database\Factories\CampaignFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Campaign extends Model
@@ -17,6 +19,7 @@ class Campaign extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'name',
         'keyword',
         'domain',
@@ -25,6 +28,9 @@ class Campaign extends Model
         'is_active',
         'weight',
         'daily_limit',
+        'price_micro',
+        'review_status',
+        'review_note',
         'starts_at',
         'ends_at',
         'stage1_seconds',
@@ -42,6 +48,7 @@ class Campaign extends Model
      */
     protected $attributes = [
         'is_active' => true,
+        'review_status' => 'approved',
         'weight' => 1,
         'daily_limit' => 0,
         'stage1_seconds' => 60,
@@ -59,11 +66,21 @@ class Campaign extends Model
             'is_active' => 'boolean',
             'weight' => 'integer',
             'daily_limit' => 'integer',
+            'price_micro' => 'integer',
+            'review_status' => ReviewStatus::class,
             'stage1_seconds' => 'integer',
             'stage2_seconds' => 'integer',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
