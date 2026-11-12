@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegalController;
@@ -16,9 +17,14 @@ Route::get('payout-rates', [PayoutRateController::class, 'index'])->name('payout
 Route::get('blog', [BlogController::class, 'index'])->name('blog');
 
 Route::get('auth/signin', [LoginController::class, 'show'])->name('login');
+Route::post('auth/signin', [LoginController::class, 'store']);
 Route::get('auth/signup', [RegisterController::class, 'show'])->name('register');
+Route::post('auth/signup', [RegisterController::class, 'store']);
 Route::post('auth/signout', LogoutController::class)->name('logout');
 Route::get('auth/forgot-password', [ForgotPasswordController::class, 'show'])->name('password.request');
+Route::post('auth/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
+Route::get('auth/reset-password/{token}', [ResetPasswordController::class, 'show'])->name('password.reset');
+Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->name('password.update');
 
 Route::get('pages/privacy', [LegalController::class, 'privacy'])->name('privacy');
 Route::get('pages/terms', [LegalController::class, 'terms'])->name('terms');

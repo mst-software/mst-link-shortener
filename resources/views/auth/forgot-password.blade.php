@@ -4,8 +4,8 @@
 @section('description', 'Enter your e-mail address below to reset your password.')
 
 @section('content')
-  <div id="flash"></div>
-  <form method="post" accept-charset="utf-8" id="forgotpassword-form" action="{{ route('password.request') }}" novalidate>
+  <div id="flash">@include('auth.partials.status')</div>
+  <form method="post" accept-charset="utf-8" id="forgotpassword-form" action="{{ route('password.email') }}" novalidate>
     @csrf
     <p>Enter your e-mail address below to reset your password.</p>
 
