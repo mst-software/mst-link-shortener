@@ -13,6 +13,8 @@ enum InvalidReason: string
     case IpChanged = 'ip_changed';
     case NoJavascript = 'no_javascript';
     case NoCookie = 'no_cookie';
+    case MissingCode = 'missing_code';
+    case CodeInvalid = 'code_invalid';
 
     public function label(): string
     {
@@ -26,6 +28,8 @@ enum InvalidReason: string
             self::IpChanged => 'IP changed',
             self::NoJavascript => 'No JavaScript',
             self::NoCookie => 'No cookie',
+            self::MissingCode => 'Missing code',
+            self::CodeInvalid => 'Invalid code',
         };
     }
 }
