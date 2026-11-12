@@ -32,6 +32,7 @@ Route::get('terms', [LegalController::class, 'terms'])->name('terms');
 */
 
 Route::post('links/get-link-info', [VisitController::class, 'info'])->name('visit.info');
+Route::post('links/check-captcha', [VisitController::class, 'checkCaptcha'])->name('visit.check-captcha');
 Route::post('links/report', [VisitController::class, 'report'])->middleware('throttle:5,1')->name('visit.report');
 Route::get('go/{alias}', [VisitController::class, 'show'])->where('alias', '[A-Za-z0-9_-]{3,32}')->name('visit.show');
 Route::get('{alias}', [VisitController::class, 'start'])->where('alias', '[A-Za-z0-9_-]{3,32}')->name('visit.start');

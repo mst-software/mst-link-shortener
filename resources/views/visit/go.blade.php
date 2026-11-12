@@ -11,6 +11,7 @@
     class="visit-card"
     data-alias="{{ $alias }}"
     data-info-url="{{ route('visit.info') }}"
+    data-finish-url="{{ route('visit.check-captcha') }}"
     data-start-url="{{ route('visit.start', ['alias' => $alias]) }}"
     data-report-url="{{ route('visit.report') }}"
     data-captcha-provider="{{ $captchaProvider->value }}"

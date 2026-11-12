@@ -2,6 +2,7 @@
 
 namespace App\Services\Views;
 
+use App\Contracts\CaptchaVerifier;
 use App\Enums\LinkStatus;
 use App\Enums\TokenResult;
 use App\Enums\VisitStatus;
@@ -15,11 +16,16 @@ use App\Services\Settings;
  * A link of level N has N steps. Each step is unlocked by a signed one-time token that the
  * server issues and stamps with step_issued_at; the next token is only issued when the previous
  * one is presented after the dwell time, from the same user agent and browser fingerprint.
- * The token of the last step is redeemed by the captcha check (see ViewValidator), not here.
+ * The token of the last step is redeemed by finish(), which checks the captcha and records the view.
  */
 class VisitFlow
 {
-    public function __construct(private StepTokenService $tokens) {}
+    public function __construct(
+        private StepTokenService $tokens,
+        private CaptchaVerifier $captcha,
+        private ViewValidator $validator,
+        private ViewRecorder $recorder,
+    ) {}
 
     /**
      * Find a link that visitors may open; hidden and banned links are treated as missing.
@@ -134,6 +140,55 @@ class VisitFlow
     }
 
     /**
+     * Handle the last step: redeem the token of the current step, verify the captcha, run every
+     * rule and record the view. A view that breaks a rule is still recorded (unpaid, with its
+     * reason) and the visitor still gets the destination. Calling it again for a finished session
+     * returns the same view without writing anything.
+     *
+     * @param  bool  $hasCookie  Whether the visit cookie of this session came back with the request.
+     */
+    public function finish(
+        VisitSession $session,
+        string $token,
+        ?string $fingerprint,
+        ?string $captchaResponse,
+        bool $hasCookie,
+        VisitorContext $context,
+    ): FinishResult {
+        if (! hash_equals($session->ua_hash, $context->uaHash)) {
+            return FinishResult::rejected(StepResult::BadToken);
+        }
+
+        if ($session->finished_at !== null) {
+            return $this->finishedResult($session);
+        }
+
+        if ($session->status !== VisitStatus::InProgress || ! $session->expires_at->isFuture()) {
+            return FinishResult::rejected(StepResult::Expired);
+        }
+
+        if ($this->tokens->verify($session, $session->current_step, $token, $context->uaHash) !== TokenResult::Valid) {
+            // A concurrent request with the same token may have finished the session meanwhile.
+            $session->refresh();
+
+            return $session->finished_at !== null
+                ? $this->finishedResult($session)
+                : FinishResult::rejected(StepResult::BadToken);
+        }
+
+        $hasJavascript = $fingerprint !== null
+            && $fingerprint !== ''
+            && $session->fingerprint !== null
+            && hash_equals($session->fingerprint, $fingerprint);
+
+        $captchaOk = $this->captcha->verify((string) $captchaResponse, $context->ip);
+
+        $reason = $this->validator->firstFailure($session, $context, $captchaOk, $hasCookie, $hasJavascript);
+
+        return FinishResult::finished($this->recorder->record($session, $context, $reason));
+    }
+
+    /**
      * Whether the dwell time of the current step has passed, measured with the server clock only.
      */
     public function dwellPassed(VisitSession $session): bool
@@ -148,6 +203,15 @@ class VisitFlow
     public function dwellSeconds(): int
     {
         return max(0, Settings::int('dwell_seconds'));
+    }
+
+    private function finishedResult(VisitSession $session): FinishResult
+    {
+        $view = $session->view()->first();
+
+        return $view !== null
+            ? FinishResult::finished($view)
+            : FinishResult::rejected(StepResult::Expired);
     }
 
     private function issue(VisitSession $session, int $step): StepInfo

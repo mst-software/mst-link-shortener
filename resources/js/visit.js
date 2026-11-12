@@ -261,7 +261,26 @@ $(function () {
   }
 
   function finish() {
-    showMessage('The last step is not available yet.', true);
+    state.busy = true;
+    setButton('Please wait…', false);
+    showMessage('');
+
+    post($visit.data('finish-url'), {
+      alias: $visit.data('alias'),
+      token: state.token,
+      fingerprint: fingerprint,
+      captcha_response: state.captchaResponse,
+    }).done(function (body) {
+      setButton('Opening…', false);
+      window.location.href = body.destination;
+    }).fail(function (xhr) {
+      handleError(xhr);
+
+      if (captchaWidget !== null && captchaApi()) {
+        state.captchaResponse = '';
+        captchaApi().reset(captchaWidget);
+      }
+    });
   }
 
   $button.on('click', function () {

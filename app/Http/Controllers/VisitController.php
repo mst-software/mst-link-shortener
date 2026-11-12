@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Contracts\CountryResolver;
 use App\Enums\CaptchaProvider;
+use App\Http\Requests\Visit\CheckCaptchaRequest;
 use App\Http\Requests\Visit\ReportLinkRequest;
 use App\Http\Requests\Visit\StepInfoRequest;
 use App\Models\FraudFlag;
 use App\Models\Link;
 use App\Services\Views\StepInfo;
 use App\Services\Views\StepResult;
+use App\Services\Views\StepTokenService;
 use App\Services\Views\VisitFlow;
 use App\Services\Views\VisitorContext;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +31,7 @@ class VisitController extends Controller
 
     public function __construct(
         private VisitFlow $flow,
+        private StepTokenService $tokens,
         private CountryResolver $countries,
     ) {}
 
@@ -95,6 +98,38 @@ class VisitController extends Controller
     }
 
     /**
+     * The last step: verify the captcha, run every rule and record the view. The destination is
+     * returned even when the view is invalid; only a request without a valid step token is refused.
+     */
+    public function checkCaptcha(CheckCaptchaRequest $request): JsonResponse
+    {
+        $link = $this->activeLinkOrFail($request->string('alias')->toString());
+        $token = $request->string('token')->toString();
+
+        // The signed token names its session, so a missing cookie is recorded as a rule failure instead of a dead end.
+        $session = $this->flow->findSession($link, $this->tokens->sessionId($token));
+
+        if ($session === null) {
+            return $this->errorResponse(StepResult::Expired);
+        }
+
+        $result = $this->flow->finish(
+            $session,
+            $token,
+            $request->filled('fingerprint') ? $request->string('fingerprint')->toString() : null,
+            $request->filled('captcha_response') ? $request->string('captcha_response')->toString() : null,
+            $this->cookieValue($request) === $session->getKey(),
+            $this->context($request),
+        );
+
+        if (! $result->isFinished()) {
+            return $this->errorResponse($result->error ?? StepResult::BadToken);
+        }
+
+        return response()->json(['destination' => $link->url]);
+    }
+
+    /**
      * Store a visitor report from the "Report an error" dialog for the admin to review.
      */
     public function report(ReportLinkRequest $request): JsonResponse
@@ -118,10 +153,7 @@ class VisitController extends Controller
     private function stepResponse(StepInfo $info): JsonResponse
     {
         if (! $info->accepted()) {
-            return response()->json([
-                'error' => $info->result->value,
-                'message' => $info->result->label(),
-            ], 422);
+            return $this->errorResponse($info->result);
         }
 
         return response()->json([
@@ -131,6 +163,14 @@ class VisitController extends Controller
             'token' => $info->token,
             'captcha_required' => $info->captchaRequired,
         ]);
+    }
+
+    private function errorResponse(StepResult $result): JsonResponse
+    {
+        return response()->json([
+            'error' => $result->value,
+            'message' => $result->label(),
+        ], 422);
     }
 
     private function activeLinkOrFail(string $alias): Link
