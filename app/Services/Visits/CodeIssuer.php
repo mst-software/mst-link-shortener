@@ -216,11 +216,12 @@ class CodeIssuer
     }
 
     /**
-     * An attempt whose code has expired starts over instead of reviving the old code.
+     * An attempt whose code was used or has expired starts over instead of reviving the old code.
      */
     private function isFinished(CodeAttempt $attempt): bool
     {
-        return $attempt->code !== null && $attempt->expires_at !== null && $attempt->expires_at->isPast();
+        return $attempt->used_at !== null
+            || ($attempt->code !== null && $attempt->expires_at !== null && $attempt->expires_at->isPast());
     }
 
     private function limitReached(Campaign $campaign): bool

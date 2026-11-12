@@ -270,3 +270,26 @@ it('accepts a text/plain json body so the widget needs no preflight', function (
         ->assertOk()
         ->assertJsonPath('stage', 1);
 });
+
+it('starts a fresh attempt instead of showing a code that was already used', function (): void {
+    $campaign = widgetCampaign();
+    $token = widgetStart($campaign);
+
+    $this->travel(61)->seconds();
+    widgetPost('progress', ['attempt_token' => $token, 'page_load_id' => 'page-load-two'])->assertOk();
+    $this->travel(16)->seconds();
+    $usedCode = widgetPost('code', ['attempt_token' => $token])->assertOk()->json('code');
+
+    CodeAttempt::query()->update(['used_at' => now()]);
+
+    $response = widgetPost('start', [
+        'campaign' => $campaign->widget_key,
+        'page_load_id' => 'page-load-three',
+        'attempt_token' => $token,
+    ])->assertOk()->assertJsonPath('stage', 1);
+
+    expect($response->json('attempt_token'))->not->toBe($token)
+        ->and($response->json())->not->toHaveKey('code')
+        ->and(CodeAttempt::query()->where('code', $usedCode)->count())->toBe(1)
+        ->and(CodeAttempt::query()->count())->toBe(2);
+});
