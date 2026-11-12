@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\PayoutMethod;
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -19,9 +24,39 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'username',
         'email',
         'password',
+        'role',
+        'status',
+        'api_token',
+        'referral_code',
+        'referred_by',
+        'balance_micro',
+        'processing_micro',
+        'fullname',
+        'phone_number',
+        'address',
+        'district',
+        'province',
+        'country',
+        'traffic_source',
+        'default_level',
+        'payout_method',
+        'payout_details',
+    ];
+
+    /**
+     * Default attribute values, matching the database defaults.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'member',
+        'status' => 'active',
+        'balance_micro' => 0,
+        'processing_micro' => 0,
+        'default_level' => 1,
     ];
 
     /**
@@ -31,8 +66,20 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'api_token',
         'remember_token',
     ];
+
+    /**
+     * Generate the API token and referral code when they are not provided.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            $user->api_token ??= Str::random(24);
+            $user->referral_code ??= Str::random(7);
+        });
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -44,6 +91,43 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => UserRole::class,
+            'status' => UserStatus::class,
+            'payout_method' => PayoutMethod::class,
+            'payout_details' => 'array',
+            'balance_micro' => 'integer',
+            'processing_micro' => 'integer',
+            'default_level' => 'integer',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === UserStatus::Active;
+    }
+
+    /**
+     * The user who invited this user.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function referrer(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'referred_by');
+    }
+
+    /**
+     * The users invited by this user.
+     *
+     * @return HasMany<User, $this>
+     */
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(self::class, 'referred_by');
     }
 }
