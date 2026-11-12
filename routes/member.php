@@ -1,14 +1,16 @@
 <?php
 
 use App\Http\Controllers\Member\DashboardController;
+use App\Http\Controllers\Member\EmailController;
 use App\Http\Controllers\Member\LinkController;
 use App\Http\Controllers\Member\NotificationController;
+use App\Http\Controllers\Member\PasswordController;
 use App\Http\Controllers\Member\PopularLinkController;
+use App\Http\Controllers\Member\ProfileController;
 use App\Http\Controllers\Member\ReferralController;
 use App\Http\Controllers\Member\StatisticController;
 use App\Http\Controllers\Member\SupportController;
 use App\Http\Controllers\Member\ToolController;
-use App\Http\Controllers\Member\UserController;
 use App\Http\Controllers\Member\WithdrawController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,9 +35,12 @@ Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(
     Route::get('referrals', [ReferralController::class, 'index'])->name('referrals');
 
     Route::prefix('user')->name('user.')->group(function () {
-        Route::get('profile', [UserController::class, 'profile'])->name('profile');
-        Route::get('change-password', [UserController::class, 'changePassword'])->name('change-password');
-        Route::get('change-email', [UserController::class, 'changeEmail'])->name('change-email');
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile');
+        Route::post('profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::get('change-password', [PasswordController::class, 'edit'])->name('change-password');
+        Route::post('change-password', [PasswordController::class, 'update'])->name('change-password.update');
+        Route::get('change-email', [EmailController::class, 'edit'])->name('change-email');
+        Route::post('change-email', [EmailController::class, 'update'])->name('change-email.update');
     });
 
     Route::get('form/support', [SupportController::class, 'show'])->name('form.support');
