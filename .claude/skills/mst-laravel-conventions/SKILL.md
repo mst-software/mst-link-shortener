@@ -16,8 +16,8 @@ The reference repo is private and needs an authenticated `gh`. Copy its structur
 ## Language policy
 
 - **English everywhere**: code, identifiers, comments, PHPDoc, docs, skills, agents, commit messages, PR text, test names, config keys, route names, migration and column names.
-- The only Vietnamese allowed is **end-user copy** shown on the website (Blade text, validation messages shown to visitors, notifications). The site serves Vietnamese users, so the UI text is Vietnamese, but never the code around it.
-- Use English URL slugs and route names unless the user asks for localized slugs.
+- **The UI is English too**: Blade text, validation messages, notifications, emails and flash messages are all English. No Vietnamese anywhere in the repo. When converting existing static pages that contain Vietnamese copy, translate it to natural English.
+- Use English URL slugs and route names.
 
 ## Stack
 
