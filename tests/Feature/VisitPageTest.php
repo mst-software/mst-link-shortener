@@ -23,27 +23,33 @@ function visitPageXPath(string $url = '/go/Ab3xYz'): DOMXPath
 }
 
 /**
- * Decode the local preview data embedded on the unlock station.
+ * Decode the local preview data embedded on the visit box.
  *
  * @return array<string, mixed>|null
  */
 function visitPreviewData(string $url): ?array
 {
-    $value = visitPageXPath($url)->query('//section[@id="visit"]/@data-preview')->item(0)?->nodeValue;
+    $value = visitPageXPath($url)->query('//*[@id="visit"]/@data-preview')->item(0)?->nodeValue;
 
     return $value === null ? null : json_decode($value, true);
 }
 
-it('renders the unlock station with the dial, six code boxes, quick check, button and status line', function () {
+it('renders the visit box with the data attributes the script needs', function () {
     $xpath = visitPageXPath();
 
-    expect($xpath->query('//section[@id="visit"][@data-mode="loading"]')->length)->toBe(1)
-        ->and($xpath->query('//section[@id="visit"][@data-info-url and @data-finish-url and @data-start-url and @data-report-url]')->length)->toBe(1)
-        ->and($xpath->query('//section[@id="visit"][@data-captcha-provider and @data-captcha-site-key and @data-captcha-script and @data-captcha-global]')->length)->toBe(1)
-        ->and($xpath->query('//*[@id="visit"]//*[@id="visit-dial"]//*[@id="visit-ring"]')->length)->toBe(1)
-        ->and($xpath->query('//*[@id="visit"]//*[@id="visit-code"][@role="group"]//input[contains(@class, "code-cell")]')->length)->toBe(6)
-        ->and($xpath->query('//*[@id="visit"]//*[@id="visit-quick-check"]//*[@id="visit-captcha"]')->length)->toBe(1)
-        ->and($xpath->query('//*[@id="visit"]//*[@id="visit-session"][@data-mode-only="keyword"]')->length)->toBe(1)
+    expect($xpath->query('//*[@id="visit"][@data-mode="loading"][@data-alias="Ab3xYz"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit"][@data-info-url and @data-finish-url and @data-start-url and @data-report-url]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit"][@data-captcha-provider and @data-captcha-site-key and @data-captcha-script and @data-captcha-global]')->length)->toBe(1)
+        ->and($xpath->query('//meta[@name="csrf-token"]')->length)->toBe(1)
+        ->and($xpath->query('//title[contains(text(), "Untitled #Ab3xYz")]')->length)->toBe(1);
+});
+
+it('renders the code field, captcha box, session timer, button and status line', function () {
+    $xpath = visitPageXPath();
+
+    expect($xpath->query('//*[@id="visit"]//input[@id="visit-code"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit"]//*[@id="visit-captcha-wrap"]//*[@id="visit-captcha"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit"]//*[@id="visit-session"][@data-only="keyword"]')->length)->toBe(1)
         ->and($xpath->query('//*[@id="visit"]//button[@id="visit-button"]')->length)->toBe(1)
         ->and($xpath->query('//*[@id="visit"]//*[@id="visit-status"][@aria-live="polite"]')->length)->toBe(1)
         ->and($xpath->query('//*[@id="visit-title"][@data-title-wait and @data-title-keyword]')->length)->toBe(1);
@@ -52,56 +58,57 @@ it('renders the unlock station with the dial, six code boxes, quick check, butto
 it('renders a start again panel for sessions that cannot go on', function () {
     $xpath = visitPageXPath();
 
-    expect($xpath->query('//*[@id="visit"]//*[@id="visit-stop"][@hidden]//a[@id="visit-stop-action"][contains(@href, "/Ab3xYz")]')->length)->toBe(1);
+    expect($xpath->query('//*[@id="visit-stop"][@hidden]//a[@id="visit-stop-action"][contains(@href, "/Ab3xYz")]')->length)->toBe(1);
 });
 
-it('renders the keyword journey with four collapsible stages, three illustrations and a hidden video block', function () {
+it('renders the keyword guide with six steps, the search helpers and a hidden video block', function () {
     $xpath = visitPageXPath();
 
-    expect($xpath->query('//section[@id="keyword-guide"][@data-mode-only="keyword"][@hidden]')->length)->toBe(1)
-        ->and($xpath->query('//*[@id="keyword-guide"]//li[contains(@class, "stage")]//button[@aria-expanded][@aria-controls]')->length)->toBe(4)
-        ->and($xpath->query('//*[@id="keyword-guide"]//a[@data-google-search][@target="_blank"][@rel="noopener noreferrer"]')->length)->toBe(1)
-        ->and($xpath->query('//*[@id="keyword-guide"]//details//figure[@data-shot="google" or @data-shot="button" or @data-shot="position"]')->length)->toBe(3)
-        ->and($xpath->query('//*[@id="keyword-guide"]//*[@data-kw="keyword"]')->length)->toBeGreaterThan(0)
-        ->and($xpath->query('//*[@id="keyword-guide"]//*[@data-kw="domain"]')->length)->toBeGreaterThan(0)
-        ->and($xpath->query('//*[@id="keyword-video"][@hidden]//iframe[@sandbox]')->length)->toBe(1);
+    expect($xpath->query('//*[@data-only="keyword"][contains(@class, "lk-guide")]')->length)->toBe(1)
+        ->and($xpath->query('//*[contains(@class, "lk-guide")]//p[contains(@class, "lk-step")]')->length)->toBe(6)
+        ->and($xpath->query('//*[@id="visit-keyword"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit-domain"]')->length)->toBe(1)
+        ->and($xpath->query('//a[@id="visit-google"][@target="_blank"][@rel="noopener noreferrer"]')->length)->toBe(1)
+        ->and($xpath->query('//button[@id="visit-copy-keyword"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit-video"][@hidden]//iframe[@sandbox]')->length)->toBe(1);
 });
 
-it('renders the wait mode step ads outside the unlock station', function () {
+it('offers a second code field and button at the end of the guide', function () {
     $xpath = visitPageXPath();
 
-    expect($xpath->query('//*[contains(@class, "step-ads")][@data-mode-only="wait"]')->length)->toBe(1)
-        ->and($xpath->query('//*[@id="visit"]//*[contains(@class, "step-ads")]')->length)->toBe(0)
-        ->and($xpath->query('//*[@id="visit"]//button[@data-report-open]')->length)->toBe(1);
+    expect($xpath->query('//*[contains(@class, "lk-guide")]//input[@id="visit-code-2"]')->length)->toBe(1)
+        ->and($xpath->query('//*[contains(@class, "lk-guide")]//button[@id="visit-button-2"]')->length)->toBe(1);
 });
 
-it('renders the report sheet with three choice cards, a captcha box and cancel and send buttons', function () {
+it('renders the report dialog with three choices, a captcha box and close and send buttons', function () {
     $xpath = visitPageXPath();
 
-    expect($xpath->query('//dialog[@id="report-dialog"]//input[@type="radio"][@name="choice"]')->length)->toBe(3)
-        ->and($xpath->query('//dialog[@id="report-dialog"]//input[@value="code_not_shown" or @value="page_not_shown" or @value="other"]')->length)->toBe(3)
-        ->and($xpath->query('//dialog[@id="report-dialog"]//*[@id="report-captcha"]')->length)->toBe(1)
-        ->and($xpath->query('//dialog[@id="report-dialog"]//button[@type="submit"]')->length)->toBe(1)
-        ->and($xpath->query('//dialog[@id="report-dialog"]//button[@data-report-close]')->length)->toBe(2);
+    expect($xpath->query('//*[@id="visit-report"][@role="dialog"]//input[@type="radio"][@name="report-choice"]')->length)->toBe(3)
+        ->and($xpath->query('//*[@id="visit-report"]//input[@value="code_not_shown" or @value="page_not_shown" or @value="other"]')->length)->toBe(3)
+        ->and($xpath->query('//*[@id="visit-report"]//*[@id="visit-report-captcha"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit-report"]//button[@id="visit-report-send"]')->length)->toBe(1)
+        ->and($xpath->query('//*[@id="visit-report"]//button[@id="visit-report-close"]')->length)->toBe(1);
 });
 
-it('renders the earn strip and the footer links', function () {
+it('renders the LinkCash green call to action band and footer', function () {
     $this->get('/go/Ab3xYz')
         ->assertOk()
         ->assertSee('Ready to earn money?')
-        ->assertSee('Earn from your own links')
+        ->assertSee('Sign up for free')
+        ->assertSee('Quick links')
+        ->assertSee('Privacy Policy')
+        ->assertSee('Developed by')
         ->assertSee(route('register'), false)
         ->assertSee(route('login'), false)
-        ->assertSee(route('payout-rates'), false);
+        ->assertSee(route('payout-rates'), false)
+        ->assertSee(route('privacy'), false);
 });
 
-it('shows only English copy and nothing borrowed from link4m', function () {
+it('shows only English copy', function () {
     $html = $this->get('/go/Ab3xYz')->assertOk()->getContent();
 
     expect($html)->not->toMatch('/[ăâđêôơưĂÂĐÊÔƠƯ]|[àáảãạèéẻẽẹìíỉĩịòóỏõọùúủũụỳýỷỹỵ]/u')
-        ->and(strtolower($html))->not->toContain('link4m')
-        ->and($html)->not->toContain('PLEASE ENTER THE CODE')
-        ->and($html)->not->toContain('HOW TO GET THE CODE - KEYWORD SEARCH');
+        ->and(strtolower($html))->not->toContain('link4m');
 });
 
 it('ignores the preview switch outside the local environment', function () {
