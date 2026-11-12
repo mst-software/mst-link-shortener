@@ -1,5 +1,6 @@
 import './images';
 import './jquery';
+import './member-links';
 
 /* Member area behaviour: AdminLTE sidebar (push menu and treeview), user dropdown, shorten box and copy buttons */
 $(function () {

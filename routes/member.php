@@ -21,13 +21,16 @@ Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(
     Route::get('popular-link', [PopularLinkController::class, 'index'])->name('popular-link');
 
     Route::match(['get', 'post'], 'links', [LinkController::class, 'index'])->name('links');
-    Route::get('links/hidden', [LinkController::class, 'hidden'])->name('links.hidden');
+    Route::match(['get', 'post'], 'links/hidden', [LinkController::class, 'hidden'])->name('links.hidden');
+    Route::post('links/hide', [LinkController::class, 'hide'])->name('links.hide');
+    Route::post('links/restore', [LinkController::class, 'restore'])->name('links.restore');
 
     Route::get('withdraws', [WithdrawController::class, 'index'])->name('withdraws');
 
     Route::prefix('tools')->name('tools.')->group(function () {
         Route::get('quick', [ToolController::class, 'quick'])->name('quick');
         Route::get('mass-shrinker', [ToolController::class, 'massShrinker'])->name('mass-shrinker');
+        Route::post('mass-shrinker', [ToolController::class, 'massShrink'])->name('mass-shrinker.submit');
         Route::get('full', [ToolController::class, 'fullPageScript'])->name('full');
         Route::get('api', [ToolController::class, 'api'])->name('api');
     });
