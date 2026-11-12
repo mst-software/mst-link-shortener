@@ -22,6 +22,10 @@ return [
         'view_purge_days' => 60,
         'alias_length' => 6,
         'captcha_provider' => 'turnstile',
+        'visit_mode' => 'auto',
+        'code_session_seconds' => 600,
+        'widget_attempts_per_ip_per_day' => 5,
+        'tutorial_video_url' => '',
     ],
 
 ];

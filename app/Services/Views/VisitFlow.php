@@ -5,10 +5,18 @@ namespace App\Services\Views;
 use App\Contracts\CaptchaVerifier;
 use App\Enums\LinkStatus;
 use App\Enums\TokenResult;
+use App\Enums\VisitMode;
 use App\Enums\VisitStatus;
+use App\Models\Campaign;
+use App\Models\CodeAttempt;
 use App\Models\Link;
 use App\Models\VisitSession;
 use App\Services\Settings;
+use App\Services\Visits\CampaignSelector;
+use App\Services\Visits\CodeRedeemer;
+use App\Services\Visits\CodeResult;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Server side state machine of the visitor page.
@@ -17,6 +25,9 @@ use App\Services\Settings;
  * server issues and stamps with step_issued_at; the next token is only issued when the previous
  * one is presented after the dwell time, from the same user agent and browser fingerprint.
  * The token of the last step is redeemed by finish(), which checks the captcha and records the view.
+ *
+ * A session in keyword mode has no steps and no tokens: the visitor types a code that the widget on
+ * the advertiser site issued, and finishKeyword() redeems it, checks the captcha and records the view.
  */
 class VisitFlow
 {
@@ -25,6 +36,8 @@ class VisitFlow
         private CaptchaVerifier $captcha,
         private ViewValidator $validator,
         private ViewRecorder $recorder,
+        private CampaignSelector $campaigns,
+        private CodeRedeemer $redeemer,
     ) {}
 
     /**
@@ -58,10 +71,20 @@ class VisitFlow
      */
     public function isResumable(VisitSession $session, VisitorContext $context): bool
     {
-        return $session->status === VisitStatus::InProgress
+        $resumable = $session->status === VisitStatus::InProgress
             && $session->finished_at === null
             && $session->expires_at->isFuture()
             && hash_equals($session->ua_hash, $context->uaHash);
+
+        // The code window of a keyword session is shorter than the session itself; once it is over
+        // the visitor must start again instead of being sent back to a page that says "expired".
+        if ($resumable && $session->mode === VisitMode::Keyword && $this->sessionSecondsLeft($session) <= 0) {
+            $session->forceFill(['status' => VisitStatus::Expired])->save();
+
+            return false;
+        }
+
+        return $resumable;
     }
 
     /**
@@ -69,7 +92,11 @@ class VisitFlow
      */
     public function start(Link $link, VisitorContext $context): VisitSession
     {
+        $campaign = $this->campaigns->pick();
+
         return VisitSession::query()->create([
+            'mode' => $campaign !== null ? VisitMode::Keyword : VisitMode::Wait,
+            'campaign_id' => $campaign?->getKey(),
             'link_id' => $link->getKey(),
             'ip' => $context->ip,
             'ua_hash' => $context->uaHash,
@@ -113,6 +140,13 @@ class VisitFlow
         // A changed IP is not a reason to block (mobile networks); it is remembered and makes the view invalid.
         if ($session->ip !== $context->ip && ! $session->ip_changed) {
             $session->forceFill(['ip_changed' => true])->save();
+        }
+
+        // A keyword session whose campaign is gone and whose device has no code continues in wait mode.
+        $this->downgradeToWaitIfUnavailable($session);
+
+        if ($session->mode === VisitMode::Keyword) {
+            return $this->keywordInfo($session, $fingerprint);
         }
 
         if ($token === null || $token === '') {
@@ -186,6 +220,165 @@ class VisitFlow
         $reason = $this->validator->firstFailure($session, $context, $captchaOk, $hasCookie, $hasJavascript);
 
         return FinishResult::finished($this->recorder->record($session, $context, $reason));
+    }
+
+    /**
+     * Handle the code step of a keyword session: check the captcha first (a wrong captcha never
+     * touches the code), redeem the code, run every rule and record the view. A redeemed code is
+     * consumed for good, so a view that breaks a later rule is still recorded (unpaid, with its
+     * reason) and the visitor still gets the destination.
+     *
+     * @param  bool  $hasCookie  Whether the visit cookie of this session came back with the request.
+     */
+    public function finishKeyword(
+        VisitSession $session,
+        string $code,
+        ?string $fingerprint,
+        ?string $captchaResponse,
+        bool $hasCookie,
+        VisitorContext $context,
+    ): FinishResult {
+        if (! hash_equals($session->ua_hash, $context->uaHash)) {
+            return FinishResult::rejected(StepResult::BadToken);
+        }
+
+        if ($session->finished_at !== null) {
+            return $this->finishedResult($session);
+        }
+
+        if ($session->code_failures >= CodeRedeemer::MAX_SESSION_FAILURES) {
+            return FinishResult::codeRejected(CodeResult::Locked);
+        }
+
+        if ($session->status !== VisitStatus::InProgress || ! $session->expires_at->isFuture()) {
+            return FinishResult::rejected(StepResult::Expired);
+        }
+
+        if ($this->downgradeToWaitIfUnavailable($session)) {
+            return FinishResult::rejected(StepResult::ModeChanged);
+        }
+
+        if ($this->sessionSecondsLeft($session) <= 0) {
+            return FinishResult::rejected(StepResult::Expired);
+        }
+
+        if (! $this->captcha->verify((string) $captchaResponse, $context->ip)) {
+            return FinishResult::rejected(StepResult::CaptchaFailed);
+        }
+
+        $result = $this->redeemer->redeem($session, $code, $context);
+
+        // The redeemer works on a locked copy of the row; reload to see its changes (failures, ip_changed).
+        $session->refresh();
+
+        if ($result !== CodeResult::Accepted) {
+            return FinishResult::codeRejected($result);
+        }
+
+        $hasJavascript = $fingerprint !== null
+            && $fingerprint !== ''
+            && $session->fingerprint !== null
+            && hash_equals($session->fingerprint, $fingerprint);
+
+        $reason = $this->validator->firstFailure($session, $context, true, $hasCookie, $hasJavascript);
+
+        return FinishResult::finished($this->recorder->record($session, $context, $reason));
+    }
+
+    /**
+     * Move a keyword session to wait mode when its campaign can no longer serve it (switched off,
+     * outside its dates or over its daily limit) and this device holds no usable code.
+     * Returns true when the session was changed.
+     */
+    public function downgradeToWaitIfUnavailable(VisitSession $session): bool
+    {
+        if ($session->mode !== VisitMode::Keyword) {
+            return false;
+        }
+
+        $campaign = $session->campaign_id !== null
+            ? Campaign::query()->available()->find($session->campaign_id)
+            : null;
+
+        $hasCapacity = $campaign !== null
+            && ($campaign->daily_limit === 0 || $campaign->issuedToday() < $campaign->daily_limit);
+
+        if ($hasCapacity || $this->deviceHoldsCode($session)) {
+            return false;
+        }
+
+        $session->forceFill(['mode' => VisitMode::Wait])->save();
+
+        return true;
+    }
+
+    /**
+     * Seconds left of the code session, counted on the server clock from the creation of the visit session.
+     */
+    public function sessionSecondsLeft(VisitSession $session): int
+    {
+        $endsAt = $session->created_at->getTimestamp() + Settings::codeSessionSeconds();
+
+        return max(0, $endsAt - now()->getTimestamp());
+    }
+
+    /**
+     * Whether the device of the session got a code of its campaign that it can still use: issued to
+     * the same browser and IP after the session began, not expired and not used by another session,
+     * or already used by this session.
+     */
+    private function deviceHoldsCode(VisitSession $session): bool
+    {
+        if ($session->campaign_id === null) {
+            return false;
+        }
+
+        return CodeAttempt::query()
+            ->where('campaign_id', $session->campaign_id)
+            ->where('ua_hash', $session->ua_hash)
+            ->whereNotNull('code')
+            ->where(function (Builder $query) use ($session): void {
+                $query->where(fn (Builder $unused) => $unused->whereNull('used_at')
+                    ->where('expires_at', '>', now())
+                    ->where('ip', $session->ip)
+                    ->where('issued_at', '>=', $session->created_at))
+                    ->orWhere('visit_session_id', $session->getKey());
+            })
+            ->exists();
+    }
+
+    private function keywordInfo(VisitSession $session, ?string $fingerprint): StepInfo
+    {
+        if ($session->fingerprint === null) {
+            $session->forceFill(['fingerprint' => $fingerprint])->save();
+        }
+
+        $campaign = Campaign::query()->findOrFail($session->campaign_id);
+
+        return new StepInfo(
+            result: StepResult::Accepted,
+            step: 1,
+            totalSteps: 1,
+            dwellSeconds: 0,
+            captchaRequired: true,
+            mode: VisitMode::Keyword,
+            keyword: [
+                'keyword' => $campaign->keyword,
+                'display_domain' => $campaign->display_domain,
+                'images' => [
+                    'google' => $this->imageUrl($campaign->image_google),
+                    'button' => $this->imageUrl($campaign->image_button),
+                    'position' => $this->imageUrl($campaign->image_position),
+                ],
+                'session_seconds_left' => $this->sessionSecondsLeft($session),
+                'tutorial_video_url' => (string) Settings::get('tutorial_video_url', ''),
+            ],
+        );
+    }
+
+    private function imageUrl(?string $path): ?string
+    {
+        return $path !== null && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /**

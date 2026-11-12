@@ -47,6 +47,16 @@ class Settings
     }
 
     /**
+     * Length of the keyword code session in seconds; a missing or non-positive value falls back to the default.
+     */
+    public static function codeSessionSeconds(): int
+    {
+        $seconds = self::int('code_session_seconds');
+
+        return $seconds > 0 ? $seconds : (int) config('linkcash.defaults.code_session_seconds', 600);
+    }
+
+    /**
      * @return array<string, string|null>
      */
     private static function all(): array

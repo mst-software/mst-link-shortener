@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\ViewStatus;
+use App\Models\Campaign;
+use App\Models\CodeAttempt;
 use App\Models\DailyStat;
 use App\Models\Link;
 use App\Models\User;
@@ -118,4 +120,29 @@ it('purges old invalid and cancelled views even when they were never aggregated'
     expect(View::query()->whereKey($invalid->id)->exists())->toBeFalse()
         ->and(View::query()->whereKey($cancelled->id)->exists())->toBeFalse()
         ->and(View::query()->whereKey($pending->id)->exists())->toBeTrue();
+});
+
+it('purges unused code attempts a day after they expired, with or without a code', function () {
+    $campaign = Campaign::factory()->create();
+    $make = fn (array $attributes) => CodeAttempt::factory()->create(array_merge(['campaign_id' => $campaign->id], $attributes));
+
+    $neverIssued = $make(['started_at' => now()->subDays(2)]);
+    $neverIssuedRecent = $make(['started_at' => now()->subHours(2)]);
+    $expiredUnused = $make(['started_at' => now()->subDays(3), 'expires_at' => now()->subDays(2), 'code' => 'abc234']);
+    $expiredRecently = $make(['started_at' => now()->subHours(5), 'expires_at' => now()->subHour(), 'code' => 'abd234']);
+    $usedRecently = $make([
+        'started_at' => now()->subDays(5), 'expires_at' => now()->subDays(4), 'code' => 'abe234', 'used_at' => now()->subDays(4),
+    ]);
+    $usedLongAgo = $make([
+        'started_at' => now()->subDays(70), 'expires_at' => now()->subDays(70), 'code' => 'abf234', 'used_at' => now()->subDays(70),
+    ]);
+
+    $this->artisan('views:purge')->assertSuccessful();
+
+    expect(CodeAttempt::query()->whereKey($neverIssued->id)->exists())->toBeFalse()
+        ->and(CodeAttempt::query()->whereKey($expiredUnused->id)->exists())->toBeFalse()
+        ->and(CodeAttempt::query()->whereKey($usedLongAgo->id)->exists())->toBeFalse()
+        ->and(CodeAttempt::query()->whereKey($neverIssuedRecent->id)->exists())->toBeTrue()
+        ->and(CodeAttempt::query()->whereKey($expiredRecently->id)->exists())->toBeTrue()
+        ->and(CodeAttempt::query()->whereKey($usedRecently->id)->exists())->toBeTrue();
 });

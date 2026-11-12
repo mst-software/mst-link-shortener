@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             CpmRateSeeder::class,
             AdminSeeder::class,
             AdSlotSeeder::class,
+            CampaignSeeder::class,
         ]);
 
         User::factory()->create([

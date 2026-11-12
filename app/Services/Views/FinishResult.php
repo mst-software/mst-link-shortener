@@ -3,12 +3,14 @@
 namespace App\Services\Views;
 
 use App\Models\View;
+use App\Services\Visits\CodeResult;
 
 final readonly class FinishResult
 {
     public function __construct(
         public ?View $view = null,
         public ?StepResult $error = null,
+        public ?CodeResult $codeError = null,
     ) {}
 
     /**
@@ -25,6 +27,14 @@ final readonly class FinishResult
     public static function rejected(StepResult $error): self
     {
         return new self(error: $error);
+    }
+
+    /**
+     * The typed code was refused; no view is recorded and the code may have been counted as a failure.
+     */
+    public static function codeRejected(CodeResult $codeError): self
+    {
+        return new self(codeError: $codeError);
     }
 
     public function isFinished(): bool

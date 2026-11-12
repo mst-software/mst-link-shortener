@@ -2,9 +2,12 @@ import './images';
 import './jquery';
 
 /*
- * Visitor page: runs every step of a short link on one page through AJAX.
- * The server measures the dwell time and signs every step; this script only shows
- * the countdown, sends the browser fingerprint and presents the captcha on the last step.
+ * Visitor page: runs a short link on one page through AJAX, in one of two modes chosen by the server.
+ * - wait: the server measures the dwell time of every step and signs it; this script shows the countdown on
+ *   the button and the captcha on the last step.
+ * - keyword: the visitor gets a code from the partner website by following four short steps, then enters
+ *   it here together with the captcha.
+ * The first /links/get-link-info response decides the mode; a response without "mode" means wait mode.
  */
 $(function () {
   var $visit = $('#visit');
@@ -14,16 +17,29 @@ $(function () {
   }
 
   var csrf = $('meta[name="csrf-token"]').attr('content');
-  var $step = $('#visit-step');
-  var $countdown = $('#visit-countdown');
-  var $seconds = $('#visit-seconds');
-  var $captcha = $('#visit-captcha');
+  var $title = $('#visit-title');
   var $button = $('#visit-button');
-  var $message = $('#visit-message');
+  var $status = $('#visit-status');
+  var $code = $('#visit-code');
+  var $code2 = $('#visit-code-2');
+  var $button2 = $('#visit-button-2');
+  var $session = $('#visit-session');
+  var $sessionTime = $('#visit-session-time');
+  var $captchaWrap = $('#visit-captcha-wrap');
+  var $captcha = $('#visit-captcha');
+  var $stop = $('#visit-stop');
+  var $loading = $('#visit-loading');
 
-  var state = { step: null, total: null, token: null, captchaRequired: false, captchaResponse: '', busy: false };
-  var timer = null;
+  var CODE_LENGTH = 6;
+  var preview = $visit.data('preview') || null;
+  var siteKey = String($visit.data('captcha-site-key') || '');
   var fingerprint = buildFingerprint();
+  var state = { mode: 'loading', token: null, step: 1, total: 1, captchaResponse: '', busy: false, ended: false };
+  var waitTimer = null;
+  var sessionTimer = null;
+  var captchaWidget = null;
+  var reportWidget = null;
+  var reportResponse = '';
 
   /* ---------- Fingerprint ---------- */
 
@@ -96,73 +112,96 @@ $(function () {
     return hash(parts, 1) + hash(parts, 2);
   }
 
-  /* ---------- UI helpers ---------- */
-
-  function showMessage(text, isError, restart) {
-    $message.toggleClass('visit-message-error', !!isError).text(text || '');
-
-    if (restart) {
-      $message.append(' ').append($('<a>').attr('href', $visit.data('start-url')).text('Open the link again'));
-    }
-  }
-
-  function setButton(label, enabled) {
-    $button.text(label).prop('disabled', !enabled);
-  }
+  /* ---------- Small helpers ---------- */
 
   function post(url, data) {
     return $.ajax({
       url: url,
       method: 'POST',
-      data: data,
-      dataType: 'json',
+      data: JSON.stringify(data),
+      contentType: 'application/json',
       headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
     });
   }
 
-  function handleError(xhr) {
-    var body = xhr.responseJSON || {};
-    state.busy = false;
-
-    if (xhr.status === 422 && body.error === 'too_early') {
-      showMessage(body.message, true);
-      setTimeout(function () { setButton(state.captchaRequired ? 'Get Link' : 'Continue', true); }, 1500);
-      return;
-    }
-
-    if (xhr.status === 422 && body.error) {
-      showMessage(body.message, true, body.error === 'expired' || body.error === 'bad_token');
-      setButton('Unavailable', false);
-      return;
-    }
-
-    if (xhr.status === 404) {
-      showMessage('This link does not exist or has been removed.', true);
-      setButton('Unavailable', false);
-      return;
-    }
-
-    showMessage('Something went wrong. Please try again.', true);
-    setButton(state.captchaRequired ? 'Get Link' : 'Continue', true);
+  function pad(n) {
+    return n < 10 ? '0' + n : String(n);
   }
 
-  /* ---------- Steps ---------- */
-
-  function requestStep() {
-    state.busy = true;
-    setButton('Please wait…', false);
-    showMessage('');
-
-    var data = { alias: $visit.data('alias'), fingerprint: fingerprint };
-
-    if (state.token) {
-      data.token = state.token;
-    }
-
-    post($visit.data('info-url'), data).done(renderStep).fail(handleError);
+  function clock(seconds) {
+    return Math.floor(seconds / 60) + ':' + pad(seconds % 60);
   }
 
-  /* ---------- Step ads ---------- */
+  function setStatus(text, tone) {
+    $status.text(text || '').removeClass('is-error is-ok').addClass(tone ? 'is-' + tone : '');
+  }
+
+  function showMode(mode) {
+    state.mode = mode;
+    $visit.attr('data-mode', mode);
+    $('[data-only]').each(function () {
+      $(this).prop('hidden', $(this).data('only') !== mode);
+    });
+    $title.text($title.data('title-' + mode) || $title.text()).prop('hidden', false);
+    $button.prop('hidden', false);
+    $loading.prop('hidden', true);
+  }
+
+  /* A visitor who cannot go on gets one plain message and a way to start again. */
+  function stopWith(text, restart) {
+    state.ended = true;
+    clearInterval(waitTimer);
+    clearInterval(sessionTimer);
+    $button.prop('hidden', true);
+    $('.lk-code, .lk-guide').prop('hidden', true);
+    $captchaWrap.prop('hidden', true);
+    $session.prop('hidden', true);
+    setStatus('');
+    $('#visit-stop-text').text(text);
+    $('#visit-stop-action').prop('hidden', restart === false);
+    $stop.prop('hidden', false);
+  }
+
+  /* One message per error key sent by the server. */
+  var ERRORS = {
+    no_cookie: 'Cookies are turned off. Please turn them on in your browser, then open the link again.',
+    expired: 'Your session has expired.',
+    mode_changed: 'This page changed while you were here. Reloading&hellip;',
+    bad_token: 'This page is out of date. Reloading&hellip;',
+    no_fingerprint: 'JavaScript is needed to continue. Please enable it and reload the page.',
+  };
+
+  function handleBlocking(error) {
+    if (error === 'mode_changed' || error === 'bad_token') {
+      var reloadedAt = 0;
+
+      try {
+        reloadedAt = parseInt(window.sessionStorage.getItem('lk-reloaded-' + $visit.data('alias')), 10) || 0;
+        window.sessionStorage.setItem('lk-reloaded-' + $visit.data('alias'), String(Date.now()));
+      } catch (e) {
+        reloadedAt = 0;
+      }
+
+      /* Reload once; if it happens again within a minute, stop and offer a manual restart instead of looping. */
+      if (Date.now() - reloadedAt < 60000) {
+        stopWith('This page is out of date. Please open the link again.');
+        return true;
+      }
+
+      setStatus('This page is out of date. Reloading…');
+      setTimeout(function () { window.location.reload(); }, 1200);
+      return true;
+    }
+
+    if (error === 'no_cookie' || error === 'expired' || error === 'no_fingerprint') {
+      stopWith($('<div>').html(ERRORS[error]).text(), error !== 'no_fingerprint');
+      return true;
+    }
+
+    return false;
+  }
+
+  /* ---------- Step ads (templates are activated per step) ---------- */
 
   function activateAd($container) {
     var template = $container.children('template').get(0);
@@ -206,186 +245,534 @@ $(function () {
     });
   }
 
-  function renderStep(info) {
-    state.busy = false;
-    state.step = info.step;
-    state.total = info.total_steps;
-    state.token = info.token;
-    state.captchaRequired = !!info.captcha_required;
-    state.captchaResponse = '';
-
-    $step.text('Step ' + info.step + ' of ' + info.total_steps);
-    showStepAds(info.step, state.captchaRequired);
-    $captcha.prop('hidden', true);
-    setButton('Please wait…', false);
-    runCountdown(Math.max(0, parseInt(info.dwell_seconds, 10) || 0));
-  }
-
-  function runCountdown(seconds) {
-    clearInterval(timer);
-
-    /* A small margin so the request never reaches the server before its own clock allows it. */
-    var endsAt = Date.now() + seconds * 1000 + 300;
-
-    function tick() {
-      var left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-      $seconds.text(left);
-
-      if (Date.now() >= endsAt) {
-        clearInterval(timer);
-        $countdown.prop('hidden', true);
-        countdownFinished();
-      }
-    }
-
-    $countdown.prop('hidden', false);
-    tick();
-    timer = setInterval(tick, 250);
-  }
-
-  function countdownFinished() {
-    if (!state.captchaRequired) {
-      setButton('Continue', true);
-      return;
-    }
-
-    setButton('Get Link', false);
-    showCaptcha();
-  }
-
-  /* ---------- Captcha (Turnstile, hCaptcha or reCAPTCHA; all share the same render API) ---------- */
-
-  var captchaWidget = null;
+  /* ---------- Captcha ---------- */
 
   function captchaApi() {
-    return window[$visit.data('captcha-global')];
+    var api = window[$visit.data('captcha-global')];
+
+    return api && typeof api.render === 'function' ? api : null;
   }
 
-  function renderCaptcha() {
+  function withCaptcha(callback) {
     var api = captchaApi();
 
-    if (captchaWidget !== null) {
-      api.reset(captchaWidget);
+    if (api) {
+      callback(api);
       return;
     }
 
-    captchaWidget = api.render($captcha.get(0), {
-      sitekey: String($visit.data('captcha-site-key')),
-      callback: function (response) {
-        state.captchaResponse = response;
-        setButton('Get Link', true);
-      },
-      'expired-callback': function () {
-        state.captchaResponse = '';
-        setButton('Get Link', false);
-      },
-    });
+    if (!document.getElementById('visit-captcha-script')) {
+      var script = document.createElement('script');
+      script.id = 'visit-captcha-script';
+      script.src = $visit.data('captcha-script');
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    var tries = 0;
+    var poll = setInterval(function () {
+      tries++;
+
+      if (captchaApi()) {
+        clearInterval(poll);
+        callback(captchaApi());
+      } else if (tries > 100) {
+        clearInterval(poll);
+        setStatus('The captcha could not be loaded. Please reload the page.', 'error');
+      }
+    }, 150);
+  }
+
+  function renderCaptcha(element, onResponse, onExpire) {
+    var width = element.parentNode.clientWidth;
+    var options = {
+      sitekey: siteKey,
+      size: width > 0 && width < 300 ? 'compact' : 'normal',
+      callback: onResponse,
+      'expired-callback': onExpire,
+    };
+
+    if ($visit.data('captcha-provider') === 'turnstile') {
+      options.language = 'en';
+    }
+
+    return captchaApi().render(element, options);
   }
 
   function showCaptcha() {
-    $captcha.prop('hidden', false);
-
-    if (!$visit.data('captcha-site-key')) {
-      showMessage('Captcha is not configured on this site.', true);
-      setButton('Get Link', true);
+    if (!siteKey) {
+      setStatus('Captcha is not configured on this site.', 'error');
       return;
     }
 
-    if (captchaApi() && typeof captchaApi().render === 'function') {
-      renderCaptcha();
-      return;
-    }
+    $captchaWrap.prop('hidden', false);
 
-    window.lcCaptchaReady = renderCaptcha;
+    withCaptcha(function (api) {
+      if (captchaWidget !== null) {
+        return;
+      }
 
-    var script = document.createElement('script');
-    script.src = $visit.data('captcha-script') + '&onload=lcCaptchaReady';
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+      captchaWidget = renderCaptcha($captcha.get(0), function (response) {
+        state.captchaResponse = response;
+        updateButton();
+      }, function () {
+        state.captchaResponse = '';
+        updateButton();
+      });
+    });
   }
 
-  function finish() {
+  function resetCaptcha() {
+    state.captchaResponse = '';
+
+    if (captchaWidget !== null && captchaApi()) {
+      captchaApi().reset(captchaWidget);
+    }
+
+    updateButton();
+  }
+
+  /* ---------- Button ---------- */
+
+  function codeValue() {
+    return String($code.val() || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  }
+
+  function updateButton() {
+    if (state.ended) {
+      return;
+    }
+
+    if (state.mode === 'keyword') {
+      var hasCode = codeValue().length === CODE_LENGTH;
+      var ready = hasCode && state.captchaResponse !== '' && !state.busy;
+
+      $button.prop('disabled', !ready).toggleClass('is-ready', ready).text('Click here to continue');
+
+      if (!state.busy) {
+        if (!hasCode) {
+          setStatus('Enter your 6-character code.');
+        } else if (state.captchaResponse === '') {
+          setStatus('Complete the check above.');
+        } else {
+          setStatus('Ready. Press the button to continue.', 'ok');
+        }
+      }
+    }
+  }
+
+  /* ---------- Wait mode ---------- */
+
+  function renderWait(info) {
+    if (state.mode !== 'wait') {
+      showMode('wait');
+    }
+
+    state.token = info.token;
+    state.step = info.step || 1;
+    state.total = info.total_steps || 1;
+    state.busy = false;
+
+    var isFinal = !!info.captcha_required;
+    var seconds = parseInt(info.dwell_seconds, 10) || 0;
+    var label = state.step + '/' + state.total;
+
+    showStepAds(state.step, isFinal);
+    setStatus('');
+    clearInterval(waitTimer);
+
+    if (isFinal) {
+      showCaptcha();
+    } else {
+      $captchaWrap.prop('hidden', true);
+    }
+
+    function tick() {
+      if (seconds > 0) {
+        $button.prop('disabled', true).text('Please wait ' + seconds + 's (' + label + ')');
+        seconds--;
+        return;
+      }
+
+      clearInterval(waitTimer);
+
+      if (isFinal) {
+        updateWaitFinal();
+      } else {
+        $button.prop('disabled', false).text('Continue (' + label + ')').off('click.visit').on('click.visit', nextStep);
+      }
+    }
+
+    tick();
+    waitTimer = setInterval(tick, 1000);
+  }
+
+  function updateWaitFinal() {
+    var ready = state.captchaResponse !== '';
+
+    $button.prop('disabled', !ready).toggleClass('is-ready', ready).text('Click here to continue');
+    setStatus(ready ? 'Ready. Press the button.' : 'Complete the check above.', ready ? 'ok' : '');
+  }
+
+  function nextStep() {
+    if (preview) {
+      setStatus('This is a layout preview.');
+      return;
+    }
+
+    $button.prop('disabled', true);
+    post($visit.data('info-url'), { alias: $visit.data('alias'), token: state.token, fingerprint: fingerprint })
+      .done(handleInfo)
+      .fail(function (xhr) {
+        var error = (xhr.responseJSON || {}).error;
+
+        if (error === 'too_early') {
+          setStatus('Please wait a little longer.', 'error');
+          setTimeout(function () { $button.prop('disabled', false); }, 1500);
+          return;
+        }
+
+        if (!handleBlocking(error)) {
+          setStatus('Something went wrong. Please try again.', 'error');
+          $button.prop('disabled', false);
+        }
+      });
+  }
+
+  /* ---------- Keyword mode ---------- */
+
+  function youtubeOrVimeo(url) {
+    var match = /^https:\/\/(?:www\.)?youtube\.com\/watch\?(?:.*&)?v=([\w-]{6,20})/.exec(url)
+      || /^https:\/\/youtu\.be\/([\w-]{6,20})/.exec(url);
+
+    if (match) {
+      return 'https://www.youtube-nocookie.com/embed/' + match[1];
+    }
+
+    match = /^https:\/\/(?:www\.)?vimeo\.com\/(\d{5,12})/.exec(url);
+
+    return match ? 'https://player.vimeo.com/video/' + match[1] : '';
+  }
+
+  function renderKeyword(info) {
+    showMode('keyword');
+    state.busy = false;
+
+    var keyword = String(info.keyword || '');
+
+    $('#visit-keyword').text(keyword);
+    $('#visit-domain').text(info.display_domain || '');
+    $('#visit-google').attr('href', 'https://www.google.com/search?q=' + encodeURIComponent(keyword));
+
+    var images = info.images || {};
+
+    $.each({ google: '#visit-example-google', button: '#visit-example-button', position: '#visit-example-position' }, function (key, selector) {
+      var $holder = $(selector).empty();
+
+      if (images[key]) {
+        $holder.append($('<img>', { src: images[key], alt: 'Example picture', loading: 'lazy' })).prop('hidden', false);
+      } else {
+        $holder.prop('hidden', true);
+      }
+    });
+
+    var embed = youtubeOrVimeo(String(info.tutorial_video_url || ''));
+
+    if (embed) {
+      $('#visit-video-frame').attr('src', embed);
+    }
+    $('#visit-video').prop('hidden', embed === '');
+
+    showStepAds(1, true);
+    showCaptcha();
+    startSession(parseInt(info.session_seconds_left, 10) || 0);
+    updateButton();
+  }
+
+  function startSession(seconds) {
+    clearInterval(sessionTimer);
+
+    function tick() {
+      if (state.ended) {
+        return;
+      }
+
+      $sessionTime.text(String(Math.max(0, seconds)));
+      $session.toggleClass('is-low', seconds < 60);
+
+      if (seconds <= 0) {
+        clearInterval(sessionTimer);
+        stopWith('Your session has expired.');
+        return;
+      }
+
+      seconds--;
+    }
+
+    tick();
+    sessionTimer = setInterval(tick, 1000);
+  }
+
+  var KEYWORD_ERRORS = {
+    invalid_code: 'That code is not correct. Please check it and try again.',
+    expired_code: 'That code has expired. Get a new one from the partner website.',
+    wrong_device: 'That code was made on another device or browser. Get a new code on this one.',
+    captcha_failed: 'The check did not pass. Please complete it again.',
+  };
+
+  function submitCode() {
+    if (preview) {
+      setStatus('This is a layout preview, so the code is not checked.');
+      return;
+    }
+
     state.busy = true;
-    setButton('Please wait…', false);
-    showMessage('');
+    $button.prop('disabled', true).text('Checking…');
+    setStatus('Checking your code…');
+
+    post($visit.data('finish-url'), {
+      alias: $visit.data('alias'),
+      code: codeValue(),
+      fingerprint: fingerprint,
+      captcha_response: state.captchaResponse,
+    }).done(function (data) {
+      if (data && data.destination) {
+        setStatus('Success. Taking you to your link…', 'ok');
+        window.location.href = data.destination;
+      }
+    }).fail(function (xhr) {
+      var body = xhr.responseJSON || {};
+      var error = body.error;
+
+      state.busy = false;
+
+      if (error === 'locked') {
+        var hourly = /hour/i.test(String(body.message || ''));
+
+        stopWith(hourly ? 'Too many wrong codes. Please try again in about an hour.' : 'Too many wrong codes. Please open the link again to restart.', !hourly);
+        return;
+      }
+
+      if (handleBlocking(error)) {
+        return;
+      }
+
+      var message = KEYWORD_ERRORS[error] || 'Something went wrong. Please try again.';
+
+      if (error === 'invalid_code' && typeof body.failures_left === 'number') {
+        message += ' (' + body.failures_left + ' tries left)';
+      }
+
+      $code.addClass('is-error');
+      $code2.addClass('is-error');
+      resetCaptcha();
+      setStatus(message, 'error');
+    });
+  }
+
+  /* ---------- Info response ---------- */
+
+  function handleInfo(info) {
+    if (info.mode === 'keyword') {
+      renderKeyword(info);
+    } else {
+      renderWait(info);
+    }
+  }
+
+  /* ---------- Report an error ---------- */
+
+  var $report = $('#visit-report');
+  var $reportSend = $('#visit-report-send');
+  var $reportMessage = $('#visit-report-message');
+
+  function openReport() {
+    $report.prop('hidden', false);
+    $reportMessage.text('').removeClass('is-error is-ok');
+
+    if (!siteKey) {
+      return;
+    }
+
+    withCaptcha(function () {
+      if (reportWidget !== null) {
+        captchaApi().reset(reportWidget);
+        reportResponse = '';
+        $reportSend.prop('disabled', true);
+        return;
+      }
+
+      reportWidget = renderCaptcha($('#visit-report-captcha').get(0), function (response) {
+        reportResponse = response;
+        $reportSend.prop('disabled', false);
+      }, function () {
+        reportResponse = '';
+        $reportSend.prop('disabled', true);
+      });
+    });
+  }
+
+  function closeReport() {
+    $report.prop('hidden', true);
+  }
+
+  function sendReport() {
+    if (preview) {
+      $reportMessage.text('This is a layout preview, so the report is not sent.');
+      return;
+    }
+
+    $reportSend.prop('disabled', true);
+
+    post($visit.data('report-url'), {
+      alias: $visit.data('alias'),
+      choice: $('input[name="report-choice"]:checked').val(),
+      captcha_response: reportResponse,
+    }).done(function (data) {
+      $reportMessage.removeClass('is-error').addClass('is-ok').text((data && data.message) || 'Thank you. Your report has been sent.');
+      setTimeout(closeReport, 1800);
+    }).fail(function () {
+      $reportMessage.removeClass('is-ok').addClass('is-error').text('The report could not be sent. Please complete the check and try again.');
+
+      if (reportWidget !== null && captchaApi()) {
+        captchaApi().reset(reportWidget);
+      }
+
+      reportResponse = '';
+    });
+  }
+
+  /* ---------- Events ---------- */
+
+  function onCodeInput(event) {
+    var value = $(event.target).val();
+
+    $code.val(value).removeClass('is-error');
+    $code2.val(value).removeClass('is-error');
+    updateButton();
+  }
+
+  $code.on('input', onCodeInput).on('keydown', function (event) {
+    if (event.key === 'Enter' && !$button.prop('disabled')) {
+      $button.trigger('click');
+    }
+  });
+  $code2.on('input', onCodeInput);
+
+  /* The second button repeats the first one for visitors who finished the steps at the bottom of the page. */
+  $button2.on('click', function () {
+    if ($button.prop('disabled')) {
+      setStatus(state.captchaResponse === '' ? 'Complete the check at the top of the page first.' : 'Enter your 6-character code first.', 'error');
+      $('html, body').animate({ scrollTop: 0 }, 250);
+      return;
+    }
+
+    $button.trigger('click');
+  });
+
+  $button.on('click', function () {
+    if ($button.prop('disabled')) {
+      return;
+    }
+
+    if (state.mode === 'keyword') {
+      submitCode();
+    } else if (state.mode === 'wait' && state.captchaResponse !== '' && $captchaWrap.is(':visible')) {
+      finishWait();
+    }
+  });
+
+  function finishWait() {
+    if (preview) {
+      setStatus('This is a layout preview.');
+      return;
+    }
+
+    $button.prop('disabled', true).text('Please wait…');
 
     post($visit.data('finish-url'), {
       alias: $visit.data('alias'),
       token: state.token,
       fingerprint: fingerprint,
       captcha_response: state.captchaResponse,
-    }).done(function (body) {
-      setButton('Opening…', false);
-      window.location.href = body.destination;
+    }).done(function (data) {
+      if (data && data.destination) {
+        window.location.href = data.destination;
+      }
     }).fail(function (xhr) {
-      handleError(xhr);
+      var error = (xhr.responseJSON || {}).error;
 
-      if (captchaWidget !== null && captchaApi()) {
-        state.captchaResponse = '';
-        captchaApi().reset(captchaWidget);
+      if (!handleBlocking(error)) {
+        setStatus('The check did not pass. Please try again.', 'error');
+        resetCaptcha();
+        updateWaitFinal();
       }
     });
   }
 
-  $button.on('click', function () {
-    if (state.busy || $button.prop('disabled')) {
+  $('#visit-copy-keyword').on('click', function () {
+    var text = $('#visit-keyword').text();
+    var $self = $(this);
+
+    function done() {
+      $self.text('Copied');
+      setTimeout(function () { $self.text('Copy'); }, 1500);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var area = document.createElement('textarea');
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand('copy');
+      document.body.removeChild(area);
+      done();
+    }
+  });
+
+  $('#visit-report-open, [data-report-open]').on('click', openReport);
+  $('#visit-report-close, #visit-report-x').on('click', closeReport);
+  $reportSend.on('click', sendReport);
+  $report.on('click', function (event) {
+    if (event.target === this) {
+      closeReport();
+    }
+  });
+  $(document).on('keydown', function (event) {
+    if (event.key === 'Escape' && !$report.prop('hidden')) {
+      closeReport();
+    }
+  });
+
+  /* ---------- Start ---------- */
+
+  function start() {
+    if (preview) {
+      if (preview.preview_state === 'expired') {
+        showMode(preview.mode);
+        stopWith('Your session has expired.');
+        return;
+      }
+
+      handleInfo(preview);
       return;
     }
 
-    if (state.captchaRequired) {
-      finish();
-    } else {
-      requestStep();
-    }
-  });
+    post($visit.data('info-url'), { alias: $visit.data('alias'), fingerprint: fingerprint })
+      .done(handleInfo)
+      .fail(function (xhr) {
+        var error = (xhr.responseJSON || {}).error;
 
-  /* ---------- Report an error ---------- */
+        $loading.prop('hidden', true);
 
-  var dialog = document.getElementById('report-dialog');
-  var $reportForm = $('#report-form');
-  var $reportMessage = $('#report-message');
+        if (!handleBlocking(error)) {
+          stopWith('This page could not be loaded. Please try again.');
+        }
+      });
+  }
 
-  $('[data-report-open]').on('click', function () {
-    $reportMessage.removeClass('visit-message-error').text('');
-
-    if (dialog && typeof dialog.showModal === 'function') {
-      dialog.showModal();
-    }
-  });
-
-  $('[data-report-close]').on('click', function () {
-    dialog.close();
-  });
-
-  $reportForm.on('submit', function (e) {
-    e.preventDefault();
-
-    var $submit = $reportForm.find('[type="submit"]').prop('disabled', true);
-
-    post($visit.data('report-url'), {
-      alias: $visit.data('alias'),
-      reason: $reportForm.find('input[name="reason"]:checked').val(),
-      detail: $('#report-detail').val(),
-    }).done(function (body) {
-      $reportMessage.removeClass('visit-message-error').text(body.message);
-      $('#report-detail').val('');
-      setTimeout(function () { dialog.close(); }, 1500);
-    }).fail(function (xhr) {
-      var body = xhr.responseJSON || {};
-      var text = 'Your report could not be sent. Please try again.';
-
-      if (xhr.status === 429) {
-        text = 'Too many reports. Please try again in a minute.';
-      } else if (body.errors) {
-        text = body.errors[Object.keys(body.errors)[0]][0];
-      }
-
-      $reportMessage.addClass('visit-message-error').text(text);
-    }).always(function () {
-      $submit.prop('disabled', false);
-    });
-  });
-
-  requestStep();
+  start();
 });

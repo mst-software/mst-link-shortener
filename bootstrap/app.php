@@ -11,6 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         web: [
             __DIR__.'/../routes/member.php',
             __DIR__.'/../routes/admin.php',
+            __DIR__.'/../routes/widget.php',
             __DIR__.'/../routes/web.php',
         ],
         api: __DIR__.'/../routes/api.php',
@@ -19,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->validateCsrfTokens(except: ['widget/*']);
+
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'admin' => EnsureUserIsAdmin::class,

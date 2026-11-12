@@ -33,6 +33,31 @@
     </div>
 
     <div class="box box-primary">
+      <div class="box-header with-border"><h3 class="box-title">Keyword code</h3></div>
+      <div class="box-body">
+        <div class="form-group @error('visit_mode') has-error @enderror">
+          <label for="visit_mode">Visit mode</label>
+          <select id="visit_mode" name="visit_mode" class="form-control" required>
+            @foreach (['auto' => 'Automatic (keyword when a campaign is available, otherwise wait)', 'keyword' => 'Keyword only', 'wait' => 'Wait only'] as $value => $label)
+              <option value="{{ $value }}" @selected(old('visit_mode', $values['visit_mode']) === $value)>{{ $label }}</option>
+            @endforeach
+          </select>
+          <span class="help-block">@error('visit_mode'){{ $message }}@else Chooses how new visitors get past a link.@enderror</span>
+        </div>
+        <div class="form-group @error('code_session_seconds') has-error @enderror">
+          <label for="code_session_seconds">Code session length (seconds)</label>
+          <input type="number" id="code_session_seconds" name="code_session_seconds" class="form-control" min="120" max="3600" step="1" required value="{{ old('code_session_seconds', $values['code_session_seconds']) }}">
+          <span class="help-block">@error('code_session_seconds'){{ $message }}@else How long a visitor has to find and enter the code. Between 120 and 3600.@enderror</span>
+        </div>
+        <div class="form-group @error('tutorial_video_url') has-error @enderror">
+          <label for="tutorial_video_url">Tutorial video link</label>
+          <input type="url" id="tutorial_video_url" name="tutorial_video_url" class="form-control" maxlength="255" placeholder="https://www.youtube.com/watch?v=..." value="{{ old('tutorial_video_url', $values['tutorial_video_url']) }}">
+          <span class="help-block">@error('tutorial_video_url'){{ $message }}@else Optional. A YouTube or Vimeo link over https.@enderror</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">Captcha</h3></div>
       <div class="box-body">
         <div class="form-group @error('captcha_provider') has-error @enderror">

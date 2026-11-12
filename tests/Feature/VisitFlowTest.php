@@ -222,6 +222,7 @@ it('stores a visitor report as a fraud flag', function () {
     $this->postJson(route('visit.report'), [
         'alias' => 'Ab3xYz',
         'reason' => 'code_not_shown',
+        'captcha_response' => 'ok',
         'detail' => 'The code never appeared.',
     ])->assertOk();
 
@@ -235,7 +236,7 @@ it('stores a visitor report as a fraud flag', function () {
 });
 
 it('rejects an unknown report reason', function () {
-    $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'spam'])
+    $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'spam', 'captcha_response' => 'ok'])
         ->assertStatus(422)
         ->assertJsonValidationErrors('reason');
 
@@ -244,10 +245,10 @@ it('rejects an unknown report reason', function () {
 
 it('rate limits reports to five per minute', function () {
     foreach (range(1, 5) as $attempt) {
-        $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'other'])->assertOk();
+        $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'other', 'captcha_response' => 'ok'])->assertOk();
     }
 
-    $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'other'])->assertStatus(429);
+    $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'other', 'captcha_response' => 'ok'])->assertStatus(429);
 
     expect(FraudFlag::query()->count())->toBe(5);
 });
