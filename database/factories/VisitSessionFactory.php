@@ -22,6 +22,7 @@ class VisitSessionFactory extends Factory
         return [
             'link_id' => Link::factory(),
             'ip' => fake()->ipv4(),
+            'ip_changed' => false,
             'ua_hash' => hash('sha256', fake()->userAgent()),
             'fingerprint' => null,
             'country' => 'XX',
