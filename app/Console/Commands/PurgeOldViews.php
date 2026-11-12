@@ -38,14 +38,17 @@ class PurgeOldViews extends Command
                     ->delete();
             });
 
-        // Code attempts are useless a day after their code expired (or after they started without ever getting a code).
+        // Unused code attempts are useless a day after they expired (or after they started without ever
+        // getting a code); used ones are kept as long as the views they paid for.
         $attemptCutoff = now()->subDay();
         CodeAttempt::query()
+            ->whereNull('used_at')
             ->where(function ($query) use ($attemptCutoff): void {
                 $query->where('expires_at', '<', $attemptCutoff)
                     ->orWhere(fn ($unissued) => $unissued->whereNull('expires_at')->where('started_at', '<', $attemptCutoff));
             })
             ->delete();
+        CodeAttempt::query()->whereNotNull('used_at')->where('used_at', '<', $cutoff)->delete();
 
         // Expired dedup keys and finished or expired visit sessions are useless after their window.
         ViewDedup::query()->where('expires_at', '<', now())->delete();
