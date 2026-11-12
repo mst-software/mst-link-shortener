@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 use App\Models\Link;
 
 test('visit routes are limited to 60 requests per minute per ip', function () {

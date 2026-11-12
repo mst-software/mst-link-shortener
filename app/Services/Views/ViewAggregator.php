@@ -55,8 +55,12 @@ class ViewAggregator
             foreach ($groups as $key => $group) {
                 [$userId, $date] = explode('|', (string) $key);
 
+                DailyStat::query()->firstOrCreate(['user_id' => (int) $userId, 'stat_date' => $date]);
+
+                // Increment by the natural key so the right row is always updated.
                 DailyStat::query()
-                    ->firstOrCreate(['user_id' => (int) $userId, 'stat_date' => $date])
+                    ->where('user_id', (int) $userId)
+                    ->whereDate('stat_date', $date)
                     ->incrementEach([
                         'views' => $group->count(),
                         'earn_micro' => (int) $group->sum('earn_micro'),

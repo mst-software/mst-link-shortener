@@ -96,8 +96,13 @@ class EarningsReleaser
 
         $this->wallet->credit($referrer, $commission, TransactionAction::ReferralCommission, (string) $user->id, 'Referral commission for release '.$reference);
 
+        $statDate = now()->utc()->toDateString();
+
+        DailyStat::query()->firstOrCreate(['user_id' => $referrer->id, 'stat_date' => $statDate]);
+
         DailyStat::query()
-            ->firstOrCreate(['user_id' => $referrer->id, 'stat_date' => now()->utc()->toDateString()])
+            ->where('user_id', $referrer->id)
+            ->whereDate('stat_date', $statDate)
             ->incrementEach(['ref_earn_micro' => $commission]);
     }
 }

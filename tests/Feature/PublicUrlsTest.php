@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 dataset('public urls', [
     'login' => ['login', '/auth/signin'],
     'register' => ['register', '/auth/signup'],

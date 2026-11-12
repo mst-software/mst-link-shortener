@@ -19,8 +19,9 @@ function makeView(User $user, array $attributes = []): View
     $view = View::factory()->create(array_merge(['link_id' => $link->id, 'user_id' => $user->id], $attributes));
 
     if ($createdAt !== null) {
-        // created_at is not mass assignable, so set it explicitly.
-        $view->forceFill(['created_at' => $createdAt])->save();
+        // Write created_at straight to the table so the model cannot reset it.
+        View::query()->whereKey($view->id)->toBase()->update(['created_at' => $createdAt]);
+        $view->refresh();
     }
 
     return $view;
