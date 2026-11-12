@@ -6,9 +6,9 @@ use App\Enums\ViewStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCampaignRequest;
 use App\Models\Campaign;
+use App\Models\CodeAttempt;
 use App\Models\FraudFlag;
 use App\Models\View as PageView;
-use App\Models\VisitSession;
 use App\Support\DomainMasker;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -21,19 +21,37 @@ class CampaignController extends Controller
     {
         $campaigns = Campaign::query()->latest('id')->paginate(20);
 
+        $ids = $campaigns->getCollection()->modelKeys();
+
+        // Three grouped queries for the whole page instead of three queries per campaign.
+        $issued = CodeAttempt::query()
+            ->whereIn('campaign_id', $ids)
+            ->whereBetween('issued_at', [now('UTC')->startOfDay(), now('UTC')->endOfDay()])
+            ->selectRaw('campaign_id, count(*) as total')
+            ->groupBy('campaign_id')
+            ->pluck('total', 'campaign_id');
+
+        $validViews = PageView::query()
+            ->join('visit_sessions', 'visit_sessions.id', '=', 'views.visit_session_id')
+            ->whereIn('views.status', [ViewStatus::Pending, ViewStatus::Released])
+            ->whereIn('visit_sessions.campaign_id', $ids)
+            ->selectRaw('visit_sessions.campaign_id as campaign_id, count(*) as total')
+            ->groupBy('visit_sessions.campaign_id')
+            ->pluck('total', 'campaign_id');
+
+        $reports = FraudFlag::query()
+            ->where('reason', 'visitor_report')
+            ->whereIn('details->campaign_id', $ids)
+            ->get(['id', 'details'])
+            ->countBy(fn (FraudFlag $flag): int => (int) ($flag->details['campaign_id'] ?? 0));
+
         $stats = [];
 
-        foreach ($campaigns as $campaign) {
-            $stats[$campaign->getKey()] = [
-                'issued_today' => $campaign->issuedToday(),
-                'valid_views' => PageView::query()
-                    ->whereIn('status', [ViewStatus::Pending, ViewStatus::Released])
-                    ->whereIn('visit_session_id', VisitSession::query()->where('campaign_id', $campaign->getKey())->select('id'))
-                    ->count(),
-                'reports' => FraudFlag::query()
-                    ->where('reason', 'visitor_report')
-                    ->where('details->campaign_id', $campaign->getKey())
-                    ->count(),
+        foreach ($ids as $id) {
+            $stats[$id] = [
+                'issued_today' => (int) ($issued[$id] ?? 0),
+                'valid_views' => (int) ($validViews[$id] ?? 0),
+                'reports' => (int) ($reports[$id] ?? 0),
             ];
         }
 

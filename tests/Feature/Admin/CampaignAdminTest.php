@@ -1,11 +1,17 @@
 <?php
 
+use App\Enums\ViewStatus;
 use App\Models\Campaign;
+use App\Models\CodeAttempt;
+use App\Models\FraudFlag;
 use App\Models\User;
+use App\Models\View;
+use App\Models\VisitSession;
 use App\Services\Settings;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -213,3 +219,44 @@ test('localhost domains are accepted in a local environment', function (string $
 
     expect(Campaign::query()->first()->domain)->toBe($domain);
 })->with(['localhost', '127.0.0.1']);
+
+test('the campaign list counts issued codes, valid views and reports per campaign', function () {
+    $busy = Campaign::factory()->create();
+    $quiet = Campaign::factory()->create();
+
+    CodeAttempt::factory()->issued()->count(2)->create(['campaign_id' => $busy->id]);
+    CodeAttempt::factory()->issued()->create(['campaign_id' => $busy->id, 'issued_at' => now()->subDays(2)]);
+    CodeAttempt::factory()->issued()->create(['campaign_id' => $quiet->id]);
+
+    $session = VisitSession::factory()->create(['campaign_id' => $busy->id]);
+    $other = VisitSession::factory()->create(['campaign_id' => $busy->id]);
+    $cancelled = VisitSession::factory()->create(['campaign_id' => $busy->id]);
+    View::factory()->create(['visit_session_id' => $session->id, 'status' => ViewStatus::Pending]);
+    View::factory()->create(['visit_session_id' => $other->id, 'status' => ViewStatus::Released]);
+    View::factory()->create(['visit_session_id' => $cancelled->id, 'status' => ViewStatus::Cancelled]);
+
+    FraudFlag::factory()->count(2)->create(['reason' => 'visitor_report', 'details' => ['campaign_id' => $busy->id]]);
+    FraudFlag::factory()->create(['reason' => 'suspicious_traffic', 'details' => ['campaign_id' => $busy->id]]);
+
+    $stats = $this->actingAs($this->admin)->get(route('admin.campaigns.index'))->assertOk()->viewData('stats');
+
+    expect($stats[$busy->id])->toBe(['issued_today' => 2, 'valid_views' => 2, 'reports' => 2])
+        ->and($stats[$quiet->id])->toBe(['issued_today' => 1, 'valid_views' => 0, 'reports' => 0]);
+});
+
+test('the campaign list runs the same number of queries for any number of campaigns', function () {
+    $countQueries = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($this->admin)->get(route('admin.campaigns.index'))->assertOk();
+
+        return count(DB::getQueryLog());
+    };
+
+    Campaign::factory()->create();
+    $one = $countQueries();
+
+    Campaign::factory()->count(5)->create();
+
+    expect($countQueries())->toBe($one);
+});
