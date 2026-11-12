@@ -19,7 +19,9 @@ Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(
     Route::get('popular-link', [PopularLinkController::class, 'index'])->name('popular-link');
 
     Route::match(['get', 'post'], 'links', [LinkController::class, 'index'])->name('links');
-    Route::get('links/hidden', [LinkController::class, 'hidden'])->name('links.hidden');
+    Route::match(['get', 'post'], 'links/hidden', [LinkController::class, 'hidden'])->name('links.hidden');
+    Route::post('links/hide', [LinkController::class, 'hide'])->name('links.hide');
+    Route::post('links/restore', [LinkController::class, 'restore'])->name('links.restore');
 
     Route::get('withdraws', [WithdrawController::class, 'index'])->name('withdraws');
 

@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegalController;
+use App\Http\Controllers\LinkInfoController;
+use App\Http\Controllers\LinkShortenController;
 use App\Http\Controllers\PayoutRateController;
 use App\Http\Controllers\ReferralRedirectController;
 use Illuminate\Support\Facades\Route;
@@ -24,3 +26,10 @@ Route::get('pages/privacy', [LegalController::class, 'privacy'])->name('privacy'
 Route::get('pages/terms', [LegalController::class, 'terms'])->name('terms');
 
 Route::get('ref/{code}', ReferralRedirectController::class)->name('referral');
+
+Route::middleware(['auth', 'active'])->group(function () {
+    Route::post('links/shorten', LinkShortenController::class)->name('links.shorten');
+    Route::get('{alias}/info', LinkInfoController::class)->name('link.info');
+});
+
+// visit routes are registered below this line (Task 15)

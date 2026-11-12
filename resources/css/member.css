@@ -63,3 +63,17 @@
 .small-box .icon {
     top: 10px;
 }
+
+/* Link cards on the Links pages */
+.link-card h4 {
+    margin-top: 0;
+    word-break: break-all;
+}
+
+.link-card .text-muted {
+    word-break: break-all;
+}
+
+.link-card .input-group-addon.js-copy {
+    cursor: pointer;
+}
