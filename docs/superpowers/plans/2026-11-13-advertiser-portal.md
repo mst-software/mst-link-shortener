@@ -19,12 +19,12 @@
 - Advertisers never see `invalid_reason`, full IPs or fingerprints; only `Counted` / `Not counted`.
 - Advertiser and member are separate accounts: an advertiser gets 403 on `member/*`, `links/shorten` and `{alias}/info`; a member gets 403 on `advertiser/*`.
 - JavaScript on our pages uses jQuery. Run `vendor/bin/pint --dirty --format agent` and the affected Pest tests before every commit.
-- Env keys (the user fills the values): `SEPAY_API_KEY`, `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE` (`sandbox`|`live`), exposed through `config/services.php` and listed in `.env.example`.
+- Env keys (the user fills the values): `SEPAY_API_TOKEN` (SePay API token, used to poll transactions; there is no webhook), `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE` (`sandbox`|`live`), exposed through `config/services.php` and listed in `.env.example`.
 
 ## Review Focus
 
-1. A SePay webhook delivered twice, or concurrently, credits the wallet once.
-2. A SePay payload with `transferType` `out`, an unknown reference code, or a wrong amount never credits the wallet (wrong amount/expired is stored as `mismatch`).
+1. The SePay sync command run twice, or two runs overlapping, credits a payment once.
+2. A SePay transaction that is outgoing, has an unknown reference code, or a wrong amount never credits the wallet (wrong amount, or payment after the order expired, is stored as `mismatch`).
 3. Two valid views recorded when the wallet can pay for only one: the balance never goes negative and the second view has `advertiser_cost_micro = 0`.
 4. Advertiser A requesting advertiser B's campaign, top-up or visits gets 404.
 5. The advertiser campaign page and visit table never contain an invalid reason label, IP or fingerprint.
@@ -35,10 +35,10 @@
 - Create `app/Services/Advertiser/AdvertiserBilling.php`: price lookup, charge, refund, affordability.
 - Create `app/Services/Advertiser/TopUpService.php`: top-up creation and completion for SePay and PayPal.
 - Create `app/Services/Advertiser/CampaignReport.php`: funnel, daily series and visit query for one campaign.
-- Create `app/Http/Controllers/Advertiser/{DashboardController,CampaignController,WalletController,TopUpController,ProfileController}.php`, `app/Http/Controllers/Auth/AdvertiserRegisterController.php`, `app/Http/Controllers/Webhooks/SepayController.php`, `app/Http/Controllers/Admin/AdvertiserController.php`.
+- Create `app/Http/Controllers/Advertiser/{DashboardController,CampaignController,WalletController,TopUpController,ProfileController}.php`, `app/Http/Controllers/Auth/AdvertiserRegisterController.php`, `app/Console/Commands/SyncSepayTopUps.php`, `app/Services/Advertiser/SepayClient.php`, `app/Http/Controllers/Admin/AdvertiserController.php`.
 - Create `app/Http/Middleware/{EnsureUserIsAdvertiser,EnsureUserIsNotAdvertiser}.php`.
-- Create `app/Models/TopUp.php` (+ factory), `routes/advertiser.php`, `routes/webhooks.php`, `resources/views/layouts/advertiser.blade.php`, `resources/views/advertiser/*`, `resources/views/admin/advertisers/*`.
-- Modify `app/Enums/{UserRole,TransactionAction}.php`, `app/Models/{Campaign,View,User}.php`, `app/Services/Views/ViewRecorder.php`, `app/Services/LinkBanService.php`, `app/Console/Commands/PurgeOldViews.php`, `app/Services/Visits/CodeRedeemer.php`, `app/Services/Views/VisitFlow.php`, `app/Http/Controllers/Auth/LoginController.php`, `app/Http/Controllers/Admin/CampaignController.php`, admin settings request/view, `bootstrap/app.php`, `config/linkcash.php`, `config/services.php`, `.env.example`, `routes/web.php`.
+- Create `app/Models/TopUp.php` (+ factory), `routes/advertiser.php`, `resources/views/layouts/advertiser.blade.php`, `resources/views/advertiser/*`, `resources/views/admin/advertisers/*`.
+- Modify `app/Enums/{UserRole,TransactionAction}.php`, `app/Models/{Campaign,View,User}.php`, `app/Services/Views/ViewRecorder.php`, `app/Services/LinkBanService.php`, `app/Console/Commands/PurgeOldViews.php`, `app/Services/Visits/CodeRedeemer.php`, `app/Services/Views/VisitFlow.php`, `app/Http/Controllers/Auth/LoginController.php`, `app/Http/Controllers/Admin/CampaignController.php`, admin settings request/view, `bootstrap/app.php`, `routes/console.php`, `config/linkcash.php`, `config/services.php`, `.env.example`, `routes/web.php`.
 
 ---
 
@@ -75,7 +75,7 @@ New `linkcash.defaults`: `advertiser_default_price_micro` = 10_000, `advertiser_
 
 - [ ] **Step 1: Write failing tests**: `it('stores review status price and owner on a campaign')`, `it('defaults old campaigns to approved')`, `it('stores campaign id and advertiser cost on a view')`, `it('keeps a unique provider and reference pair on top ups')` (second insert throws `UniqueConstraintViolationException`).
 - [ ] **Step 2: Run** the file → FAIL.
-- [ ] **Step 3: Implement** the migrations (follow the sibling migration style, `down()` included), enums with `label()`, models, factories, config and `.env.example` keys (`SEPAY_API_KEY=`, `PAYPAL_CLIENT_ID=`, `PAYPAL_SECRET=`, `PAYPAL_MODE=sandbox`; `config/services.php` keys `sepay.api_key`, `paypal.client_id`, `paypal.secret`, `paypal.mode`).
+- [ ] **Step 3: Implement** the migrations (follow the sibling migration style, `down()` included), enums with `label()`, models, factories, config and `.env.example` keys (`SEPAY_API_TOKEN=`, `PAYPAL_CLIENT_ID=`, `PAYPAL_SECRET=`, `PAYPAL_MODE=sandbox`; `config/services.php` keys `sepay.api_token`, `paypal.client_id`, `paypal.secret`, `paypal.mode`).
 - [ ] **Step 4: Run** the file and `php artisan test --compact tests/Feature/CampaignSchemaTest.php tests/Feature/ViewSchemaTest.php` → PASS.
 - [ ] **Step 5: Commit** `feat(advertiser): add advertiser schema and enums`.
 
@@ -129,23 +129,26 @@ New `linkcash.defaults`: `advertiser_default_price_micro` = 10_000, `advertiser_
 - [ ] **Step 4: Run** both test files and `tests/Feature/Admin` → PASS.
 - [ ] **Step 5: Commit** `feat(advertiser): add campaign management and admin review`.
 
-### Task 6: SePay top-up
+### Task 6: SePay top-up (polled by cron)
+
+SePay is read by a scheduled command, not by a webhook: shared hosting runs `php artisan schedule:run` every minute from cron, and the command asks the SePay API for recent incoming transactions.
 
 **Files:**
-- Create: `app/Services/Advertiser/TopUpService.php`, `app/Http/Controllers/Webhooks/SepayController.php`, `routes/webhooks.php`, `app/Http/Requests/Advertiser/StoreSepayTopUpRequest.php`, `app/Http/Controllers/Advertiser/TopUpController.php` (SePay part)
-- Modify: `bootstrap/app.php` (load `routes/webhooks.php`; add `webhooks/*` to the CSRF exceptions), `routes/advertiser.php`
+- Create: `app/Services/Advertiser/TopUpService.php`, `app/Services/Advertiser/SepayClient.php`, `app/Console/Commands/SyncSepayTopUps.php`, `app/Http/Requests/Advertiser/StoreSepayTopUpRequest.php`, `app/Http/Controllers/Advertiser/TopUpController.php` (SePay part)
+- Modify: `routes/console.php` (schedule `sepay:sync` every minute with `withoutOverlapping()`), `routes/advertiser.php`, `config/services.php` (`sepay.api_token`, `sepay.base_url` default `https://my.sepay.vn`)
 - Test: `tests/Feature/Advertiser/SepayTopUpTest.php`
 
 **Interfaces:**
-- Produces on `TopUpService`: `createSepay(User $user, int $vnd): TopUp` (rejects below `advertiser_min_topup_micro` converted at the current rate; stores `exchange_rate`, `amount_micro = intdiv($vnd * 1_000_000, $rate)`, `reference = 'LC'.$user->id.strtoupper(Str::random(6))`, `expires_at = now()+24h`, status pending); `completeFromSepay(array $payload): TopUpStatus|null` (see rules below); `complete(TopUp $topUp, array $raw = []): void` (locks the row, no-op unless status pending, credits via `WalletService::credit(..., TransactionAction::Topup, 'topup:'.$id)`, sets completed, in one DB transaction). Route `advertiser.topups.sepay` (POST creating the order and redirecting to the wallet page with the QR data), `POST webhooks/sepay` named `webhooks.sepay`.
+- Produces on `TopUpService`: `createSepay(User $user, int $vnd): TopUp` (rejects below `advertiser_min_topup_micro` converted at the current rate; stores `exchange_rate`, `amount_micro = intdiv($vnd * 1_000_000, $rate)`, `original_amount = $vnd`, `reference = 'LC'.$user->id.strtoupper(Str::random(6))`, `expires_at = now()+24h`, status pending); `syncSepay(): int` (fetches transactions through `SepayClient`, applies the rules below, returns the number of top-ups credited); `complete(TopUp $topUp, array $raw = []): void` (locks the row, no-op unless status pending, credits via `WalletService::credit(..., TransactionAction::Topup, 'topup:'.$id)`, sets completed, in one DB transaction). Route `advertiser.topups.sepay` (POST creating the order and redirecting to the wallet page with the QR data).
+- `SepayClient::recentIncoming(): list<array{id:string, amount:int, content:string, raw:array}>`: GET `{base_url}/userapi/transactions/list` with header `Authorization: Bearer {api_token}`, `account_number` from the `sepay_account_number` setting and `limit=100`; keep entries whose `amount_in` is greater than 0 (the API returns decimal strings such as `"2000000.00"`; convert to whole dong); `id` is the SePay transaction id, `content` is `transaction_content`. Confirm the response field names against SePay's current API documentation when implementing, and adjust only this class. On HTTP failure or a missing token, log a warning and return an empty list (the command must never throw).
+- Command `sepay:sync`: calls `syncSepay()` and prints the credited count. First it marks unpaid pending top-ups past `expires_at` as `failed`. Then, per incoming transaction, it finds the top-up whose `reference` appears in `content` (case-insensitive) and: skips when none matches or when that top-up's `raw.sepay_id` equals the transaction id (already processed); pending, not expired and exact amount match, `complete()` with `raw = ['sepay_id' => id, 'transaction' => ...]`; pending with a wrong amount, or `failed` (paid after expiry), status `mismatch` with the same `raw`, no credit; already `completed` or `mismatch`, skip.
 - QR URL helper `TopUp::sepayQrUrl(): string` building `https://qr.sepay.vn/img?acc={account}&bank={bank}&amount={vnd}&des={reference}` from the settings `sepay_account_number` / `sepay_bank_name`.
-- Webhook rules: header `Authorization: Apikey {config('services.sepay.api_key')}` must match (compare with `hash_equals`), otherwise 401. Payload fields used: `transferType` (`in` only), `transferAmount`, `content`, `id` (stored in `raw`). Find the pending top-up whose reference appears in `content`. Exact amount match and not expired → `complete`. Known reference but wrong amount, expired, or already non-pending → mark `mismatch` (only when still pending) without crediting. Unknown reference or `out` → ignore. Always respond `200 {"success": true}` after authentication so SePay stops retrying.
 
-- [ ] **Step 1: Write failing tests**: `it('creates a pending top up with a locked rate and a unique reference')` (change the rate setting afterwards and confirm `amount_micro` is unchanged); `it('refuses amounts below the minimum')`; `it('credits the wallet once when the webhook arrives twice')`; `it('rejects webhooks without the api key')` (401, no change); `it('ignores outgoing transfers')`; `it('marks a wrong amount as mismatch without crediting')`; `it('marks an expired top up as mismatch without crediting')`; `it('ignores unknown references')`; `it('writes a topup transaction with before and after balances')`.
-- [ ] **Step 2: Run** → FAIL.
-- [ ] **Step 3: Implement** service, controller, routes, request. Use `Cache::lock` is not needed; rely on the row lock in `complete`.
-- [ ] **Step 4: Run** the file → PASS.
-- [ ] **Step 5: Commit** `feat(advertiser): add sepay top up and webhook`.
+- [ ] **Step 1: Write failing tests** (fake the SePay API with `Http::fake()`): `it('creates a pending top up with a locked rate and a unique reference')` (change the rate setting afterwards and confirm `amount_micro` is unchanged); `it('refuses amounts below the minimum')`; `it('credits the wallet when a matching incoming transaction is synced')`; `it('credits only once when the sync runs twice')`; `it('ignores outgoing transactions')`; `it('marks a wrong amount as mismatch without crediting')`; `it('marks a payment that arrives after expiry as mismatch without crediting')`; `it('marks unpaid expired top ups as failed')`; `it('ignores transactions with unknown references')`; `it('does not throw and credits nothing when the SePay api fails or no token is set')`; `it('writes a topup transaction with before and after balances')`; `it('is scheduled every minute')` (assert the schedule contains `sepay:sync`).
+- [ ] **Step 2: Run** `php artisan test --compact tests/Feature/Advertiser/SepayTopUpTest.php` -> FAIL.
+- [ ] **Step 3: Implement** client, service, command, schedule, controller and request. Rely on the row lock inside `complete()` for idempotency.
+- [ ] **Step 4: Run** the file -> PASS.
+- [ ] **Step 5: Commit** `feat(advertiser): add sepay top up synced by cron`.
 
 ### Task 7: PayPal top-up
 
@@ -170,7 +173,7 @@ New `linkcash.defaults`: `advertiser_default_price_micro` = 10_000, `advertiser_
 - Modify: `routes/advertiser.php`, layout menu
 - Test: `tests/Feature/Advertiser/WalletPageTest.php`
 
-**Interfaces:** Consumes `TopUpService`, `TopUp::sepayQrUrl()`. Route `advertiser.wallet` (GET). Shows balance, minimum top-up, two forms (SePay in VND with the live USD preview from the current rate, PayPal in USD), the QR and transfer details of the latest pending SePay top-up, paginated top-up history (provider, amount, status) and paginated transactions (action label, amount, balance after).
+**Interfaces:** Consumes `TopUpService`, `TopUp::sepayQrUrl()`. Route `advertiser.wallet` (GET). Shows balance, minimum top-up, a note that bank transfers are credited within a few minutes, two forms (SePay in VND with the live USD preview from the current rate, PayPal in USD), the QR and transfer details of the latest pending SePay top-up, paginated top-up history (provider, amount, status) and paginated transactions (action label, amount, balance after).
 
 - [ ] **Step 1: Write failing tests**: `it('shows balance, pending sepay qr details and history')`; `it('shows only my top ups and transactions')`; `it('shows the minimum top up and the current rate')`.
 - [ ] **Step 2: Run** → FAIL. **Step 3: Implement** controller and view (a small jQuery snippet updates the USD preview). **Step 4: Run** → PASS.

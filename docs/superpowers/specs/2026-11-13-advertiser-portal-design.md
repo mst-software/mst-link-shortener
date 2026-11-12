@@ -28,7 +28,7 @@ Nhà quảng cáo tự đăng ký tài khoản, tự tạo chiến dịch từ k
 ## 4. Không được xảy ra (anti-goals)
 
 - Advertiser thấy lý do chi tiết của lượt không tính (lộ cách chống gian lận).
-- Nạp tiền bị cộng hai lần (webhook gửi lại, người dùng bấm hai lần).
+- Nạp tiền bị cộng hai lần (lệnh đồng bộ chạy chồng nhau, người dùng bấm hai lần).
 - Ví bị âm vì hai lượt ghi cùng lúc, hoặc chiến dịch vẫn phát mã khi ví hết tiền.
 - Chiến dịch chưa được duyệt, đã bị từ chối hoặc của advertiser bị khóa vẫn chạy.
 - Advertiser xem hoặc sửa dữ liệu chiến dịch, ví của advertiser khác.
@@ -71,7 +71,7 @@ Nhà quảng cáo tự đăng ký tài khoản, tự tạo chiến dịch từ k
 - Số dư là `users.balance_micro` của tài khoản advertiser, đơn vị USD micro như hệ thống hiện tại. `processing_micro` không dùng cho advertiser.
 - `transactions` dùng thêm các `action` mới trong `TransactionAction`: `Topup` (loại cộng), `CampaignCharge` (loại trừ), `ChargeRefund` (loại cộng). Hiển thị lịch sử ở trang Wallet.
 - Bảng `top_ups`: `user_id`, `provider` (`sepay`, `paypal`), `reference` (mã đối soát hoặc order id, duy nhất theo provider), `amount_micro` (USD), `original_amount` và `original_currency` (VND hoặc USD), `exchange_rate` (cho SePay), `status` (`pending`, `completed`, `failed`), `completed_at`, `raw` (json phản hồi để đối soát). Cộng ví chỉ xảy ra khi chuyển `pending` sang `completed`, trong giao dịch DB có khóa dòng, nên gọi lại không cộng thêm.
-- **SePay:** trang Wallet cho advertiser nhập số tiền VND (có mức tối thiểu do admin đặt), hệ thống tạo bản ghi `top_ups` `pending` với mã nội dung chuyển khoản riêng (ví dụ `LC` + id), hiện QR và thông tin tài khoản. Webhook `POST /webhooks/sepay` xác thực bằng API key (Authorization header, khóa trong `.env`), khớp mã trong nội dung chuyển khoản và số tiền, rồi đánh dấu hoàn tất và cộng ví theo tỷ giá VND→USD lưu ở Settings. Chuyển thiếu/thừa hoặc không khớp mã: ghi lại để admin xử lý tay, không tự cộng.
+- **SePay (đồng bộ bằng cronjob, không dùng webhook):** trang Wallet cho advertiser nhập số tiền VND (có mức tối thiểu do admin đặt), hệ thống tạo bản ghi `top_ups` `pending` với mã nội dung chuyển khoản riêng (ví dụ `LC` + id), hiện QR và thông tin tài khoản. Lệnh `sepay:sync` chạy mỗi phút qua `schedule:run` (cron của hosting), gọi API SePay lấy các giao dịch tiền vào gần đây (token trong `.env`), khớp mã trong nội dung chuyển khoản và số tiền, rồi đánh dấu hoàn tất và cộng ví theo tỷ giá đã khóa. Chuyển thiếu/thừa, tiền về sau khi lệnh hết hạn hoặc không khớp: đánh dấu `mismatch` để admin xử lý tay, không tự cộng. Lệnh không bao giờ ném lỗi khi API SePay hỏng (chỉ ghi log và thử lại ở lần chạy sau). Advertiser thấy ví được cộng sau vài phút.
 - **PayPal:** REST API Orders v2 bằng HTTP client có sẵn (không thêm thư viện). Advertiser chọn số tiền USD, hệ thống tạo order, chuyển sang PayPal để duyệt, quay về route return thì capture; chỉ khi capture trả `COMPLETED` mới cộng ví. Key đặt trong `.env`: `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE` (`sandbox` hoặc `live`); bạn tự điền key.
 - Settings mới: tỷ giá VND→USD, mức nạp tối thiểu, giá mặc định mỗi lượt hợp lệ, thông tin tài khoản ngân hàng hiện trên QR.
 
@@ -109,7 +109,7 @@ Nhà quảng cáo tự đăng ký tài khoản, tự tạo chiến dịch từ k
 
 ## 8. Ràng buộc
 
-Laravel 12, jQuery cho JavaScript của trang chúng ta, hosting chia sẻ (không Redis, không worker thường trực), mọi chữ và code bằng tiếng Anh, theo `mst-laravel-conventions` và `git-workflow`, **không thêm thư viện** (PayPal và SePay gọi bằng HTTP client có sẵn). Có test Pest cho: đăng ký và phân quyền theo vai trò, duyệt chiến dịch, webhook SePay (chống nạp trùng, sai mã, sai số tiền), capture PayPal, trừ tiền/hoàn tiền/hết ví, và việc advertiser không thấy lý do và không thấy dữ liệu của người khác.
+Laravel 12, jQuery cho JavaScript của trang chúng ta, hosting chia sẻ (không Redis, không worker thường trực), mọi chữ và code bằng tiếng Anh, theo `mst-laravel-conventions` và `git-workflow`, **không thêm thư viện** (PayPal và SePay gọi bằng HTTP client có sẵn). Có test Pest cho: đăng ký và phân quyền theo vai trò, duyệt chiến dịch, lệnh đồng bộ SePay (chống nạp trùng, sai mã, sai số tiền), capture PayPal, trừ tiền/hoàn tiền/hết ví, và việc advertiser không thấy lý do và không thấy dữ liệu của người khác.
 
 ## 9. Điều cần nói thẳng (giới hạn đã biết)
 
@@ -143,3 +143,7 @@ Tên route, tên cột chính xác và chỉ mục, giao diện form lỗi/thàn
 ## 13. Quan hệ giữa giá advertiser và thu nhập publisher (bạn đã chọn)
 
 Giá mỗi lượt của advertiser là **một số phẳng** (mặc định ở Settings, chỉnh riêng từng chiến dịch), không phụ thuộc quốc gia hay mức link. Biên lợi nhuận do admin tự lo. Trang Settings và form giá của chiến dịch hiện **cảnh báo** (không chặn) khi giá thấp hơn mức thu nhập publisher cao nhất trong `cpm_rates`.
+
+## 14. Thay đổi sau khi duyệt: SePay dùng cronjob
+
+Bạn yêu cầu bỏ webhook SePay, thay bằng cronjob. Mục 6.3 đã được sửa: không còn route `POST /webhooks/sepay` và không còn khóa API ở header; thay bằng lệnh `sepay:sync` chạy mỗi phút và biến môi trường `SEPAY_API_TOKEN`. Quy tắc `mismatch`, khóa tỷ giá lúc tạo và hạn 24 giờ giữ nguyên; bản ghi quá hạn chưa trả được đánh dấu `failed`. Hosting phải có cron chạy `php artisan schedule:run` mỗi phút.
