@@ -5,6 +5,7 @@ use App\Http\Controllers\Member\EmailController;
 use App\Http\Controllers\Member\LinkController;
 use App\Http\Controllers\Member\NotificationController;
 use App\Http\Controllers\Member\PasswordController;
+use App\Http\Controllers\Member\NoticeController;
 use App\Http\Controllers\Member\PopularLinkController;
 use App\Http\Controllers\Member\ProfileController;
 use App\Http\Controllers\Member\ReferralController;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('notify', [NotificationController::class, 'index'])->name('notify');
+    Route::get('notify', [NoticeController::class, 'index'])->name('notify');
     Route::get('statistic', [StatisticController::class, 'index'])->name('statistic');
     Route::get('popular-link', [PopularLinkController::class, 'index'])->name('popular-link');
 
@@ -47,4 +48,5 @@ Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(
     });
 
     Route::get('form/support', [SupportController::class, 'show'])->name('form.support');
+    Route::post('form/support', [SupportController::class, 'store'])->middleware('throttle:5,1')->name('form.support.store');
 });
