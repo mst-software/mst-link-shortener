@@ -80,7 +80,7 @@ it('shows not counted visits to the advertiser as Not counted only', function ()
 
     $response = $this->actingAs($this->advertiser)->get(route('advertiser.campaigns.show', $this->campaign));
 
-    $response->assertSee('JP')->assertSee('DE');
+    $response->assertSee('<td>JP</td>', false)->assertSee('<td>DE</td>', false);
     expect(substr_count($response->getContent(), 'Not counted'))->toBeGreaterThanOrEqual(2);
 });
 
@@ -106,13 +106,13 @@ it('filters visits by status', function () {
 
     $this->actingAs($this->advertiser)
         ->get(route('advertiser.campaigns.show', [$this->campaign, 'status' => 'counted']))
-        ->assertSee('FR')
-        ->assertDontSee('JP');
+        ->assertSee('<td>FR</td>', false)
+        ->assertDontSee('<td>JP</td>', false);
 
     $this->actingAs($this->advertiser)
         ->get(route('advertiser.campaigns.show', [$this->campaign, 'status' => 'not_counted']))
-        ->assertSee('JP')
-        ->assertDontSee('FR');
+        ->assertSee('<td>JP</td>', false)
+        ->assertDontSee('<td>FR</td>', false);
 });
 
 it('does not list visits of other campaigns', function () {
@@ -121,7 +121,7 @@ it('does not list visits of other campaigns', function () {
 
     $this->actingAs($this->advertiser)
         ->get(route('advertiser.campaigns.show', $this->campaign))
-        ->assertDontSee('FR');
+        ->assertDontSee('<td>FR</td>', false);
 });
 
 it('returns 404 for another advertiser campaign', function () {
