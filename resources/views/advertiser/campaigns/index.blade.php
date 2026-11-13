@@ -52,6 +52,7 @@
                 @endif
               </td>
               <td class="text-right">
+                <a href="{{ route('advertiser.campaigns.show', $campaign) }}" class="btn btn-info btn-xs">Report</a>
                 <a href="{{ route('advertiser.campaigns.edit', $campaign) }}" class="btn btn-default btn-xs">Edit</a>
               </td>
             </tr>

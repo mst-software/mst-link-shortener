@@ -7,10 +7,14 @@ use App\Http\Controllers\Concerns\HandlesCampaignImages;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Advertiser\StoreCampaignRequest;
 use App\Models\Campaign;
+use App\Services\Advertiser\AdvertiserBilling;
+use App\Services\Advertiser\CampaignReport;
 use App\Support\DomainMasker;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class CampaignController extends Controller
 {
@@ -24,6 +28,37 @@ class CampaignController extends Controller
             ->paginate(20);
 
         return view('advertiser.campaigns.index', ['campaigns' => $campaigns]);
+    }
+
+    public function show(Request $request, Campaign $campaign, AdvertiserBilling $billing): View
+    {
+        $this->authorizeOwner($request, $campaign);
+
+        $filters = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'status' => ['nullable', Rule::in(['counted', 'not_counted'])],
+        ]);
+
+        $from = isset($filters['from']) ? Carbon::parse($filters['from'])->startOfDay() : now()->subDays(29)->startOfDay();
+        $to = isset($filters['to']) ? Carbon::parse($filters['to'])->endOfDay() : now()->endOfDay();
+
+        $report = new CampaignReport($campaign);
+
+        return view('advertiser.campaigns.show', [
+            'campaign' => $campaign,
+            'from' => $from,
+            'to' => $to,
+            'status' => $filters['status'] ?? null,
+            'funnel' => $report->funnel($from, $to),
+            'daily' => $report->daily($from, $to),
+            'visits' => $report->visits($filters['status'] ?? null)->whereBetween('created_at', [$from, $to])->paginate(25)->withQueryString(),
+            'issuedToday' => $campaign->issuedToday(),
+            'balanceMicro' => $request->user()->balance_micro,
+            'isUnderfunded' => $campaign->is_active
+                && $campaign->review_status === ReviewStatus::Approved
+                && ! $billing->canAfford($campaign),
+        ]);
     }
 
     public function create(): View

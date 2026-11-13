@@ -3,6 +3,7 @@
       ['label' => 'Overview', 'icon' => 'tachometer-alt', 'route' => 'advertiser.dashboard'],
       ['label' => 'Campaigns', 'icon' => 'bullhorn', 'route' => 'advertiser.campaigns.index'],
       ['label' => 'Wallet', 'icon' => 'wallet', 'route' => 'advertiser.wallet'],
+      ['label' => 'Profile', 'icon' => 'user', 'route' => 'advertiser.profile'],
   ];
 @endphp
 
