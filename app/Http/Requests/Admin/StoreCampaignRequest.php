@@ -64,6 +64,7 @@ class StoreCampaignRequest extends FormRequest
             'stage1_seconds' => ['required', 'integer', 'min:5', 'max:600'],
             'stage2_seconds' => ['required', 'integer', 'min:5', 'max:600'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'price_usd' => ['nullable', 'numeric', 'min:0.0001', 'max:100'],
         ];
 
         foreach (self::IMAGE_FIELDS as $field) {
@@ -103,6 +104,7 @@ class StoreCampaignRequest extends FormRequest
             'display_domain' => 'display domain',
             'is_active' => 'active',
             'daily_limit' => 'daily limit',
+            'price_usd' => 'price per view',
             'starts_at' => 'start date',
             'ends_at' => 'end date',
             'stage1_seconds' => 'stage 1 seconds',

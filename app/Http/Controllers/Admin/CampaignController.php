@@ -12,7 +12,9 @@ use App\Models\Campaign;
 use App\Models\CodeAttempt;
 use App\Models\FraudFlag;
 use App\Models\View as PageView;
+use App\Services\Advertiser\PriceGuard;
 use App\Support\DomainMasker;
+use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,7 +93,7 @@ class CampaignController extends Controller
         return view('admin.campaigns.form', ['campaign' => $campaign]);
     }
 
-    public function update(StoreCampaignRequest $request, Campaign $campaign): RedirectResponse
+    public function update(StoreCampaignRequest $request, Campaign $campaign, PriceGuard $priceGuard): RedirectResponse
     {
         $campaign->fill($this->attributes($request));
 
@@ -99,7 +101,9 @@ class CampaignController extends Controller
 
         $campaign->save();
 
-        return redirect()->route('admin.campaigns.edit', $campaign)->with('success', 'Campaign updated.');
+        return redirect()->route('admin.campaigns.edit', $campaign)
+            ->with('success', 'Campaign updated.')
+            ->with('warning', $campaign->price_micro === null ? null : $priceGuard->warningFor($campaign->price_micro));
     }
 
     public function toggle(Campaign $campaign): RedirectResponse
@@ -143,6 +147,10 @@ class CampaignController extends Controller
             'name', 'keyword', 'domain', 'weight', 'daily_limit', 'starts_at', 'ends_at',
             'stage1_seconds', 'stage2_seconds', 'notes',
         ]);
+
+        if ($request->has('price_usd')) {
+            $data['price_micro'] = $request->filled('price_usd') ? Money::toMicro($request->string('price_usd')->toString()) : null;
+        }
 
         $data['is_active'] = $request->boolean('is_active');
         $data['display_domain'] = $request->filled('display_domain')

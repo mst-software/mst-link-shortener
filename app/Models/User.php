@@ -107,6 +107,22 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * @return HasMany<Campaign, $this>
+     */
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
+    /**
+     * @return HasMany<TopUp, $this>
+     */
+    public function topUps(): HasMany
+    {
+        return $this->hasMany(TopUp::class);
+    }
+
     public function isAdvertiser(): bool
     {
         return $this->role === UserRole::Advertiser;

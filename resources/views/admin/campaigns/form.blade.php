@@ -84,6 +84,14 @@
           </div>
         @endforeach
 
+        @if ($campaign->user_id)
+          <div class="form-group @error('price_usd') has-error @enderror">
+            <label for="price_usd">Price per valid view (USD)</label>
+            <input type="number" id="price_usd" name="price_usd" class="form-control" min="0.0001" max="100" step="0.0001" value="{{ old('price_usd', $campaign->price_micro === null ? '' : rtrim(rtrim(number_format($campaign->price_micro / 1_000_000, 6, '.', ''), '0'), '.')) }}">
+            <span class="help-block">@error('price_usd'){{ $message }}@else Charged to the advertiser. Leave blank to use the default price from Settings.@enderror</span>
+          </div>
+        @endif
+
         <div class="form-group @error('notes') has-error @enderror">
           <label for="notes">Notes (optional)</label>
           <textarea id="notes" name="notes" class="form-control" rows="3" maxlength="5000">{{ old('notes', $campaign->notes) }}</textarea>

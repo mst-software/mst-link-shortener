@@ -194,16 +194,20 @@ class TopUpService
     }
 
     /**
-     * Credit a pending top up to the wallet. Does nothing when it is no longer pending.
+     * Credit a pending top up to the wallet. Does nothing when it is no longer pending. An admin who checked
+     * the bank statement can also credit a "mismatch" top up with $allowMismatch.
      *
      * @param  array<string, mixed>  $raw
      */
-    public function complete(TopUp $topUp, array $raw = []): void
+    public function complete(TopUp $topUp, array $raw = [], bool $allowMismatch = false): void
     {
-        DB::transaction(function () use ($topUp, $raw): void {
+        DB::transaction(function () use ($topUp, $raw, $allowMismatch): void {
             $locked = TopUp::query()->whereKey($topUp->getKey())->lockForUpdate()->firstOrFail();
 
-            if ($locked->status !== TopUpStatus::Pending) {
+            $creditable = $locked->status === TopUpStatus::Pending
+                || ($allowMismatch && $locked->status === TopUpStatus::Mismatch);
+
+            if (! $creditable) {
                 return;
             }
 
