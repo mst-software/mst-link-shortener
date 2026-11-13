@@ -58,6 +58,12 @@ class UpdateSettingsRequest extends FormRequest
             'captcha_provider' => ['required', Rule::enum(CaptchaProvider::class)],
             'visit_mode' => ['required', Rule::in(['auto', ...array_column(VisitMode::cases(), 'value')])],
             'code_session_seconds' => ['required', 'integer', 'min:120', 'max:3600'],
+            'advertiser_default_price_usd' => ['sometimes', 'required', 'numeric', 'min:0.0001', 'max:100'],
+            'advertiser_min_topup_usd' => ['sometimes', 'required', 'numeric', 'min:1', 'max:10000'],
+            'vnd_per_usd' => ['sometimes', 'required', 'integer', 'min:1', 'max:1000000'],
+            'sepay_bank_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'sepay_account_number' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'sepay_account_name' => ['sometimes', 'nullable', 'string', 'max:100'],
             'tutorial_video_url' => [
                 'nullable', 'string', 'max:255', 'url:https',
                 fn (string $attribute, mixed $value, Closure $fail) => in_array(strtolower((string) parse_url((string) $value, PHP_URL_HOST)), self::VIDEO_HOSTS, true)
@@ -92,6 +98,12 @@ class UpdateSettingsRequest extends FormRequest
             'visit_mode' => 'visit mode',
             'code_session_seconds' => 'code session length',
             'tutorial_video_url' => 'tutorial video link',
+            'advertiser_default_price_usd' => 'default price per view',
+            'advertiser_min_topup_usd' => 'minimum top up',
+            'vnd_per_usd' => 'exchange rate',
+            'sepay_bank_name' => 'bank name',
+            'sepay_account_number' => 'account number',
+            'sepay_account_name' => 'account name',
         ];
     }
 }

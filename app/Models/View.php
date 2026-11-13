@@ -23,12 +23,14 @@ class View extends Model
         'link_id',
         'user_id',
         'visit_session_id',
+        'campaign_id',
         'ip',
         'country',
         'level',
         'status',
         'invalid_reason',
         'earn_micro',
+        'advertiser_cost_micro',
         'matures_at',
         'aggregated_at',
     ];
@@ -42,6 +44,7 @@ class View extends Model
         'country' => 'XX',
         'status' => 'pending',
         'earn_micro' => 0,
+        'advertiser_cost_micro' => 0,
     ];
 
     /**
@@ -54,6 +57,7 @@ class View extends Model
         return [
             'level' => 'integer',
             'earn_micro' => 'integer',
+            'advertiser_cost_micro' => 'integer',
             'status' => ViewStatus::class,
             'invalid_reason' => InvalidReason::class,
             'matures_at' => 'datetime',
@@ -75,6 +79,14 @@ class View extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<Campaign, $this>
+     */
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
     }
 
     /**

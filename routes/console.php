@@ -12,3 +12,4 @@ Schedule::command('views:aggregate')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('earnings:release')->dailyAt('00:10')->withoutOverlapping();
 Schedule::command('views:purge')->dailyAt('03:00')->withoutOverlapping();
 Schedule::command('fraud:scan')->hourly()->withoutOverlapping();
+Schedule::command('sepay:sync')->everyMinute()->withoutOverlapping();

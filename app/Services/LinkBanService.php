@@ -10,13 +10,14 @@ use App\Models\FraudFlag;
 use App\Models\Link;
 use App\Models\User;
 use App\Models\View;
+use App\Services\Advertiser\AdvertiserBilling;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class LinkBanService
 {
-    public function __construct(private readonly WalletService $wallet) {}
+    public function __construct(private readonly WalletService $wallet, private readonly AdvertiserBilling $billing) {}
 
     /**
      * Ban a link. Everything happens in one database transaction:
@@ -45,6 +46,7 @@ class LinkBanService
 
             if ($pending->isNotEmpty()) {
                 View::query()->whereKey($pending->modelKeys())->update(['status' => ViewStatus::Cancelled]);
+                $this->billing->refundViews(View::query()->whereKey($pending->modelKeys())->get());
             }
 
             $released = View::query()

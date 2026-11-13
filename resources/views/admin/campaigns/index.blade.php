@@ -7,6 +7,11 @@
     <div class="box-header with-border">
       <h3 class="box-title">Campaigns</h3>
       <div class="box-tools">
+        @if ($pendingOnly)
+          <a href="{{ route('admin.campaigns.index') }}" class="btn btn-default btn-sm">Show all</a>
+        @else
+          <a href="{{ route('admin.campaigns.index', ['review' => 'pending']) }}" class="btn btn-default btn-sm">Pending review</a>
+        @endif
         <a href="{{ route('admin.campaigns.create') }}" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> New campaign</a>
       </div>
     </div>
@@ -15,6 +20,7 @@
         <thead>
           <tr>
             <th>Name</th>
+            <th>Owner</th>
             <th>Keyword</th>
             <th>Domain</th>
             <th>Weight</th>
@@ -22,6 +28,7 @@
             <th>Codes issued today</th>
             <th>Valid views</th>
             <th>Reports</th>
+            <th>Review</th>
             <th>Status</th>
             <th class="text-right">Actions</th>
           </tr>
@@ -30,6 +37,7 @@
           @forelse ($campaigns as $campaign)
             <tr>
               <td>{{ $campaign->name }}</td>
+              <td>{{ $campaign->owner?->username ?? 'Admin' }}</td>
               <td>{{ $campaign->keyword }}</td>
               <td>{{ $campaign->domain }}</td>
               <td>{{ $campaign->weight }}</td>
@@ -37,6 +45,23 @@
               <td>{{ number_format($stats[$campaign->id]['issued_today']) }}</td>
               <td>{{ number_format($stats[$campaign->id]['valid_views']) }}</td>
               <td>{{ number_format($stats[$campaign->id]['reports']) }}</td>
+              <td>
+                <span @class([
+                  'label',
+                  'label-warning' => $campaign->review_status === \App\Enums\ReviewStatus::Pending,
+                  'label-success' => $campaign->review_status === \App\Enums\ReviewStatus::Approved,
+                  'label-danger' => $campaign->review_status === \App\Enums\ReviewStatus::Rejected,
+                ])>{{ $campaign->review_status->label() }}</span>
+                @if ($campaign->review_status === \App\Enums\ReviewStatus::Pending)
+                  <form action="{{ route('admin.campaigns.review', $campaign) }}" method="post" style="margin-top: 4px">
+                    @csrf
+                    @method('PATCH')
+                    <input type="text" name="review_note" class="form-control input-sm" maxlength="255" placeholder="Note (needed to reject)" style="margin-bottom: 4px">
+                    <button type="submit" name="review_status" value="approved" class="btn btn-success btn-xs">Approve</button>
+                    <button type="submit" name="review_status" value="rejected" class="btn btn-danger btn-xs">Reject</button>
+                  </form>
+                @endif
+              </td>
               <td>
                 <form action="{{ route('admin.campaigns.toggle', $campaign) }}" method="post" style="display: inline">
                   @csrf
@@ -58,7 +83,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="10" class="text-center text-muted">No campaigns yet.</td></tr>
+            <tr><td colspan="12" class="text-center text-muted">No campaigns yet.</td></tr>
           @endforelse
         </tbody>
       </table>

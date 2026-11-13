@@ -1,0 +1,30 @@
+<?php
+
+use App\Http\Controllers\Advertiser\CampaignController;
+use App\Http\Controllers\Advertiser\DashboardController;
+use App\Http\Controllers\Advertiser\ProfileController;
+use App\Http\Controllers\Advertiser\TopUpController;
+use App\Http\Controllers\Advertiser\WalletController;
+use App\Http\Controllers\Auth\AdvertiserRegisterController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('advertiser/signup', [AdvertiserRegisterController::class, 'show'])->name('advertiser.register');
+Route::post('advertiser/signup', [AdvertiserRegisterController::class, 'store'])->middleware('throttle:register');
+
+Route::middleware(['auth', 'active', 'advertiser'])->prefix('advertiser')->name('advertiser.')->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::resource('campaigns', CampaignController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
+    Route::get('wallet', [WalletController::class, 'index'])->name('wallet');
+
+    Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+    Route::post('profile/password', [ProfileController::class, 'password'])->name('profile.password');
+    Route::post('profile/email', [ProfileController::class, 'email'])->name('profile.email');
+
+    Route::post('topups/sepay', [TopUpController::class, 'sepay'])->name('topups.sepay');
+    Route::post('topups/paypal', [TopUpController::class, 'paypal'])->name('topups.paypal');
+    Route::get('topups/paypal/return', [TopUpController::class, 'paypalReturn'])->name('topups.paypal.return');
+    Route::get('topups/paypal/cancel', [TopUpController::class, 'paypalCancel'])->name('topups.paypal.cancel');
+
+    Route::patch('campaigns/{campaign}/toggle', [CampaignController::class, 'toggle'])->name('campaigns.toggle');
+});

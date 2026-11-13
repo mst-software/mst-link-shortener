@@ -58,6 +58,29 @@
     </div>
 
     <div class="box box-primary">
+      <div class="box-header with-border"><h3 class="box-title">Advertisers</h3></div>
+      <div class="box-body">
+        @php
+          $advertiserFields = [
+              ['advertiser_default_price_usd', 'Default price per valid view (USD)', 'number', '0.0001', 'Charged to the advertiser unless the campaign has its own price. Keep it above the highest publisher payout.'],
+              ['advertiser_min_topup_usd', 'Minimum top up (USD)', 'number', '0.01', 'Applies to bank transfers and PayPal.'],
+              ['vnd_per_usd', 'VND per 1 USD', 'number', '1', 'Used to convert bank transfers. Locked when a transfer is created.'],
+              ['sepay_bank_name', 'Bank name', 'text', null, 'Shown on the QR code, for example MBBank.'],
+              ['sepay_account_number', 'Account number', 'text', null, 'The account SePay watches for incoming transfers.'],
+              ['sepay_account_name', 'Account holder name', 'text', null, 'Shown to advertisers next to the QR code.'],
+          ];
+        @endphp
+        @foreach ($advertiserFields as [$name, $label, $type, $step, $help])
+          <div class="form-group @error($name) has-error @enderror">
+            <label for="{{ $name }}">{{ $label }}</label>
+            <input type="{{ $type }}" id="{{ $name }}" name="{{ $name }}" class="form-control" @if ($step) step="{{ $step }}" min="0" @endif value="{{ old($name, $values[$name]) }}">
+            <span class="help-block">@error($name){{ $message }}@else{{ $help }}@enderror</span>
+          </div>
+        @endforeach
+      </div>
+    </div>
+
+    <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">Captcha</h3></div>
       <div class="box-body">
         <div class="form-group @error('captcha_provider') has-error @enderror">
