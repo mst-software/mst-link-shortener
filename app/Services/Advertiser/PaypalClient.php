@@ -2,6 +2,7 @@
 
 namespace App\Services\Advertiser;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -21,19 +22,23 @@ class PaypalClient
      */
     public function createOrder(int $usdMicro, string $returnUrl, string $cancelUrl): array
     {
-        $response = $this->request()
-            ->post($this->baseUrl().'/v2/checkout/orders', [
-                'intent' => 'CAPTURE',
-                'purchase_units' => [[
-                    'amount' => ['currency_code' => 'USD', 'value' => number_format($usdMicro / 1_000_000, 2, '.', '')],
-                    'description' => 'LinkCash advertiser wallet top up',
-                ]],
-                'application_context' => [
-                    'return_url' => $returnUrl,
-                    'cancel_url' => $cancelUrl,
-                    'user_action' => 'PAY_NOW',
-                ],
-            ]);
+        try {
+            $response = $this->request()
+                ->post($this->baseUrl().'/v2/checkout/orders', [
+                    'intent' => 'CAPTURE',
+                    'purchase_units' => [[
+                        'amount' => ['currency_code' => 'USD', 'value' => number_format($usdMicro / 1_000_000, 2, '.', '')],
+                        'description' => 'LinkCash advertiser wallet top up',
+                    ]],
+                    'application_context' => [
+                        'return_url' => $returnUrl,
+                        'cancel_url' => $cancelUrl,
+                        'user_action' => 'PAY_NOW',
+                    ],
+                ]);
+        } catch (ConnectionException) {
+            throw new RuntimeException('PayPal is unreachable.');
+        }
 
         if (! $response->successful() || ! is_string($response->json('id'))) {
             throw new RuntimeException('PayPal could not create the order.');
@@ -50,7 +55,9 @@ class PaypalClient
     }
 
     /**
-     * Capture an approved order and return PayPal's answer.
+     * Capture an approved order and return PayPal's answer. When the capture call fails (for example a
+     * timeout after PayPal already took the money, so every retry says "already captured"), the order is
+     * read back and returned if it turns out to be completed.
      *
      * @return array<string, mixed>
      *
@@ -58,15 +65,25 @@ class PaypalClient
      */
     public function captureOrder(string $orderId): array
     {
-        $response = $this->request()
-            ->withBody('{}', 'application/json')
-            ->post($this->baseUrl().'/v2/checkout/orders/'.rawurlencode($orderId).'/capture');
+        $url = $this->baseUrl().'/v2/checkout/orders/'.rawurlencode($orderId);
 
-        if (! $response->successful()) {
-            throw new RuntimeException('PayPal could not capture the order.');
+        try {
+            $response = $this->request()->withBody('{}', 'application/json')->post($url.'/capture');
+
+            if ($response->successful()) {
+                return (array) $response->json();
+            }
+
+            $order = $this->request()->get($url);
+        } catch (ConnectionException) {
+            throw new RuntimeException('PayPal is unreachable.');
         }
 
-        return (array) $response->json();
+        if ($order->successful() && $order->json('status') === 'COMPLETED') {
+            return (array) $order->json();
+        }
+
+        throw new RuntimeException('PayPal could not capture the order.');
     }
 
     private function request(): PendingRequest

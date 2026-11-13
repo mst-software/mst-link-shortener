@@ -5,6 +5,7 @@ use App\Enums\TransactionAction;
 use App\Enums\ViewStatus;
 use App\Enums\VisitMode;
 use App\Models\Campaign;
+use App\Models\CodeAttempt;
 use App\Models\Link;
 use App\Models\Transaction;
 use App\Models\User;
@@ -159,4 +160,20 @@ it('keeps views that belong to an advertiser campaign when purging', function ()
 
     expect(View::query()->whereKey($kept->id)->exists())->toBeTrue()
         ->and(View::query()->whereKey($dropped->id)->exists())->toBeFalse();
+});
+
+it('purges views of admin campaigns but keeps views and code attempts of advertiser campaigns', function () {
+    $adminCampaign = Campaign::factory()->create();
+    $advertiserCampaign = Campaign::factory()->forAdvertiser()->create();
+    $adminView = View::factory()->create(['status' => ViewStatus::Invalid, 'campaign_id' => $adminCampaign->id, 'created_at' => now()->subYear()]);
+    $keptView = View::factory()->create(['status' => ViewStatus::Invalid, 'campaign_id' => $advertiserCampaign->id, 'created_at' => now()->subYear()]);
+    $adminAttempt = CodeAttempt::factory()->issued()->create(['campaign_id' => $adminCampaign->id, 'expires_at' => now()->subWeek()]);
+    $keptAttempt = CodeAttempt::factory()->issued()->create(['campaign_id' => $advertiserCampaign->id, 'expires_at' => now()->subWeek()]);
+
+    $this->artisan('views:purge')->assertSuccessful();
+
+    expect(View::query()->whereKey($adminView->id)->exists())->toBeFalse()
+        ->and(View::query()->whereKey($keptView->id)->exists())->toBeTrue()
+        ->and(CodeAttempt::query()->whereKey($adminAttempt->id)->exists())->toBeFalse()
+        ->and(CodeAttempt::query()->whereKey($keptAttempt->id)->exists())->toBeTrue();
 });

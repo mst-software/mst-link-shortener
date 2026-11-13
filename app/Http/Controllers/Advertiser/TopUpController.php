@@ -46,6 +46,10 @@ class TopUpController extends Controller
             return redirect()->route('advertiser.wallet')->with('error', 'We could not confirm your PayPal payment yet. Please open this page again in a minute.');
         }
 
+        if ($status === TopUpStatus::Pending) {
+            return redirect()->route('advertiser.wallet')->with('success', 'PayPal is still processing your payment. Your balance is updated once it completes; open this page again in a few minutes.');
+        }
+
         return redirect()->route('advertiser.wallet')->with(
             $status === TopUpStatus::Completed ? 'success' : 'error',
             $status === TopUpStatus::Completed ? 'Payment received. Your balance has been updated.' : 'PayPal did not complete the payment, so nothing was added to your balance.',

@@ -22,6 +22,7 @@ class TopUp extends Model
         'user_id',
         'provider',
         'reference',
+        'provider_transaction_id',
         'status',
         'amount_micro',
         'original_amount',

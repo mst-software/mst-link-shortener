@@ -22,6 +22,12 @@ class TopUpService
     private const SEPAY_VALID_HOURS = 24;
 
     /**
+     * A transfer made before the top up expired may be synced late (SePay outage, a gap in the cron).
+     * Top ups stay payable for this many hours past their expiry before they are marked failed.
+     */
+    private const SEPAY_GRACE_HOURS = 12;
+
+    /**
      * Never look further back than this when matching bank transfers to open top ups.
      */
     private const SEPAY_LOOKBACK_DAYS = 30;
@@ -111,6 +117,10 @@ class TopUpService
         $answer = $this->paypal->captureOrder($topUp->reference);
         $capture = $answer['purchase_units'][0]['payments']['captures'][0] ?? [];
 
+        if (($capture['status'] ?? null) === 'PENDING') {
+            return TopUpStatus::Pending;
+        }
+
         $isPaid = ($answer['status'] ?? null) === 'COMPLETED'
             && ($capture['status'] ?? null) === 'COMPLETED'
             && ($capture['amount']['currency_code'] ?? null) === 'USD'
@@ -140,17 +150,18 @@ class TopUpService
     /**
      * Match the incoming bank transfers to open top ups. Returns the number of top ups credited.
      *
-     * A transfer that matches a pending top up in time and amount credits it. A transfer that names
-     * a top up but has the wrong amount, or arrives after the top up expired, is marked "mismatch"
-     * for an admin to resolve. Every other transfer is ignored. A top up that has left the open
-     * states is never matched again, so running this twice never credits twice.
+     * A transfer is used for at most one top up: its SePay id is stored on the top up it settled, and a
+     * transfer whose id is already stored is skipped. When the note names several references the longest wins.
+     * A transfer that matches a pending top up in amount credits it; one that names a top up but has the
+     * wrong amount, or arrives long after it expired, marks it "mismatch" for an admin to resolve. Every
+     * other transfer is ignored, and a top up that left the open states is never matched again.
      */
     public function syncSepay(): int
     {
         TopUp::query()
             ->where('provider', TopUpProvider::Sepay)
             ->where('status', TopUpStatus::Pending)
-            ->where('expires_at', '<', now())
+            ->where('expires_at', '<', now()->subHours(self::SEPAY_GRACE_HOURS))
             ->update(['status' => TopUpStatus::Failed]);
 
         $transactions = $this->sepay->recentIncoming();
@@ -168,7 +179,16 @@ class TopUpService
         $credited = 0;
 
         foreach ($transactions as $transaction) {
-            $topUp = $open->first(fn (TopUp $candidate): bool => stripos($transaction['content'], $candidate->reference) !== false);
+            $transactionId = $transaction['id'] === '' ? null : $transaction['id'];
+
+            if ($transactionId !== null && $this->isSettled($transactionId)) {
+                continue;
+            }
+
+            $topUp = $open
+                ->filter(fn (TopUp $candidate): bool => stripos($transaction['content'], $candidate->reference) !== false)
+                ->sortByDesc(fn (TopUp $candidate): int => strlen($candidate->reference))
+                ->first();
 
             if ($topUp === null) {
                 continue;
@@ -186,7 +206,11 @@ class TopUpService
                 $this->complete($topUp, $raw);
                 $credited++;
             } else {
-                $topUp->update(['status' => TopUpStatus::Mismatch, 'raw' => $raw]);
+                $topUp->update([
+                    'status' => TopUpStatus::Mismatch,
+                    'raw' => $raw,
+                    'provider_transaction_id' => $transactionId,
+                ]);
             }
         }
 
@@ -211,6 +235,10 @@ class TopUpService
                 return;
             }
 
+            if ($locked->status === TopUpStatus::Mismatch) {
+                $locked->amount_micro = $this->receivedMicro($locked) ?? $locked->amount_micro;
+            }
+
             $this->wallet->credit(
                 User::query()->findOrFail($locked->user_id),
                 $locked->amount_micro,
@@ -219,14 +247,43 @@ class TopUpService
                 $locked->provider->label().' top up',
             );
 
+            $sepayId = $raw['sepay_id'] ?? null;
+
             $locked->update([
                 'status' => TopUpStatus::Completed,
                 'completed_at' => now(),
                 'raw' => $raw === [] ? $locked->raw : $raw,
+                'provider_transaction_id' => is_string($sepayId) && $sepayId !== '' ? $sepayId : $locked->provider_transaction_id,
             ]);
         });
 
         $topUp->refresh();
+    }
+
+    /**
+     * The amount of a bank transfer on record for the top up, in micro-USD at the rate locked with the order.
+     * Null when there is no usable record.
+     */
+    private function receivedMicro(TopUp $topUp): ?int
+    {
+        $received = (int) round((float) data_get($topUp->raw, 'transaction.amount_in', 0));
+
+        if ($topUp->provider !== TopUpProvider::Sepay || $received <= 0 || ! $topUp->exchange_rate) {
+            return null;
+        }
+
+        return intdiv($received * 1_000_000, $topUp->exchange_rate);
+    }
+
+    /**
+     * Whether a bank transaction was already used for a top up.
+     */
+    private function isSettled(string $transactionId): bool
+    {
+        return TopUp::query()
+            ->where('provider', TopUpProvider::Sepay)
+            ->where('provider_transaction_id', $transactionId)
+            ->exists();
     }
 
     private function vndPerUsd(): int

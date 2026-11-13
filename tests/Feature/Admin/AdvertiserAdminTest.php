@@ -219,3 +219,25 @@ it('stores a per campaign price and warns when it is too low', function () {
 
     expect($campaign->refresh()->price_micro)->toBeNull();
 });
+
+it('credits the amount actually received when an admin resolves a mismatch', function () {
+    $advertiser = User::factory()->advertiser()->create();
+    $topUp = TopUp::factory()->create([
+        'user_id' => $advertiser->id,
+        'status' => TopUpStatus::Mismatch,
+        'amount_micro' => 10_000_000,
+        'original_amount' => 250_000,
+        'exchange_rate' => 25_000,
+        'raw' => ['sepay_id' => '77', 'transaction' => ['amount_in' => '10000.00']],
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.advertisers.show', $advertiser))
+        ->assertSee('10,000 VND');
+
+    $this->actingAs($this->admin)->post(route('admin.top-ups.credit', $topUp))->assertRedirect();
+
+    expect($advertiser->refresh()->balance_micro)->toBe(400_000)
+        ->and($topUp->refresh()->amount_micro)->toBe(400_000)
+        ->and($topUp->status)->toBe(TopUpStatus::Completed);
+});

@@ -52,7 +52,12 @@
                   <td>{{ $topUp->created_at->format('d/m/Y H:i') }}</td>
                   <td>{{ $topUp->provider->label() }}</td>
                   <td>{{ $topUp->reference }}</td>
-                  <td>${{ number_format($topUp->amount_micro / 1_000_000, 2) }}</td>
+                  <td>
+                    ${{ number_format($topUp->amount_micro / 1_000_000, 2) }}
+                    @if ($topUp->status === \App\Enums\TopUpStatus::Mismatch && data_get($topUp->raw, 'transaction.amount_in'))
+                      <br><small class="text-muted">ordered {{ number_format($topUp->original_amount) }} VND, received {{ number_format((float) data_get($topUp->raw, 'transaction.amount_in')) }} VND</small>
+                    @endif
+                  </td>
                   <td>{{ $topUp->status->label() }}</td>
                   <td class="text-right">
                     @if ($topUp->status === \App\Enums\TopUpStatus::Mismatch)

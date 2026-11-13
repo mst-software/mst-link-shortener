@@ -24,7 +24,7 @@ class PurgeOldViews extends Command
 
         View::query()
             ->where('status', '!=', ViewStatus::Pending)
-            ->whereNull('campaign_id')
+            ->whereDoesntHave('campaign', fn ($campaign) => $campaign->whereNotNull('user_id'))
             ->where('created_at', '<', $cutoff)
             ->where(function ($query): void {
                 // Aggregated views, plus invalid/cancelled ones that are never aggregated.
@@ -42,14 +42,17 @@ class PurgeOldViews extends Command
         // Unused code attempts are useless a day after they expired (or after they started without ever
         // getting a code); used ones are kept as long as the views they paid for.
         $attemptCutoff = now()->subDay();
+        $notAdvertiser = fn ($campaign) => $campaign->whereNotNull('user_id');
+
         CodeAttempt::query()
+            ->whereDoesntHave('campaign', $notAdvertiser)
             ->whereNull('used_at')
             ->where(function ($query) use ($attemptCutoff): void {
                 $query->where('expires_at', '<', $attemptCutoff)
                     ->orWhere(fn ($unissued) => $unissued->whereNull('expires_at')->where('started_at', '<', $attemptCutoff));
             })
             ->delete();
-        CodeAttempt::query()->whereNotNull('used_at')->where('used_at', '<', $cutoff)->delete();
+        CodeAttempt::query()->whereDoesntHave('campaign', $notAdvertiser)->whereNotNull('used_at')->where('used_at', '<', $cutoff)->delete();
 
         // Expired dedup keys and finished or expired visit sessions are useless after their window.
         ViewDedup::query()->where('expires_at', '<', now())->delete();

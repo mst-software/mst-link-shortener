@@ -7,6 +7,7 @@ use App\Models\TopUp;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
@@ -143,8 +144,8 @@ it('credits the wallet when the capture is completed', function () {
         ->and($transaction->action)->toBe(TransactionAction::Topup);
 });
 
-it('does not credit when the capture is not completed', function () {
-    fakePaypal(paypalCapture('20.00', 'PENDING'));
+it('does not credit when the capture is declined', function () {
+    fakePaypal(paypalCapture('20.00', 'DECLINED'));
     $topUp = pendingPaypalTopUp($this->advertiser);
 
     $this->actingAs($this->advertiser)
@@ -198,4 +199,56 @@ it('marks the top up failed when the buyer cancels', function () {
         ->assertRedirect(route('advertiser.wallet'));
 
     expect($topUp->refresh()->status)->toBe(TopUpStatus::Failed);
+});
+
+it('keeps the top up pending while PayPal still processes the capture', function () {
+    fakePaypal(paypalCapture('20.00', 'PENDING'));
+    $topUp = pendingPaypalTopUp($this->advertiser);
+
+    $this->actingAs($this->advertiser)
+        ->get(route('advertiser.topups.paypal.return', ['token' => 'ORDER-123']))
+        ->assertRedirect(route('advertiser.wallet'));
+
+    expect($topUp->refresh()->status)->toBe(TopUpStatus::Pending)
+        ->and($this->advertiser->refresh()->balance_micro)->toBe(0);
+});
+
+it('recovers a payment that PayPal already captured when the capture call failed', function () {
+    Http::fake([
+        'api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response(['access_token' => 'paypal-token']),
+        'api-m.sandbox.paypal.com/v2/checkout/orders/*/capture' => Http::response(['name' => 'UNPROCESSABLE_ENTITY', 'details' => [['issue' => 'ORDER_ALREADY_CAPTURED']]], 422),
+        'api-m.sandbox.paypal.com/v2/checkout/orders/ORDER-123' => Http::response(paypalCapture('20.00')),
+    ]);
+    $topUp = pendingPaypalTopUp($this->advertiser);
+
+    $this->actingAs($this->advertiser)
+        ->get(route('advertiser.topups.paypal.return', ['token' => 'ORDER-123']))
+        ->assertRedirect(route('advertiser.wallet'))
+        ->assertSessionHas('success');
+
+    expect($topUp->refresh()->status)->toBe(TopUpStatus::Completed)
+        ->and($this->advertiser->refresh()->balance_micro)->toBe(20_000_000);
+});
+
+it('shows an error instead of crashing when PayPal cannot be reached on capture', function () {
+    Http::fake(fn () => throw new ConnectionException('timeout'));
+    $topUp = pendingPaypalTopUp($this->advertiser);
+
+    $this->actingAs($this->advertiser)
+        ->get(route('advertiser.topups.paypal.return', ['token' => 'ORDER-123']))
+        ->assertRedirect(route('advertiser.wallet'))
+        ->assertSessionHas('error');
+
+    expect($topUp->refresh()->status)->toBe(TopUpStatus::Pending);
+});
+
+it('shows an error instead of crashing when PayPal cannot be reached on create', function () {
+    Http::fake(fn () => throw new ConnectionException('timeout'));
+
+    $this->actingAs($this->advertiser)
+        ->post(route('advertiser.topups.paypal'), ['usd' => '20'])
+        ->assertRedirect(route('advertiser.wallet'))
+        ->assertSessionHas('error');
+
+    expect(TopUp::query()->count())->toBe(0);
 });

@@ -158,9 +158,20 @@ it('marks a wrong amount as mismatch without crediting', function () {
         ->and($this->advertiser->refresh()->balance_micro)->toBe(0);
 });
 
-it('marks a payment that arrives after expiry as mismatch without crediting', function () {
+it('credits a payment that is synced shortly after the top up expired', function () {
     $topUp = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
-    $topUp->update(['expires_at' => now()->subMinute()]);
+    $topUp->update(['expires_at' => now()->subHour()]);
+    fakeSepay([sepayRow('9007', $topUp->reference)]);
+
+    $this->artisan('sepay:sync')->assertSuccessful();
+
+    expect($topUp->refresh()->status)->toBe(TopUpStatus::Completed)
+        ->and($this->advertiser->refresh()->balance_micro)->toBe(10_000_000);
+});
+
+it('marks a payment that arrives long after expiry as mismatch without crediting', function () {
+    $topUp = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
+    $topUp->update(['expires_at' => now()->subHours(13)]);
     fakeSepay([sepayRow('9005', $topUp->reference)]);
 
     $this->artisan('sepay:sync')->assertSuccessful();
@@ -169,9 +180,9 @@ it('marks a payment that arrives after expiry as mismatch without crediting', fu
         ->and($this->advertiser->refresh()->balance_micro)->toBe(0);
 });
 
-it('marks unpaid expired top ups as failed', function () {
+it('marks unpaid expired top ups as failed once the grace period is over', function () {
     $topUp = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
-    $topUp->update(['expires_at' => now()->subMinute()]);
+    $topUp->update(['expires_at' => now()->subHours(13)]);
     fakeSepay([]);
 
     $this->artisan('sepay:sync')->assertSuccessful();
@@ -213,4 +224,43 @@ it('is scheduled every minute', function () {
 
     expect($events)->toHaveCount(1)
         ->and($events->first()->expression)->toBe('* * * * *');
+});
+
+it('credits one top up only when a single transfer names two references', function () {
+    $first = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
+    $second = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
+    fakeSepay([sepayRow('9010', $first->reference.' '.$second->reference)]);
+
+    $this->artisan('sepay:sync')->assertSuccessful();
+    $this->artisan('sepay:sync')->assertSuccessful();
+
+    $statuses = collect([$first->refresh()->status, $second->refresh()->status]);
+
+    expect($this->advertiser->refresh()->balance_micro)->toBe(10_000_000)
+        ->and($statuses->filter(fn (TopUpStatus $status): bool => $status === TopUpStatus::Completed))->toHaveCount(1)
+        ->and($statuses->filter(fn (TopUpStatus $status): bool => $status === TopUpStatus::Pending))->toHaveCount(1);
+});
+
+it('never uses the same bank transaction for another top up', function () {
+    $first = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
+    $second = app(TopUpService::class)->createSepay($this->advertiser, 250_000);
+    fakeSepay([sepayRow('9011', $first->reference), sepayRow('9011', $second->reference)]);
+
+    $this->artisan('sepay:sync')->assertSuccessful();
+
+    expect($first->refresh()->status)->toBe(TopUpStatus::Completed)
+        ->and($second->refresh()->status)->toBe(TopUpStatus::Pending)
+        ->and($first->provider_transaction_id)->toBe('9011')
+        ->and($this->advertiser->refresh()->balance_micro)->toBe(10_000_000);
+});
+
+it('prefers the longest matching reference', function () {
+    $short = TopUp::factory()->create(['user_id' => $this->advertiser->id, 'reference' => 'LC12ABCDE']);
+    $long = TopUp::factory()->create(['user_id' => $this->advertiser->id, 'reference' => 'LC12ABCDEF']);
+    fakeSepay([sepayRow('9012', 'MBVCB LC12ABCDEF thanks')]);
+
+    $this->artisan('sepay:sync')->assertSuccessful();
+
+    expect($long->refresh()->status)->toBe(TopUpStatus::Completed)
+        ->and($short->refresh()->status)->toBe(TopUpStatus::Pending);
 });
