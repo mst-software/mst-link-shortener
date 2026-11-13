@@ -16,6 +16,9 @@ Route::middleware(['auth', 'active', 'advertiser'])->prefix('advertiser')->name(
     Route::resource('campaigns', CampaignController::class)->only(['index', 'create', 'store', 'edit', 'update']);
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet');
     Route::post('topups/sepay', [TopUpController::class, 'sepay'])->name('topups.sepay');
+    Route::post('topups/paypal', [TopUpController::class, 'paypal'])->name('topups.paypal');
+    Route::get('topups/paypal/return', [TopUpController::class, 'paypalReturn'])->name('topups.paypal.return');
+    Route::get('topups/paypal/cancel', [TopUpController::class, 'paypalCancel'])->name('topups.paypal.cancel');
 
     Route::patch('campaigns/{campaign}/toggle', [CampaignController::class, 'toggle'])->name('campaigns.toggle');
 });

@@ -12,6 +12,7 @@ use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Creates and completes advertiser wallet top ups.
@@ -28,6 +29,7 @@ class TopUpService
     public function __construct(
         private readonly WalletService $wallet,
         private readonly SepayClient $sepay,
+        private readonly PaypalClient $paypal,
     ) {}
 
     /**
@@ -61,6 +63,78 @@ class TopUpService
             'exchange_rate' => $rate,
             'expires_at' => now()->addHours(self::SEPAY_VALID_HOURS),
         ]);
+    }
+
+    /**
+     * Create a PayPal order and a pending top up for it. Returns the top up and the url where the buyer pays.
+     *
+     * @return array{top_up: TopUp, approve_url: string}
+     *
+     * @throws RuntimeException when PayPal cannot create the order
+     */
+    public function createPaypal(User $user, int $usdMicro): array
+    {
+        if ($usdMicro < Settings::int('advertiser_min_topup_micro')) {
+            throw new InvalidArgumentException('The amount is below the minimum top up.');
+        }
+
+        $order = $this->paypal->createOrder(
+            $usdMicro,
+            route('advertiser.topups.paypal.return'),
+            route('advertiser.topups.paypal.cancel'),
+        );
+
+        $topUp = TopUp::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => TopUpProvider::Paypal,
+            'reference' => $order['id'],
+            'amount_micro' => $usdMicro,
+            'original_amount' => $usdMicro,
+            'original_currency' => 'USD',
+        ]);
+
+        return ['top_up' => $topUp, 'approve_url' => $order['approve_url']];
+    }
+
+    /**
+     * Capture the approved PayPal order and credit the wallet when PayPal confirms the full amount.
+     * An answer that is not a completed capture of exactly the ordered amount marks the top up failed.
+     *
+     * @throws RuntimeException when PayPal cannot be reached; the top up stays pending so the buyer can retry
+     */
+    public function capturePaypal(TopUp $topUp): TopUpStatus
+    {
+        if ($topUp->status !== TopUpStatus::Pending) {
+            return $topUp->status;
+        }
+
+        $answer = $this->paypal->captureOrder($topUp->reference);
+        $capture = $answer['purchase_units'][0]['payments']['captures'][0] ?? [];
+
+        $isPaid = ($answer['status'] ?? null) === 'COMPLETED'
+            && ($capture['status'] ?? null) === 'COMPLETED'
+            && ($capture['amount']['currency_code'] ?? null) === 'USD'
+            && (int) round((float) ($capture['amount']['value'] ?? 0) * 1_000_000) === $topUp->amount_micro;
+
+        if (! $isPaid) {
+            $topUp->update(['status' => TopUpStatus::Failed, 'raw' => $answer]);
+
+            return TopUpStatus::Failed;
+        }
+
+        $this->complete($topUp, $answer);
+
+        return $topUp->status;
+    }
+
+    /**
+     * Mark a pending top up as abandoned.
+     */
+    public function cancel(TopUp $topUp): void
+    {
+        if ($topUp->status === TopUpStatus::Pending) {
+            $topUp->update(['status' => TopUpStatus::Failed]);
+        }
     }
 
     /**
