@@ -72,25 +72,24 @@
 }
 
 /* Code input */
-.lk-code { max-width: 500px; margin: 0 auto 16px; }
+.lk-code { max-width: 420px; margin: 0 auto 14px; }
 .lk-input {
   display: block;
   width: 100%;
-  height: 46px;
-  padding: 6px 16px;
-  border: 1px solid #ccd5dd;
-  border-radius: 8px;
+  height: 40px;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   background: #fff;
   font: inherit;
   font-size: 16px;
-  color: #444;
+  color: #333;
   text-align: left;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.lk-input::placeholder { color: #9aa5b0; }
-.lk-input:focus { outline: 0; border-color: #66afe9; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(102, 175, 233, 0.6); }
-.lk-input.is-error { border-color: #d9534f; box-shadow: 0 0 6px rgba(217, 83, 79, 0.45); }
+.lk-input::placeholder { color: #767676; }
+.lk-input:focus { outline: 2px solid #038018; outline-offset: -1px; border-color: #038018; }
+.lk-input.is-error { border-color: #c9302c; }
+.lk-input.is-error:focus { outline-color: #c9302c; }
 
 .lk-captcha { display: flex; justify-content: center; min-height: 78px; margin: 10px auto; }
 
@@ -100,31 +99,31 @@
 /* Buttons */
 .lk-btn {
   display: inline-block;
+  min-height: 40px;
   margin: 0 auto;
-  padding: 10px 16px;
+  padding: 9px 18px;
   border: 1px solid transparent;
   border-radius: 4px;
   font: inherit;
   font-size: 15px;
-  line-height: 1.33;
+  font-weight: 500;
+  line-height: 1.4;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s, border-color 0.15s;
 }
-.lk-btn:focus-visible, .lk-linkbtn:focus-visible, .lk-mini:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
-.lk-btn-success { background: #5cb85c; border-color: #4cae4c; color: #fff !important; }
-.lk-btn-success:hover:not(:disabled) { background: #449d44; border-color: #398439; }
-.lk-btn-success:disabled { opacity: 0.65; cursor: not-allowed; }
-.lk-btn-danger { background: #d9534f; border-color: #d43f3a; color: #fff !important; }
-.lk-btn-danger:hover { background: #c9302c; }
-.lk-btn-primary, .lk-btn-blue { background: #337ab7; border-color: #2e6da4; color: #fff !important; }
-.lk-btn-primary:hover, .lk-btn-blue:hover:not(:disabled) { background: #286090; }
-.lk-btn-blue:disabled { opacity: 0.65; cursor: not-allowed; }
+.lk-btn:focus-visible, .lk-linkbtn:focus-visible, .lk-mini:focus-visible, .lk-modal-x:focus-visible { outline: 2px solid #1f6feb; outline-offset: 2px; }
+.lk-btn:disabled { background: #e9ecef !important; border-color: #ccc !important; color: #6c757d !important; cursor: not-allowed; }
+.lk-btn-success { background: #038018; border-color: #026812; color: #fff !important; }
+.lk-btn-success:hover:not(:disabled) { background: #026812; }
+.lk-btn-danger { background: #c9302c; border-color: #ac2925; color: #fff !important; }
+.lk-btn-danger:hover { background: #ac2925; }
+.lk-btn-primary, .lk-btn-blue { background: #286090; border-color: #204d74; color: #fff !important; }
+.lk-btn-primary:hover, .lk-btn-blue:hover:not(:disabled) { background: #204d74; }
 .lk-btn-default { background: #fff; border-color: #ccc; color: #333 !important; }
-.lk-btn-default:hover { background: #e6e6e6; }
-.lk-btn-sm { padding: 7px 14px; font-size: 14px; }
+.lk-btn-default:hover { background: #f0f0f0; }
+.lk-btn-sm { padding: 8px 14px; font-size: 14px; }
 
 .lk-status { min-height: 22px; margin: 10px 0 0; font-size: 14px; color: #666; }
 .lk-status.is-error { color: #c9302c; font-weight: 700; }
@@ -169,20 +168,22 @@
   font-size: 13px;
 }
 .lk-mini {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 3px 10px;
-  border: 1px solid #b9cfe6;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  margin: 4px 0 4px 6px;
+  padding: 0 12px;
+  border: 1px solid #ccc;
   border-radius: 4px;
-  background: #f5f9ff;
+  background: #fff;
   font: inherit;
   font-size: 14px;
-  color: #337ab7;
+  color: #333 !important;
   text-decoration: none;
   cursor: pointer;
   vertical-align: middle;
 }
-.lk-mini:hover { background: #e3effb; }
+.lk-mini:hover { background: #f0f0f0; }
 .lk-example { margin: 0 0 14px; text-align: center; }
 .lk-example img { padding: 2px; border: 1px solid #ddd; background: #fff; }
 .lk-guide .lk-code { margin-bottom: 12px; }
@@ -192,7 +193,7 @@
 .lk-video-title { margin: 16px 0 8px; font-size: 18px; font-weight: 700; color: #333; }
 .lk-video-frame { position: relative; margin: 0 auto; padding-top: 56.25%; border: 1px solid #ddd; background: #000; }
 .lk-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.lk-linkbtn { padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: #c9302c; text-decoration: underline; cursor: pointer; }
+.lk-linkbtn { min-height: 40px; padding: 0 4px; border: 0; background: none; font: inherit; font-weight: 700; color: #c9302c; text-decoration: underline; cursor: pointer; }
 
 /* Ads: always labelled, never around the action button */
 #advertise-html-wrapper:not(:empty) { max-width: 750px; margin: 16px auto; }
@@ -201,18 +202,19 @@
 .lk-ad-bottom { max-width: 750px; margin: 0 auto; }
 
 /* Report dialog */
-.lk-modal { position: fixed; inset: 0; z-index: 1050; display: flex; align-items: flex-start; justify-content: center; padding: 30px 12px; overflow-y: auto; background: rgba(0, 0, 0, 0.5); }
-.lk-modal-dialog { width: 100%; max-width: 600px; margin: 30px auto; }
-.lk-modal-content { border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 6px; background: #fff; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5); }
-.lk-modal-header { padding: 15px 20px; border-bottom: 1px solid #e5e5e5; }
-.lk-modal-title { margin: 0; font-size: 18px; font-weight: 500; line-height: 1.43; color: #1aa7ec; }
-.lk-modal-x { float: right; margin-top: -2px; border: 0; background: none; font-size: 24px; line-height: 1; color: #bbb; cursor: pointer; }
-.lk-modal-body { padding: 16px 20px; font-size: 14px; text-align: left; }
-.lk-modal-label { margin: 0 0 6px; font-weight: 700; color: #555; }
-.lk-modal-body label { display: block; min-height: 32px; margin: 4px 0; font-weight: 700; color: #555; cursor: pointer; }
-.lk-modal-body input[type=radio] { margin-right: 10px; }
-.lk-modal-footer { display: flex; justify-content: space-between; padding: 14px 20px; border-top: 1px solid #e5e5e5; }
-.lk-modal-footer .lk-btn { margin: 0; font-size: 15px; }
+.lk-modal { position: fixed; inset: 0; z-index: 1050; display: flex; align-items: flex-start; justify-content: center; padding: 30px 12px; overflow-y: auto; background: rgba(0, 0, 0, 0.6); }
+.lk-modal-dialog { width: 100%; max-width: 560px; margin: 20px auto; }
+.lk-modal-content { border: 1px solid #ccc; border-radius: 4px; background: #fff; }
+.lk-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #e5e5e5; }
+.lk-modal-title { order: -1; margin: 0; font-size: 17px; font-weight: 700; line-height: 1.4; color: #333; }
+.lk-modal-x { width: 40px; height: 40px; margin-right: -8px; border: 0; background: none; font-size: 26px; line-height: 1; color: #666; cursor: pointer; }
+.lk-modal-x:hover { color: #000; }
+.lk-modal-body { padding: 16px; font-size: 15px; text-align: left; }
+.lk-modal-label { margin: 0 0 6px; font-weight: 700; color: #333; }
+.lk-modal-body label { display: flex; align-items: center; min-height: 40px; margin: 0; font-weight: 400; color: #333; cursor: pointer; }
+.lk-modal-body input[type=radio] { width: 16px; height: 16px; margin: 0 10px 0 0; accent-color: #038018; }
+.lk-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #e5e5e5; }
+.lk-modal-footer .lk-btn { margin: 0; }
 
 /* Call to action band + footer: the LinkCash site look (green image band, lime accents) */
 .lk-cta-wrap { margin-top: 70px; }
