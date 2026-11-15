@@ -48,7 +48,7 @@
               </tbody>
             </table>
           </div>
-          <p class="mt-3 text-sm text-slate-500 font-roboto">Rates are in USD per 1,000 valid views. Level 1: 1 step &middot; Level 2: 2 steps &middot; Level 3: 3 steps.</p>
+          <p class="table-note">Rates are in USD per 1,000 valid views. Level 1: 1 step &middot; Level 2: 2 steps &middot; Level 3: 3 steps.</p>
         </div>
 
         {{-- Earnings calculator --}}
@@ -69,7 +69,7 @@
               <input id="calcViews" type="range" class="slider" min="1000" max="1000000" step="1000" value="10000">
             </div>
             <div class="result-box">
-              <div class="text-sm uppercase tracking-wider">You could earn</div>
+              <div class="result-label">You could earn</div>
               <div class="amount" id="calcResult">$0.00</div>
             </div>
           </x-panel>
@@ -123,13 +123,13 @@
             <x-panel title="How earnings become available" class="h-full">
               <div class="status-row"><span class="status-dot" style="background:#f5a300"></span><div><strong>Pending</strong> &ndash; new earnings wait for a short review period (set by the administrators) so invalid traffic can be filtered out.</div></div>
               <div class="status-row"><span class="status-dot" style="background:#038018"></span><div><strong>Available</strong> &ndash; reviewed earnings that you can withdraw once you reach the minimum payout.</div></div>
-              <div class="status-row"><span class="status-dot" style="background:#e74c3c"></span><div><strong>Cancelled</strong> &ndash; earnings from invalid traffic or from links that break the <a href="{{ route('terms') }}" style="color:#00aeef;text-decoration:underline">Terms of Use</a>.</div></div>
+              <div class="status-row"><span class="status-dot" style="background:#e74c3c"></span><div><strong>Cancelled</strong> &ndash; earnings from invalid traffic or from links that break the <a href="{{ route('terms') }}" class="text-link">Terms of Use</a>.</div></div>
             </x-panel>
           </div>
         </div>
 
         <x-panel title="Fraud monitoring" class="reveal mb-2">
-          <p style="font-family:Roboto,sans-serif;color:#444;line-height:1.7;margin:0">We monitor every account for unusual patterns, such as skewed view-to-click ratios, many views from a single IP address or IP range, or machine-like time on page. Accounts that trigger alerts may be reviewed, new traffic sources may need approval, and earnings from suspicious traffic may be cancelled. Reports from advertising networks can also lead to adjustments. If you believe a view was rejected by mistake, contact support with the short link and the date it happened.</p>
+          <p class="panel-text">We monitor every account for unusual patterns, such as skewed view-to-click ratios, many views from a single IP address or IP range, or machine-like time on page. Accounts that trigger alerts may be reviewed, new traffic sources may need approval, and earnings from suspicious traffic may be cancelled. Reports from advertising networks can also lead to adjustments. If you believe a view was rejected by mistake, contact support with the short link and the date it happened.</p>
         </x-panel>
       </div>
 
@@ -154,8 +154,8 @@
       <div class="flex flex-wrap -mx-[15px] mt-6">
         <div class="w-full md:w-1/2 px-[15px] mb-6 reveal">
           <x-panel title="Want the details?" class="h-full">
-            <p style="font-family:Roboto,sans-serif;color:#444;line-height:1.7;margin:0 0 12px">A visit is paid only when it is a unique, complete view made by a real person. We explain every rule, its default value and why a view may not be counted.</p>
-            <a href="{{ route('payout-rates') }}#view-policy" class="btn-cta btn-ripple" style="background:#038018;color:#fff">Read the View Counting Policy</a>
+            <p class="panel-text mb-4">A visit is paid only when it is a unique, complete view made by a real person. We explain every rule, its default value and why a view may not be counted.</p>
+            <a href="{{ route('payout-rates') }}#view-policy" class="btn-cta btn-cta-brand btn-ripple">Read the View Counting Policy</a>
           </x-panel>
         </div>
         <div class="w-full md:w-1/2 px-[15px] mb-6 reveal">
