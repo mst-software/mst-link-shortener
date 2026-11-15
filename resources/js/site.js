@@ -24,6 +24,7 @@ $(function () {
   $('#navToggle').on('click', function () {
     $('#navMenu').toggleClass('hidden');
     $nav.toggleClass('open', !$('#navMenu').hasClass('hidden'));
+    $(this).attr('aria-expanded', String(!$('#navMenu').hasClass('hidden')));
   });
 
   /* Reveal on scroll (staggered by position in the row) */

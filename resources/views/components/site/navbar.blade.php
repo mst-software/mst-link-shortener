@@ -4,7 +4,7 @@
       <img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="LinkCash" class="h-[34px] sm:h-[42px] w-auto">
     </a>
 
-    <button id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" class="nav-toggle sm:hidden">
+    <button id="navToggle" type="button" aria-label="Toggle navigation" aria-controls="navMenu" aria-expanded="false"class="nav-toggle sm:hidden">
       <span></span>
       <span></span>
       <span></span>
