@@ -1,85 +1,74 @@
-/* Visitor page: the familiar short-link "continue" page (blue header, white box, green button, footer call to action). */
+/* Visitor page: a plain, flat "continue" page (slim green bar, one white bordered card, standard buttons, simple footer). */
 
 *, *::before, *::after { box-sizing: border-box; }
 
 .lk-body {
   margin: 0;
-  background: #f4faff;
+  background: #f5f6f7;
   font-family: Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.43;
+  font-size: 15px;
+  line-height: 1.5;
   color: #333;
 }
 
-.lk-body img { max-width: 100%; max-height: 100%; border: 0; }
-.lk-body a { color: #337ab7; }
+.lk-body img { max-width: 100%; height: auto; border: 0; }
+.lk-body a { color: #23527c; }
 .lk-body [hidden] { display: none !important; }
 .lk-body ul { list-style: none; margin: 0; padding: 0; }
 
-.lk-container { width: 100%; max-width: 1170px; margin: 0 auto; padding: 0 15px; }
+.lk-container { width: 100%; max-width: 1170px; margin: 0 auto; padding: 0 16px; }
 
-/* Navigation bar: LinkCash green with soft wave shapes (pure CSS) */
-.lk-navbar {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse 38% 150% at 78% 135%, rgba(184, 222, 1, 0.55), transparent 70%),
-    radial-gradient(ellipse 55% 170% at 92% -45%, rgba(90, 200, 90, 0.55), transparent 68%),
-    radial-gradient(ellipse 30% 120% at 45% 140%, rgba(255, 255, 255, 0.10), transparent 70%),
-    linear-gradient(100deg, #024a14 0%, #038018 48%, #0a9b2e 100%);
-}
-.lk-navbar::after {
-  content: '';
-  position: absolute;
-  right: -6%;
-  bottom: -62%;
-  width: 46%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-  pointer-events: none;
-}
-.lk-navbar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 64px; }
-.lk-brand img { display: block; height: 32px; width: auto; }
+/* Navigation bar: a slim solid green bar */
+.lk-navbar { background: #038018; border-bottom: 1px solid #026812; }
+.lk-navbar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 52px; }
+.lk-brand { display: block; padding: 6px 0; }
+.lk-brand img { display: block; height: 28px; width: auto; }
 .lk-nav { display: flex; }
 .lk-nav a {
-  display: block;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
   color: #fff !important;
-  font-family: Roboto, sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 15px;
+  font-weight: 500;
   text-decoration: none;
 }
 .lk-nav a:hover { text-decoration: underline; }
+.lk-brand:focus-visible, .lk-nav a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-/* Main box */
-.lk-box-main { margin: 28px 0 0; }
-.lk-box-body { text-align: center; min-height: 240px; }
+/* Main card: one white bordered box holding the whole flow */
+.lk-box-main { margin: 24px 0 0; }
+.lk-box-body { text-align: center; }
+.lk-card {
+  max-width: 750px;
+  min-height: 200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+}
 
 .lk-loader {
-  margin: 100px auto;
-  width: 120px;
-  height: 120px;
-  border: 16px solid #f3f3f3;
-  border-top: 16px solid #3498db;
+  margin: 60px auto;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #ddd;
+  border-top-color: #038018;
   border-radius: 50%;
-  animation: lk-spin 2s linear infinite;
+  animation: lk-spin 0.8s linear infinite;
 }
 @keyframes lk-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-#visit { max-width: 940px; margin: 0 auto; }
+#visit { margin: 0 auto; }
 
 .lk-title {
-  margin: 0 0 16px;
-  font-family: Roboto, sans-serif;
+  margin: 0 0 18px;
   font-size: 20px;
-  line-height: 1.2;
-  font-weight: 500;
-  color: #1aa7ec;
-  text-transform: uppercase;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #333;
 }
 
 /* Code input */
@@ -105,7 +94,7 @@
 
 .lk-captcha { display: flex; justify-content: center; min-height: 78px; margin: 10px auto; }
 
-.lk-session { margin: 14px 0; font-size: 14px; font-style: italic; color: #e00000; }
+.lk-session { margin: 12px 0; font-size: 14px; color: #c9302c; }
 .lk-session.is-low { font-weight: 700; }
 
 /* Buttons */
@@ -139,47 +128,45 @@
 
 .lk-status { min-height: 22px; margin: 10px 0 0; font-size: 14px; color: #666; }
 .lk-status.is-error { color: #c9302c; font-weight: 700; }
-.lk-status.is-ok { color: #2d8a34; font-weight: 700; }
+.lk-status.is-ok { color: #2b7a2f; font-weight: 700; }
 
-.lk-stop { max-width: 560px; margin: 16px auto; padding: 16px; border-radius: 6px; background: #fcf8e3; border: 1px solid #faebcc; }
-.lk-stop p { margin: 0 0 12px; font-size: 16px; color: #8a6d3b; }
+.lk-stop { max-width: 560px; margin: 16px auto; padding: 15px; border: 1px solid #faebcc; border-radius: 4px; background: #fcf8e3; }
+.lk-stop p { margin: 0 0 12px; font-size: 15px; color: #8a6d3b; }
 
-/* Guide card */
+/* Keyword guide: a plain bordered block inside the card */
 .lk-guide {
-  max-width: 940px;
-  margin: 30px auto 0;
-  padding: 12px 14px 20px;
-  border: 1px solid #cfe3f6;
-  border-radius: 14px;
+  margin: 24px 0 0;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 90, 170, 0.12);
   text-align: left;
 }
-.lk-guide-title { margin: 8px 0 4px; font-size: 20px; font-weight: 500; line-height: 1.2; color: #1aa7ec; text-transform: uppercase; }
-.lk-guide-note { margin: 0 0 12px; font-size: 16px; color: #e00000; }
+.lk-guide-title { margin: 0 0 6px; font-size: 18px; font-weight: 700; line-height: 1.3; color: #333; }
+.lk-guide-note { margin: 0 0 12px; font-size: 15px; color: #c9302c; }
 .lk-guide-rules {
-  display: inline-block;
-  margin: 0 0 18px;
-  padding: 8px 12px 4px;
-  border: 1px dashed #666;
+  margin: 0 0 16px;
+  padding: 10px 12px 10px 32px;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  background: #f5f9ff;
-  font-size: 16px;
-  color: #1a1ae6;
+  background: #f9f9f9;
+  font-size: 15px;
+  color: #333;
 }
-.lk-guide-rules p { margin: 0 0 12px; }
-.lk-guide-rules b { color: #111; }
-.lk-step { margin: 0 0 12px; font-size: 16px; color: #555; }
+.lk-body .lk-guide-rules { list-style: disc; }
+.lk-guide-rules li { margin: 0 0 4px; }
+.lk-guide-rules li:last-child { margin-bottom: 0; }
+.lk-step { margin: 0 0 12px; font-size: 15px; color: #333; }
 .lk-step b:first-child { color: #000; }
-.lk-red { color: #e00000; }
+.lk-red { color: #c9302c; }
 .lk-getcode {
   display: inline-block;
-  padding: 1px 10px;
-  border-radius: 6px;
-  background: #ed1c24;
+  padding: 0 8px;
+  border-radius: 3px;
+  background: #c9302c;
   color: #fff;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
 }
 .lk-mini {
   display: inline-block;
@@ -197,20 +184,20 @@
 }
 .lk-mini:hover { background: #e3effb; }
 .lk-example { margin: 0 0 14px; text-align: center; }
-.lk-example img { border: 1px solid #cfdbe6; max-width: 750px; }
-.lk-guide .lk-code { margin-bottom: 14px; }
+.lk-example img { padding: 2px; border: 1px solid #ddd; background: #fff; }
+.lk-guide .lk-code { margin-bottom: 12px; }
 .lk-guide #visit-button-2 { display: block; margin: 0 auto 14px; }
-.lk-cant { margin: 8px 0; font-size: 17px; color: #555; text-align: center; }
+.lk-cant { margin: 8px 0; font-size: 15px; color: #555; text-align: center; }
 .lk-guide .lk-btn-danger { display: block; margin: 0 auto 16px; }
-.lk-video-title { margin: 16px 0 8px; font-size: 20px; font-weight: 500; color: #1aa7ec; }
-.lk-video-frame { position: relative; max-width: 700px; margin: 0 auto; padding-top: 39.4%; background: #000; }
+.lk-video-title { margin: 16px 0 8px; font-size: 18px; font-weight: 700; color: #333; }
+.lk-video-frame { position: relative; margin: 0 auto; padding-top: 56.25%; border: 1px solid #ddd; background: #000; }
 .lk-video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .lk-linkbtn { padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: #c9302c; text-decoration: underline; cursor: pointer; }
 
 /* Ads: always labelled, never around the action button */
-#advertise-html-wrapper:not(:empty) { max-width: 750px; margin: 20px auto; }
-.lk-body .ad-container { margin: 16px auto; padding: 10px; border-radius: 10px; background: #fff; box-shadow: rgba(0, 105, 192, 0.39) 0 1px 3px 0, rgba(0, 72, 131, 0.13) 0 1px 3px 1px; text-align: center; }
-.lk-body .ad-label { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a9aa8; }
+#advertise-html-wrapper:not(:empty) { max-width: 750px; margin: 16px auto; }
+.lk-body .ad-container { margin: 16px auto; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff; text-align: center; overflow: hidden; }
+.lk-body .ad-label { margin: 0 0 6px; font-size: 12px; color: #6c757d; }
 .lk-ad-bottom { max-width: 750px; margin: 0 auto; }
 
 /* Report dialog */
@@ -285,13 +272,12 @@
 }
 
 @media (max-width: 767px) {
-  .lk-navbar-inner { min-height: 56px; }
-  .lk-brand img { height: 28px; }
-  .lk-box-main { margin-top: 24px; }
-  .lk-title { font-size: 20px; }
-  .lk-guide-title { font-size: 20px; }
-  .lk-guide-note, .lk-guide-rules, .lk-step { font-size: 16px; }
-  .lk-cant { font-size: 18px; }
+  .lk-brand img { height: 24px; }
+  .lk-box-main { margin-top: 16px; }
+  .lk-card { padding: 20px 12px; }
+  .lk-guide { padding: 12px; }
+  .lk-title { font-size: 18px; }
+  .lk-guide-title { font-size: 17px; }
   .lk-cta-wrap { margin-top: 50px; }
   .lk-footer { margin-top: 50px; }
   .lk-cta-band { padding: 40px 18px; }
