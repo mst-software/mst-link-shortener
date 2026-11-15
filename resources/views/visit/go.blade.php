@@ -9,6 +9,7 @@
 
       <div
         id="visit"
+        class="lk-card"
         data-mode="loading"
         data-alias="{{ $alias }}"
         data-info-url="{{ route('visit.info') }}"
@@ -49,11 +50,11 @@
           <h2 class="lk-guide-title">HOW TO GET THE CODE - KEYWORD SEARCH</h2>
           <p class="lk-guide-note"><b><i>Note:</i></b> <i>please follow the guide exactly so the code is not wrong)</i></p>
 
-          <div class="lk-guide-rules">
-            <p>Use the <b>Chrome</b> browser to avoid errors</p>
-            <p>Do NOT click on <b>sponsored</b> ads</p>
-            <p>Do NOT use an <b>incognito</b> window</p>
-          </div>
+          <ul class="lk-guide-rules">
+            <li>Use the <b>Chrome</b> browser to avoid errors</li>
+            <li>Do NOT click on <b>sponsored</b> ads</li>
+            <li>Do NOT use an <b>incognito</b> window</li>
+          </ul>
 
           <p class="lk-step"><b>Step 1:</b> Open a new tab and go to <b class="lk-red">google.com</b></p>
           <p class="lk-step"><b>Step 2:</b> Type the keyword <b class="lk-red" id="visit-keyword"></b>
