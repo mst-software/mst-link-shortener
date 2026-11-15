@@ -59,26 +59,26 @@ $(function () {
     var size = function () {
       var box = cv.parentNode;
       W = cv.width = box.clientWidth; H = cv.height = box.clientHeight;
-      var n = Math.round(W * H / 14000); pts = [];
-      for (var i = 0; i < n; i++) pts.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * 2.4, vy: (Math.random() - .5) * 2.4, r: Math.random() * 2 + 1 });
+      var n = Math.round(W * H / 9000); pts = [];
+      for (var i = 0; i < n; i++) pts.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * 2.4, vy: (Math.random() - .5) * 2.4, r: Math.random() * 2.2 + 1.2 });
     };
     $('header.shorten').on('mousemove', function (e) {
       var o = $(cv).offset(); mouse.x = e.pageX - o.left; mouse.y = e.pageY - o.top;
     }).on('mouseleave', function () { mouse.x = mouse.y = -999; })
-      .on('click', function () { for (var i = 0; i < 4; i++) pts.push({ x: mouse.x, y: mouse.y, vx: (Math.random() - .5) * 3, vy: (Math.random() - .5) * 3, r: Math.random() * 2 + 1 }); if (pts.length > 160) pts.splice(0, 4); });
+      .on('click', function () { for (var i = 0; i < 4; i++) pts.push({ x: mouse.x, y: mouse.y, vx: (Math.random() - .5) * 3, vy: (Math.random() - .5) * 3, r: Math.random() * 2.2 + 1.2 }); if (pts.length > 260) pts.splice(0, 4); });
     var tick = function () {
       ctx.clearRect(0, 0, W, H);
       for (var i = 0; i < pts.length; i++) {
         var p = pts[i]; p.x += p.vx; p.y += p.vy;
         if (p.x < 0 || p.x > W) p.vx *= -1;
         if (p.y < 0 || p.y > H) p.vy *= -1;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fill();
         for (var j = i + 1; j < pts.length; j++) {
           var q = pts[j], d = Math.hypot(p.x - q.x, p.y - q.y);
-          if (d < 110) { ctx.strokeStyle = 'rgba(255,255,255,' + (.35 * (1 - d / 110)) + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+          if (d < 130) { ctx.strokeStyle = 'rgba(255,255,255,' + (.6 * (1 - d / 130)) + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
         }
         var dm = Math.hypot(p.x - mouse.x, p.y - mouse.y);
-        if (dm < 160) { ctx.strokeStyle = 'rgba(228,251,74,' + (.7 * (1 - dm / 160)) + ')'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke(); }
+        if (dm < 200) { ctx.strokeStyle = 'rgba(228,251,74,' + (.95 * (1 - dm / 200)) + ')'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke(); }
       }
       requestAnimationFrame(tick);
     };
