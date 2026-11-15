@@ -1,7 +1,7 @@
 @props(['title', 'subtitle' => null])
 
 <x-hero inner>
-  <div class="intro-lead-in anim-zoom">{{ $title }}</div>
+  <h1 class="intro-lead-in anim-up">{{ $title }}</h1>
   @if ($subtitle)
     <p class="intro-sub anim-up">{{ $subtitle }}</p>
   @endif

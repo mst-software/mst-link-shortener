@@ -1,6 +1,6 @@
 @props(['title'])
 
 <div {{ $attributes->class(['panel']) }}>
-  <h4>{{ $title }}</h4>
+  <h3 class="panel-title">{{ $title }}</h3>
   {{ $slot }}
 </div>

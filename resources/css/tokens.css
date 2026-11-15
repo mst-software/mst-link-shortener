@@ -1,0 +1,44 @@
+/*
+ * Shared design tokens for the public site (app.css) and the auth pages (auth.css).
+ * `static` keeps every variable on :root so plain CSS rules can use var(--...) too.
+ */
+@theme static {
+    --breakpoint-sm: 768px;
+    --breakpoint-md: 992px;
+    --breakpoint-lg: 1200px;
+
+    /* Brand: the original LinkCash green and lime */
+    --color-g: #038018;
+    --color-lime: #bfe217;
+    --color-lime2: #b8de01;
+    --color-sky: #00aeef;
+
+    --color-brand-50: #effaf1;
+    --color-brand-100: #d9f2de;
+    --color-brand-200: #b3e4bd;
+    --color-brand-500: #0a9a26;
+    --color-brand-600: #038018;
+    --color-brand-700: #026514;
+    --color-brand-800: #034f12;
+    --color-brand-900: #023a0e;
+    --color-brand-950: #01240a;
+
+    /* Neutrals with a slight green tint */
+    --color-ink: #0f1f15;
+    --color-body: #3d4a42;
+    --color-muted: #66756c;
+    --color-line: #e2e9e4;
+    --color-surface: #f6f9f7;
+
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+    --radius-card: 1rem;
+    --radius-control: 0.75rem;
+
+    --shadow-card: 0 1px 2px rgb(15 31 21 / 0.04), 0 4px 16px -4px rgb(15 31 21 / 0.08);
+    --shadow-card-hover: 0 2px 4px rgb(15 31 21 / 0.05), 0 18px 40px -12px rgb(3 79 18 / 0.22);
+    --shadow-button: 0 1px 2px rgb(3 79 18 / 0.2), 0 6px 16px -6px rgb(3 128 24 / 0.55);
+    --shadow-focus: 0 0 0 4px rgb(184 222 1 / 0.45);
+
+    --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
