@@ -35,7 +35,7 @@ Route::get('pages/terms', [LegalController::class, 'terms'])->name('terms');
 
 Route::get('ref/{code}', ReferralRedirectController::class)->name('referral');
 
-Route::middleware(['auth', 'active'])->group(function () {
+Route::middleware(['auth', 'active', 'not-advertiser'])->group(function () {
     Route::post('links/shorten', LinkShortenController::class)->name('links.shorten');
     Route::get('{alias}/info', LinkInfoController::class)->name('link.info');
 });

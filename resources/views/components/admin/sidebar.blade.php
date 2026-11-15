@@ -4,6 +4,7 @@
       ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings.edit'],
       ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates.index'],
       ['label' => 'Campaigns', 'icon' => 'bullhorn', 'route' => 'admin.campaigns.index'],
+      ['label' => 'Advertisers', 'icon' => 'users', 'route' => 'admin.advertisers.index'],
       ['label' => 'Ad slots', 'icon' => 'ad', 'route' => 'admin.ad-slots.index'],
       ['label' => 'Blocked networks', 'icon' => 'ban', 'route' => 'admin.blocked-networks.index'],
       ['label' => 'Fraud flags', 'icon' => 'flag', 'route' => 'admin.fraud-flags.index'],

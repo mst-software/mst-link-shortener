@@ -56,6 +56,17 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user is an advertiser.
+     */
+    public function advertiser(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::Advertiser,
+            'terms_accepted_at' => now(),
+        ]);
+    }
+
+    /**
      * Indicate that the user is banned.
      */
     public function banned(): static

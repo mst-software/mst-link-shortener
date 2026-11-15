@@ -2,24 +2,37 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ReviewStatus;
 use App\Enums\ViewStatus;
+use App\Http\Controllers\Concerns\HandlesCampaignImages;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ReviewCampaignRequest;
 use App\Http\Requests\Admin\StoreCampaignRequest;
 use App\Models\Campaign;
 use App\Models\CodeAttempt;
 use App\Models\FraudFlag;
 use App\Models\View as PageView;
+use App\Services\Advertiser\PriceGuard;
 use App\Support\DomainMasker;
+use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 class CampaignController extends Controller
 {
-    public function index(): View
+    use HandlesCampaignImages;
+
+    public function index(Request $request): View
     {
-        $campaigns = Campaign::query()->latest('id')->paginate(20);
+        $pendingOnly = $request->query('review') === 'pending';
+
+        $campaigns = Campaign::query()
+            ->with('owner:id,username')
+            ->when($pendingOnly, fn ($query) => $query->where('review_status', ReviewStatus::Pending))
+            ->latest('id')
+            ->paginate(20)
+            ->withQueryString();
 
         $ids = $campaigns->getCollection()->modelKeys();
 
@@ -55,7 +68,7 @@ class CampaignController extends Controller
             ];
         }
 
-        return view('admin.campaigns.index', ['campaigns' => $campaigns, 'stats' => $stats]);
+        return view('admin.campaigns.index', ['campaigns' => $campaigns, 'stats' => $stats, 'pendingOnly' => $pendingOnly]);
     }
 
     public function create(): View
@@ -66,13 +79,9 @@ class CampaignController extends Controller
     public function store(StoreCampaignRequest $request): RedirectResponse
     {
         $campaign = new Campaign($this->attributes($request));
-        $campaign->widget_key = $this->generateWidgetKey();
+        $campaign->widget_key = Campaign::generateWidgetKey();
 
-        foreach (StoreCampaignRequest::IMAGE_FIELDS as $field) {
-            if ($request->hasFile($field)) {
-                $campaign->{$field} = $request->file($field)->store('campaigns', 'public');
-            }
-        }
+        $this->applyCampaignImages($request, $campaign);
 
         $campaign->save();
 
@@ -84,23 +93,17 @@ class CampaignController extends Controller
         return view('admin.campaigns.form', ['campaign' => $campaign]);
     }
 
-    public function update(StoreCampaignRequest $request, Campaign $campaign): RedirectResponse
+    public function update(StoreCampaignRequest $request, Campaign $campaign, PriceGuard $priceGuard): RedirectResponse
     {
         $campaign->fill($this->attributes($request));
 
-        foreach (StoreCampaignRequest::IMAGE_FIELDS as $field) {
-            if ($request->hasFile($field)) {
-                $this->deleteImage($campaign->{$field});
-                $campaign->{$field} = $request->file($field)->store('campaigns', 'public');
-            } elseif ($request->boolean('remove_'.$field)) {
-                $this->deleteImage($campaign->{$field});
-                $campaign->{$field} = null;
-            }
-        }
+        $this->applyCampaignImages($request, $campaign);
 
         $campaign->save();
 
-        return redirect()->route('admin.campaigns.edit', $campaign)->with('success', 'Campaign updated.');
+        return redirect()->route('admin.campaigns.edit', $campaign)
+            ->with('success', 'Campaign updated.')
+            ->with('warning', $campaign->price_micro === null ? null : $priceGuard->warningFor($campaign->price_micro));
     }
 
     public function toggle(Campaign $campaign): RedirectResponse
@@ -111,11 +114,22 @@ class CampaignController extends Controller
             ->with('success', $campaign->is_active ? 'Campaign switched on.' : 'Campaign switched off.');
     }
 
+    public function review(ReviewCampaignRequest $request, Campaign $campaign): RedirectResponse
+    {
+        $status = ReviewStatus::from($request->string('review_status')->toString());
+
+        $campaign->update([
+            'review_status' => $status,
+            'review_note' => $status === ReviewStatus::Rejected ? $request->string('review_note')->toString() : null,
+        ]);
+
+        return redirect()->route('admin.campaigns.index', ['review' => 'pending'])
+            ->with('success', $status === ReviewStatus::Approved ? 'Campaign approved.' : 'Campaign rejected.');
+    }
+
     public function destroy(Campaign $campaign): RedirectResponse
     {
-        foreach (StoreCampaignRequest::IMAGE_FIELDS as $field) {
-            $this->deleteImage($campaign->{$field});
-        }
+        $this->deleteCampaignImages($campaign);
 
         $campaign->delete();
 
@@ -134,27 +148,15 @@ class CampaignController extends Controller
             'stage1_seconds', 'stage2_seconds', 'notes',
         ]);
 
+        if ($request->has('price_usd')) {
+            $data['price_micro'] = $request->filled('price_usd') ? Money::toMicro($request->string('price_usd')->toString()) : null;
+        }
+
         $data['is_active'] = $request->boolean('is_active');
         $data['display_domain'] = $request->filled('display_domain')
             ? $request->string('display_domain')->toString()
             : DomainMasker::mask($request->string('domain')->toString());
 
         return $data;
-    }
-
-    private function generateWidgetKey(): string
-    {
-        do {
-            $key = Str::lower(Str::random(24));
-        } while (Campaign::query()->where('widget_key', $key)->exists());
-
-        return $key;
-    }
-
-    private function deleteImage(?string $path): void
-    {
-        if ($path !== null && $path !== '') {
-            Storage::disk('public')->delete($path);
-        }
     }
 }

@@ -26,6 +26,12 @@ return [
         'code_session_seconds' => 600,
         'widget_attempts_per_ip_per_day' => 5,
         'tutorial_video_url' => '',
+        'advertiser_default_price_micro' => 10_000,
+        'advertiser_min_topup_micro' => 5_000_000,
+        'vnd_per_usd' => 25_000,
+        'sepay_bank_name' => '',
+        'sepay_account_number' => '',
+        'sepay_account_name' => '',
     ],
 
 ];

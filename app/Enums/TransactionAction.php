@@ -11,6 +11,9 @@ enum TransactionAction: string
     case WithdrawRequest = 'withdraw_request';
     case WithdrawPaid = 'withdraw_paid';
     case WithdrawRejected = 'withdraw_rejected';
+    case Topup = 'topup';
+    case CampaignCharge = 'campaign_charge';
+    case ChargeRefund = 'charge_refund';
 
     public function label(): string
     {
@@ -22,6 +25,9 @@ enum TransactionAction: string
             self::WithdrawRequest => 'Withdrawal request',
             self::WithdrawPaid => 'Withdrawal paid',
             self::WithdrawRejected => 'Withdrawal rejected',
+            self::Topup => 'Top up',
+            self::CampaignCharge => 'Campaign charge',
+            self::ChargeRefund => 'Charge refund',
         };
     }
 }

@@ -4,11 +4,14 @@ namespace App\Services\Views;
 
 use App\Enums\InvalidReason;
 use App\Enums\ViewStatus;
+use App\Enums\VisitMode;
 use App\Enums\VisitStatus;
+use App\Models\Campaign;
 use App\Models\Link;
 use App\Models\View;
 use App\Models\ViewDedup;
 use App\Models\VisitSession;
+use App\Services\Advertiser\AdvertiserBilling;
 use App\Services\Settings;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ViewRecorder
 {
-    public function __construct(private RateResolver $rates) {}
+    public function __construct(private RateResolver $rates, private AdvertiserBilling $billing) {}
 
     /**
      * Record the view of a session. Idempotent: a session that already has a view returns it.
@@ -54,11 +57,15 @@ class ViewRecorder
 
         $isValid = $reason === null;
         $link = Link::query()->findOrFail($locked->link_id);
+        $campaign = $locked->mode === VisitMode::Keyword && $locked->campaign_id !== null
+            ? Campaign::query()->with('owner')->find($locked->campaign_id)
+            : null;
 
         $view = View::query()->create([
             'link_id' => $link->getKey(),
             'user_id' => $link->user_id,
             'visit_session_id' => $locked->getKey(),
+            'campaign_id' => $campaign?->getKey(),
             'ip' => $context->ip,
             'country' => $locked->country,
             'level' => $locked->level,
@@ -70,6 +77,10 @@ class ViewRecorder
 
         if ($isValid) {
             Link::query()->whereKey($link->getKey())->increment('views_count');
+        }
+
+        if ($campaign !== null) {
+            $this->billing->chargeView($view, $campaign);
         }
 
         $locked->forceFill([

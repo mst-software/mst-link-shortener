@@ -3,6 +3,7 @@
 namespace App\Services\Visits;
 
 use App\Enums\VisitStatus;
+use App\Models\Campaign;
 use App\Models\CodeAttempt;
 use App\Models\VisitSession;
 use App\Services\Views\VisitorContext;
@@ -48,7 +49,10 @@ class CodeRedeemer
                 return CodeResult::Locked;
             }
 
-            $attempt = $code === '' || $locked->campaign_id === null
+            $campaign = $locked->campaign_id === null ? null : Campaign::query()->find($locked->campaign_id);
+
+            // A campaign sent back to review, or one of a locked advertiser, no longer honors its codes.
+            $attempt = $code === '' || $campaign === null || $campaign->isBlocked()
                 ? null
                 : CodeAttempt::query()
                     ->where('campaign_id', $locked->campaign_id)

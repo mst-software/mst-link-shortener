@@ -9,4 +9,5 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('campaigns', CampaignController::class)->except('show');
     Route::patch('campaigns/{campaign}/toggle', [CampaignController::class, 'toggle'])->name('campaigns.toggle');
+    Route::patch('campaigns/{campaign}/review', [CampaignController::class, 'review'])->name('campaigns.review');
 });

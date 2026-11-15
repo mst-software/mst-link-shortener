@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ReviewStatus;
 use App\Enums\ViewStatus;
 use App\Models\Campaign;
 use App\Models\CodeAttempt;
@@ -268,4 +269,62 @@ test('a Vimeo tutorial video link is accepted and the visitor script can embed i
 
     expect(Settings::get('tutorial_video_url'))->toBe('https://vimeo.com/123456789')
         ->and(file_get_contents(resource_path('js/visit.js')))->toContain('https://player.vimeo.com/video/');
+});
+
+test('an admin approves a pending campaign', function () {
+    $campaign = Campaign::factory()->forAdvertiser()->pending()->create(['review_note' => 'old']);
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.campaigns.review', $campaign), ['review_status' => 'approved'])
+        ->assertRedirect();
+
+    $campaign->refresh();
+
+    expect($campaign->review_status)->toBe(ReviewStatus::Approved)
+        ->and($campaign->review_note)->toBeNull();
+});
+
+test('rejecting a campaign needs a note', function () {
+    $campaign = Campaign::factory()->forAdvertiser()->pending()->create();
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.campaigns.review', $campaign), ['review_status' => 'rejected'])
+        ->assertSessionHasErrors('review_note');
+
+    $this->actingAs($this->admin)
+        ->patch(route('admin.campaigns.review', $campaign), ['review_status' => 'rejected', 'review_note' => 'Adult content.'])
+        ->assertRedirect();
+
+    $campaign->refresh();
+
+    expect($campaign->review_status)->toBe(ReviewStatus::Rejected)
+        ->and($campaign->review_note)->toBe('Adult content.');
+});
+
+test('the campaign list can be filtered to campaigns pending review', function () {
+    Campaign::factory()->forAdvertiser()->pending()->create(['name' => 'Waiting campaign']);
+    Campaign::factory()->create(['name' => 'Running campaign']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.campaigns.index', ['review' => 'pending']))
+        ->assertOk()
+        ->assertSee('Waiting campaign')
+        ->assertDontSee('Running campaign');
+});
+
+test('the campaign list shows the owner of an advertiser campaign', function () {
+    $owner = User::factory()->advertiser()->create(['username' => 'shoe_owner']);
+    Campaign::factory()->forAdvertiser($owner)->create();
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.campaigns.index'))
+        ->assertSee('shoe_owner');
+});
+
+test('advertisers cannot review campaigns', function () {
+    $campaign = Campaign::factory()->forAdvertiser()->pending()->create();
+
+    $this->actingAs($campaign->owner)
+        ->patch(route('admin.campaigns.review', $campaign), ['review_status' => 'approved'])
+        ->assertForbidden();
 });

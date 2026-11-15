@@ -2,7 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\ReviewStatus;
 use App\Models\Campaign;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -36,6 +38,24 @@ class CampaignFactory extends Factory
             'image_position' => null,
             'notes' => null,
         ];
+    }
+
+    /**
+     * Indicate that the campaign belongs to an advertiser.
+     */
+    public function forAdvertiser(?User $owner = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_id' => $owner?->getKey() ?? User::factory()->advertiser(),
+        ]);
+    }
+
+    /**
+     * Indicate that the campaign waits for admin review.
+     */
+    public function pending(): static
+    {
+        return $this->state(fn (array $attributes) => ['review_status' => ReviewStatus::Pending]);
     }
 
     /**

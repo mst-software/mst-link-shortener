@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsAdvertiser;
+use App\Http\Middleware\EnsureUserIsNotAdvertiser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -10,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: [
             __DIR__.'/../routes/member.php',
+            __DIR__.'/../routes/advertiser.php',
             __DIR__.'/../routes/admin.php',
             __DIR__.'/../routes/widget.php',
             __DIR__.'/../routes/web.php',
@@ -25,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
             'admin' => EnsureUserIsAdmin::class,
+            'advertiser' => EnsureUserIsAdvertiser::class,
+            'not-advertiser' => EnsureUserIsNotAdvertiser::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

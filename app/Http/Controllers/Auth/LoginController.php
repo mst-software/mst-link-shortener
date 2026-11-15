@@ -20,6 +20,14 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('member.dashboard'));
+        $user = $request->user();
+
+        $default = match (true) {
+            $user->isAdmin() => route('admin.dashboard'),
+            $user->isAdvertiser() => route('advertiser.dashboard'),
+            default => route('member.dashboard'),
+        };
+
+        return redirect()->intended($default);
     }
 }

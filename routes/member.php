@@ -3,9 +3,8 @@
 use App\Http\Controllers\Member\DashboardController;
 use App\Http\Controllers\Member\EmailController;
 use App\Http\Controllers\Member\LinkController;
-use App\Http\Controllers\Member\NotificationController;
-use App\Http\Controllers\Member\PasswordController;
 use App\Http\Controllers\Member\NoticeController;
+use App\Http\Controllers\Member\PasswordController;
 use App\Http\Controllers\Member\PopularLinkController;
 use App\Http\Controllers\Member\ProfileController;
 use App\Http\Controllers\Member\ReferralController;
@@ -15,7 +14,7 @@ use App\Http\Controllers\Member\ToolController;
 use App\Http\Controllers\Member\WithdrawController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'active'])->prefix('member')->name('member.')->group(function () {
+Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name('member.')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('dashboard/get-data', [DashboardController::class, 'data'])->name('dashboard.data');
     Route::get('notify', [NoticeController::class, 'index'])->name('notify');
