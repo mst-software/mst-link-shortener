@@ -56,6 +56,7 @@ it('rejects an invalid link password or expiry date', function (array $data, str
 })->with([
     'password too short' => [['password' => 'abc'], 'password'],
     'password too long' => [['password' => str_repeat('a', 65)], 'password'],
+    'password over 72 bytes' => [['password' => str_repeat('é', 40)], 'password'],
     'expiry in the past' => [['expires_at' => '2020-01-01 10:00'], 'expires_at'],
     'expiry not a date' => [['expires_at' => 'tomorrow-ish'], 'expires_at'],
 ]);

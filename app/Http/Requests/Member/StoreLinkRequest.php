@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Member;
 
+use App\Rules\MaxBytes;
 use App\Traits\ApiResponse;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -17,7 +19,7 @@ class StoreLinkRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, string|ValidationRule>>
      */
     public function rules(): array
     {
@@ -25,7 +27,7 @@ class StoreLinkRequest extends FormRequest
             'url' => ['required', 'string', 'max:2048'],
             'alias' => ['nullable', 'string', 'max:32'],
             'ad_type' => ['nullable', 'integer', 'between:1,3'],
-            'password' => ['nullable', 'string', 'min:4', 'max:64'],
+            'password' => ['nullable', 'string', 'min:4', 'max:64', new MaxBytes(72)],
             'expires_at' => ['nullable', 'date', 'after:now'],
         ];
     }

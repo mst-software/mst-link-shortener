@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Rules\MaxBytes;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -25,7 +26,7 @@ class ShortenRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => ['nullable', 'string', 'min:4', 'max:64'],
+            'password' => ['nullable', 'string', 'min:4', 'max:64', new MaxBytes(72)],
             'expires_at' => ['nullable', 'date', 'after:now'],
         ];
     }

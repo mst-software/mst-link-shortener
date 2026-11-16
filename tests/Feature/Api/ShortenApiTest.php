@@ -60,6 +60,7 @@ it('returns an api error for invalid link options', function (array $options, st
     expect(Link::query()->count())->toBe(0);
 })->with([
     'short password' => [['password' => 'abc'], 'The password field must be at least 4 characters.'],
+    'password over 72 bytes' => [['password' => str_repeat('é', 40)], 'The password must not be longer than 72 bytes.'],
     'past expiry' => [['expires_at' => '2020-01-01'], 'The expiry date must be in the future.'],
 ]);
 
