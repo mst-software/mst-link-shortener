@@ -95,6 +95,41 @@ test('files that are not acceptable images are rejected', function (Closure $fil
     'oversized' => [fn () => UploadedFile::fake()->image('big.png')->size(6000), 'The image must not be larger than 5 MB.'],
 ]);
 
+test('images over 10 megapixels are rejected before decoding', function () {
+    $file = UploadedFile::fake()->image('huge.png', 4000, 2600);
+
+    expect(fn () => $this->uploader->store($file, MediaPreset::Logo))
+        ->toThrow(MediaUploadException::class, 'Upload an image of at most 10 megapixels');
+});
+
+test('images that need more memory than php allows are rejected instead of crashing', function () {
+    $file = UploadedFile::fake()->image('photo.png', 3000, 2000);
+    $originalLimit = ini_get('memory_limit');
+    ini_set('memory_limit', (string) (memory_get_usage() + 30 * 1024 * 1024));
+
+    try {
+        expect(fn () => $this->uploader->store($file, MediaPreset::Logo))
+            ->toThrow(MediaUploadException::class, 'The server does not have enough memory to process an image this large.');
+    } finally {
+        ini_set('memory_limit', $originalLimit);
+    }
+
+    expect(Storage::disk('public')->allFiles())->toBeEmpty();
+});
+
+test('an unlimited memory limit does not block uploads', function () {
+    $originalLimit = ini_get('memory_limit');
+    ini_set('memory_limit', '-1');
+
+    try {
+        $reference = $this->uploader->store(UploadedFile::fake()->image('logo.png', 800, 400), MediaPreset::Logo);
+    } finally {
+        ini_set('memory_limit', $originalLimit);
+    }
+
+    Storage::disk('public')->assertExists($reference);
+});
+
 test('animated gifs are rejected', function () {
     $gif = ImageManager::gd()->animate(function ($animation): void {
         $animation->add(ImageManager::gd()->create(20, 20)->fill('ff0000'), 0.2);

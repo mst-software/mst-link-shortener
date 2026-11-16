@@ -45,9 +45,15 @@ class MediaUploader
 
     /**
      * Largest image GD is asked to decode (width times height), so a small file that expands to a huge
-     * bitmap cannot exhaust the memory.
+     * bitmap cannot exhaust the memory. 10 megapixels fit PHP's default 128 MB memory limit.
      */
-    private const MAX_PIXELS = 25_000_000;
+    private const MAX_PIXELS = 10_000_000;
+
+    /**
+     * Estimated memory per pixel while decoding, scaling and encoding: 4 bytes per pixel in GD, about
+     * three times over for the copies made along the way.
+     */
+    private const BYTES_PER_PIXEL = 4 * 3;
 
     private const WEBP_QUALITY = 80;
 
@@ -126,9 +132,39 @@ class MediaUploader
             throw new MediaUploadException('The file could not be read as an image.');
         }
 
-        if ($size[0] * $size[1] > self::MAX_PIXELS) {
-            throw new MediaUploadException('The image has too many pixels. Upload an image of at most 5000 by 5000 pixels.');
+        $pixels = $size[0] * $size[1];
+
+        if ($pixels > self::MAX_PIXELS) {
+            throw new MediaUploadException('The image has too many pixels. Upload an image of at most 10 megapixels, for example 4000 by 2500 pixels.');
         }
+
+        $memoryLimit = self::memoryLimitBytes();
+
+        if ($memoryLimit !== null && $pixels * self::BYTES_PER_PIXEL > $memoryLimit - memory_get_usage()) {
+            throw new MediaUploadException('The server does not have enough memory to process an image this large. Upload an image with fewer pixels.');
+        }
+    }
+
+    /**
+     * PHP's memory_limit in bytes, or null when it is unlimited (-1). Running out of memory is a fatal
+     * error that cannot be caught, so images that would need more are rejected before decoding.
+     */
+    private static function memoryLimitBytes(): ?int
+    {
+        $limit = trim((string) ini_get('memory_limit'));
+
+        if ($limit === '' || $limit === '-1') {
+            return null;
+        }
+
+        $value = (int) $limit;
+
+        return match (strtolower(substr($limit, -1))) {
+            'g' => $value * 1024 ** 3,
+            'm' => $value * 1024 ** 2,
+            'k' => $value * 1024,
+            default => $value,
+        };
     }
 
     /**
