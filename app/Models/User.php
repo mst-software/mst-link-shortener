@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -107,13 +108,21 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Replace the API token with a new one. The old token stops working at once.
+     * Replace the API token with a new one. The old token stops working at once. The row is written
+     * directly so a stored token that can no longer be decrypted (after an APP_KEY change) is never read.
      */
     public function regenerateApiToken(): string
     {
-        $this->forceFill(['api_token' => static::generateApiToken()])->save();
+        $token = static::generateApiToken();
 
-        return $this->api_token;
+        static::query()->whereKey($this->getKey())->update([
+            'api_token' => Crypt::encryptString($token),
+            'api_token_hash' => static::hashApiToken($token),
+        ]);
+
+        $this->refresh();
+
+        return $token;
     }
 
     /**

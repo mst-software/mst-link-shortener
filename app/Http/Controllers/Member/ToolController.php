@@ -8,11 +8,14 @@ use App\Http\Requests\Member\MassShrinkRequest;
 use App\Http\Requests\Member\RegenerateApiTokenRequest;
 use App\Models\User;
 use App\Services\LinkShortener;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
 class ToolController extends Controller
 {
+    public const UNREADABLE_TOKEN_MESSAGE = 'Your API token could not be read. Generate a new token below.';
+
     public function quick(): View
     {
         return view('member.tools.quick', $this->toolData());
@@ -64,14 +67,26 @@ class ToolController extends Controller
     }
 
     /**
-     * @return array{token: string, baseUrl: string, level: int}
+     * The token is empty and tokenError is set when the stored token cannot be decrypted (for example after an APP_KEY change).
+     *
+     * @return array{token: string, tokenError: ?string, baseUrl: string, level: int}
      */
     private function toolData(): array
     {
+        /** @var User $member */
         $member = auth()->user();
 
+        try {
+            $token = (string) $member->api_token;
+            $tokenError = null;
+        } catch (DecryptException) {
+            $token = '';
+            $tokenError = self::UNREADABLE_TOKEN_MESSAGE;
+        }
+
         return [
-            'token' => (string) $member->api_token,
+            'token' => $token,
+            'tokenError' => $tokenError,
             'baseUrl' => rtrim(url('/'), '/'),
             'level' => (int) $member->default_level,
         ];

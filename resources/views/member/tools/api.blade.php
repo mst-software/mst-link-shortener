@@ -12,7 +12,11 @@
     <div class="box-body">
       <div class="callout callout-success">
         <h4>Your API token:</h4>
-        <pre>{{ $token }}</pre>
+        @if ($tokenError)
+          <p>{{ $tokenError }}</p>
+        @else
+          <pre>{{ $token }}</pre>
+        @endif
       </div>
       <p>Keep your token secret: anyone who has it can create links on your account. If it leaks, regenerate it below. The old token stops working at once, so update every website and script that uses it.</p>
       <form method="post" action="{{ route('member.tools.api.regenerate-token') }}" class="form-inline" onsubmit="return confirm('Regenerate your API token? The old token stops working at once.')" novalidate>
