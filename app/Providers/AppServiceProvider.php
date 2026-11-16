@@ -5,18 +5,14 @@ namespace App\Providers;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\CountryResolver;
 use App\Enums\CaptchaProvider;
-use App\Enums\LoginEvent;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Models\User;
-use App\Services\LoginRecorder;
 use App\Services\Views\FakeCaptchaVerifier;
 use App\Services\Views\HeaderCountryResolver;
-use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,25 +49,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor-code', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->getAuthIdentifier().'|'.$request->ip()));
 
         ResetPassword::toMailUsing(fn (User $user, string $token): MailMessage => $this->passwordResetMail($user, $token));
-
-        Event::listen(Login::class, fn (Login $event) => $this->recordLoginFootprint($event));
-    }
-
-    /**
-     * Every sign in fires the guard's Login event (password, two-factor step, trusted device and the sign in
-     * right after sign up), so this is the one place that writes the footprint. A user created in this
-     * request is recorded as a sign up.
-     */
-    private function recordLoginFootprint(Login $event): void
-    {
-        if ($event->guard !== 'web' || ! $event->user instanceof User) {
-            return;
-        }
-
-        $this->app->make(LoginRecorder::class)->record(
-            $event->user,
-            $event->user->wasRecentlyCreated ? LoginEvent::Signup : LoginEvent::Login,
-        );
     }
 
     /**
