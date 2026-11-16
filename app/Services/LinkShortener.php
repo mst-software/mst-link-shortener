@@ -7,6 +7,7 @@ use App\Exceptions\InvalidLinkException;
 use App\Models\Link;
 use App\Models\User;
 use App\Support\Alias;
+use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 class LinkShortener
@@ -18,12 +19,18 @@ class LinkShortener
     private const ATTEMPTS_PER_LENGTH = 5;
 
     /**
-     * Create a short link for the member.
+     * Create a short link for the member, optionally protected by a password or with an expiry date.
      *
      * @throws InvalidLinkException
      */
-    public function create(User $user, string $url, ?string $alias, ?int $level = null): Link
-    {
+    public function create(
+        User $user,
+        string $url,
+        ?string $alias,
+        ?int $level = null,
+        ?string $password = null,
+        ?CarbonInterface $expiresAt = null,
+    ): Link {
         $url = trim($url);
         $level ??= (int) $user->default_level;
 
@@ -33,14 +40,26 @@ class LinkShortener
             throw new InvalidLinkException('The level must be 1, 2 or 3.');
         }
 
-        if ($alias !== null && $alias !== '') {
-            return $this->createWithCustomAlias($user, $url, $alias, $level);
+        if ($expiresAt !== null && $expiresAt->isPast()) {
+            throw new InvalidLinkException('The expiry date must be in the future.');
         }
 
-        return $this->createWithGeneratedAlias($user, $url, $level);
+        $options = [
+            'password' => $password !== null && $password !== '' ? $password : null,
+            'expires_at' => $expiresAt,
+        ];
+
+        if ($alias !== null && $alias !== '') {
+            return $this->createWithCustomAlias($user, $url, $alias, $level, $options);
+        }
+
+        return $this->createWithGeneratedAlias($user, $url, $level, $options);
     }
 
-    private function createWithCustomAlias(User $user, string $url, string $alias, int $level): Link
+    /**
+     * @param  array{password: ?string, expires_at: ?CarbonInterface}  $options
+     */
+    private function createWithCustomAlias(User $user, string $url, string $alias, int $level, array $options): Link
     {
         if (! Alias::isValid($alias)) {
             throw new InvalidLinkException('The alias must be 3 to 32 characters: letters, numbers, "-" or "_".');
@@ -51,20 +70,23 @@ class LinkShortener
         }
 
         try {
-            return $this->store($user, $url, $alias, $level);
+            return $this->store($user, $url, $alias, $level, $options);
         } catch (UniqueConstraintViolationException) {
             throw new InvalidLinkException('This alias is already taken.');
         }
     }
 
-    private function createWithGeneratedAlias(User $user, string $url, int $level): Link
+    /**
+     * @param  array{password: ?string, expires_at: ?CarbonInterface}  $options
+     */
+    private function createWithGeneratedAlias(User $user, string $url, int $level, array $options): Link
     {
         $startLength = max(1, Settings::int('alias_length'));
 
         for ($length = $startLength; $length <= max($startLength, self::MAX_GENERATED_LENGTH); $length++) {
             for ($attempt = 0; $attempt < self::ATTEMPTS_PER_LENGTH; $attempt++) {
                 try {
-                    return $this->store($user, $url, Alias::generate($length), $level);
+                    return $this->store($user, $url, Alias::generate($length), $level, $options);
                 } catch (UniqueConstraintViolationException) {
                     continue;
                 }
@@ -74,7 +96,10 @@ class LinkShortener
         throw new InvalidLinkException('Could not generate a unique alias. Please try again.');
     }
 
-    private function store(User $user, string $url, string $alias, int $level): Link
+    /**
+     * @param  array{password: ?string, expires_at: ?CarbonInterface}  $options
+     */
+    private function store(User $user, string $url, string $alias, int $level, array $options): Link
     {
         return Link::query()->create([
             'user_id' => $user->id,
@@ -82,6 +107,7 @@ class LinkShortener
             'url' => $url,
             'level' => $level,
             'status' => LinkStatus::Active,
+            ...$options,
         ]);
     }
 
