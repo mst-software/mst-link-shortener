@@ -9,11 +9,7 @@
     <p>Change the logo, favicon and brand colour of the public pages. Until you upload or choose something, the original LinkCash images and green are used. Images are saved where the File storage page says.</p>
   </div>
 
-  @if ($serverLimitTooLow)
-    <div class="callout callout-warning">
-      <p>This server only accepts uploads up to {{ ini_get('upload_max_filesize') }}. Keep images below that size, or ask your host to raise <code>upload_max_filesize</code> and <code>post_max_size</code> to at least 6M.</p>
-    </div>
-  @endif
+  <x-upload-limit-note :max-kilobytes="\App\Services\MediaUploader::MAX_KILOBYTES" />
 
   <form action="{{ route('admin.settings.appearance.update') }}" method="post" enctype="multipart/form-data">
     @csrf

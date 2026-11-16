@@ -83,6 +83,8 @@
             <span class="help-block">@error($name){{ $message }}@else{{ $help }} JPG, PNG or WebP, up to 1 MB.@enderror</span>
           </div>
         @endforeach
+        <p class="help-block">Images larger than 1 MB are refused. Each image is checked and saved as WebP.</p>
+        <x-upload-limit-note :max-kilobytes="1024" />
 
         @if ($campaign->user_id)
           <div class="form-group @error('price_usd') has-error @enderror">

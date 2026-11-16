@@ -13,7 +13,6 @@ use App\Support\BrandPalette;
 use App\Support\MediaStorage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\UploadedFile;
 use Throwable;
 
 class AppearanceSettingController extends Controller
@@ -26,9 +25,7 @@ class AppearanceSettingController extends Controller
             'hasCustomColor' => Branding::customColor() !== null,
             'defaultColor' => Branding::DEFAULT_COLOR,
             'palette' => BrandPalette::shades(Branding::color()),
-            'textColor' => BrandPalette::textColor(Branding::color()),
-            'serverLimitTooLow' => UploadedFile::getMaxFilesize() < MediaUploader::MAX_KILOBYTES * 1024,
-        ]);
+            'textColor' => BrandPalette::textColor(Branding::color()),        ]);
     }
 
     /**

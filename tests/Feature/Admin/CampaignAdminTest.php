@@ -147,6 +147,11 @@ test('instruction images go to the s3 disk when it is selected', function () {
     Storage::disk('s3')->assertMissing(substr($reference, 3));
 });
 
+test('the campaign forms explain the image upload limit', function () {
+    $this->actingAs($this->admin)->get(route('admin.campaigns.create'))->assertOk()->assertSee('Images larger than 1 MB are refused.');
+    $this->actingAs(User::factory()->advertiser()->create())->get(route('advertiser.campaigns.create'))->assertOk()->assertSee('Images larger than 1 MB are refused.');
+});
+
 test('a rejected image keeps the campaign, its old images and no new files', function () {
     Storage::fake('public');
     $campaign = Campaign::factory()->create([
