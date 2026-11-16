@@ -83,7 +83,7 @@ it('records the time and output of a failed scheduled run', function (): void {
 
     $job = jobHealth('fraud:scan');
     expect($job['last_failure_at']->equalTo(now()))->toBeTrue()
-        ->and($job['last_failure_message'])->toBe('RuntimeException Database is gone.')
+        ->and($job['last_failure_message'])->toBe('RuntimeException')
         ->and($job['last_success_at']->equalTo(now()->subMinutes(2)))->toBeTrue()
         ->and($job['status'])->toBe(ScheduleStatus::Failed);
 });
@@ -97,6 +97,23 @@ it('falls back to the exit code when a failed run printed nothing', function ():
     unlink($event->output);
 
     expect(jobHealth('sepay:sync')['last_failure_message'])->toBe('Exited with code 2.');
+});
+
+it('keeps only a short first line of the failure output with secrets redacted', function (): void {
+    $output = 'Sepay sync failed: Authorization: Bearer sk_live_51Hx9QzLmN token=hunter2secret api_key: "abc123" '
+        .'hash 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b blob dGhpcyBpcyBhIHNlY3JldCB2YWx1ZTEyMw== '.str_repeat('x', 300)
+        ."\nSQL: select * from users where password = 'second-line-secret'";
+
+    app(ScheduleHealth::class)->recordFailure('sepay:sync', $output);
+
+    $message = jobHealth('sepay:sync')['last_failure_message'];
+    expect($message)->toStartWith('Sepay sync failed: Authorization: [redacted]')
+        ->toContain('token=[redacted]', 'api_key: "[redacted]', 'hash [redacted]', 'blob [redacted]')
+        ->and(mb_strlen($message))->toBeLessThanOrEqual(203);
+
+    foreach (['sk_live_51Hx9QzLmN', 'hunter2secret', 'abc123', '9f86d0', 'dGhpcy', 'second-line-secret'] as $secret) {
+        expect($message)->not->toContain($secret);
+    }
 });
 
 it('marks a job late when it never succeeded', function (): void {

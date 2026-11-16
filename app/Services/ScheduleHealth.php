@@ -42,7 +42,19 @@ class ScheduleHealth
 
     private const KEY_PREFIX = 'schedule_health.';
 
-    private const MESSAGE_LIMIT = 500;
+    private const MESSAGE_LIMIT = 200;
+
+    /**
+     * Patterns of secrets that may appear in command output (API responses, URLs, SQL bindings), with their replacement.
+     *
+     * @var array<string, string>
+     */
+    private const SECRET_PATTERNS = [
+        '/\bBearer\s+\S+/i' => 'Bearer [redacted]',
+        '/\b(token|api[_-]?key|key|secret|password|passwd|pwd|authorization|signature)\b(\s*[=:]\s*["\']?)[^\s"\'&,;]+/i' => '$1$2[redacted]',
+        '/\b[A-Fa-f0-9]{20,}\b/' => '[redacted]',
+        '/(?=[A-Za-z0-9+\/_-]*\d)(?=[A-Za-z0-9+\/_-]*[A-Za-z])[A-Za-z0-9+\/_-]{32,}={0,2}/' => '[redacted]',
+    ];
 
     /**
      * Record the outcome of a scheduled artisan command after each run.
@@ -57,10 +69,24 @@ class ScheduleHealth
 
         $event->onSuccess(fn (ScheduleHealth $health) => $health->recordSuccess($command))
             ->onFailureWithOutput(function (Stringable $output, ScheduleHealth $health) use ($event, $command): void {
-                $message = $output->squish()->limit(self::MESSAGE_LIMIT)->value();
+                $message = trim((string) $output) !== '' ? (string) $output : 'Exited with code '.$event->exitCode.'.';
 
-                $health->recordFailure($command, $message !== '' ? $message : 'Exited with code '.$event->exitCode.'.');
+                $health->recordFailure($command, $message);
             });
+    }
+
+    /**
+     * The first non-empty line of a failure output, with likely secrets redacted and capped in length.
+     */
+    public static function summarizeFailure(string $output): string
+    {
+        $firstLine = collect(preg_split('/\R/', $output))
+            ->map(fn (string $line): string => trim($line))
+            ->first(fn (string $line): bool => $line !== '', '');
+
+        $redacted = preg_replace(array_keys(self::SECRET_PATTERNS), array_values(self::SECRET_PATTERNS), $firstLine);
+
+        return Str::limit(Str::squish((string) $redacted), self::MESSAGE_LIMIT);
     }
 
     /**
@@ -86,7 +112,7 @@ class ScheduleHealth
     {
         $this->store($command, [
             'last_failure_at' => now()->toIso8601String(),
-            'last_failure_message' => $message,
+            'last_failure_message' => self::summarizeFailure($message),
         ]);
     }
 
