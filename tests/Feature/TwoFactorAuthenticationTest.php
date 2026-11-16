@@ -33,9 +33,7 @@ test('a code from an older time step is rejected after a newer one was used', fu
 
 test('a wrong code is rejected', function () {
     $user = User::factory()->withTwoFactor()->create();
-    $wrongCode = str_pad((string) (((int) totpCode($user) + 1) % 1000000), 6, '0', STR_PAD_LEFT);
-
-    expect($this->twoFactor->verify($user, $wrongCode))->toBeFalse()
+    expect($this->twoFactor->verify($user, wrongTotpCode($user)))->toBeFalse()
         ->and($this->twoFactor->verify($user, 'not-a-code'))->toBeFalse();
 });
 
