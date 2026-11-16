@@ -94,6 +94,43 @@ test('an admin can pay the held commission once, which is recorded in the ledger
         ->and(AdminAuditLog::query()->sole()->action)->toBe(AdminAction::HeldCommissionPaid);
 });
 
+test('a banned referrer is not paid, the flag stays open and the fraud page shows why', function () {
+    $admin = User::factory()->admin()->create();
+    $referrer = User::factory()->banned()->create();
+    $flag = multiAccountFlag($referrer, User::factory()->create(), ['held_commission_micro' => 1_800]);
+
+    $this->actingAs($admin)
+        ->from(route('admin.fraud-flags.index'))
+        ->followingRedirects()
+        ->post(route('admin.fraud-flags.pay-held-commission', $flag))
+        ->assertOk()
+        ->assertSee('The referrer is banned, so the held commission cannot be paid.');
+
+    expect($referrer->refresh()->balance_micro)->toBe(0)
+        ->and($flag->refresh()->resolved_at)->toBeNull()
+        ->and($flag->details['held_commission_micro'])->toBe(1_800)
+        ->and(Transaction::query()->count())->toBe(0);
+});
+
+test('marking a flag with held commission handled discards it and records the amount in the audit log', function () {
+    $admin = User::factory()->admin()->create();
+    $referrer = User::factory()->create();
+    $flag = multiAccountFlag($referrer, User::factory()->create(), ['held_commission_micro' => 1_800]);
+
+    $this->actingAs($admin)->patch(route('admin.fraud-flags.resolve', $flag))->assertSessionHas('success');
+    $this->actingAs($admin)->patch(route('admin.fraud-flags.resolve', $flag));
+
+    $log = AdminAuditLog::query()->sole();
+
+    expect($flag->refresh()->resolved_at)->not->toBeNull()
+        ->and($flag->details['held_commission_micro'])->toBe(0)
+        ->and($flag->details['discarded_commission_micro'])->toBe(1_800)
+        ->and($log->action)->toBe(AdminAction::HeldCommissionDiscarded)
+        ->and($log->target_user_id)->toBe($referrer->id)
+        ->and($log->new_values)->toBe(['discarded_commission_micro' => 1_800])
+        ->and($referrer->refresh()->balance_micro)->toBe(0);
+});
+
 test('members cannot pay held commissions', function () {
     $referrer = User::factory()->create();
     $flag = multiAccountFlag($referrer, User::factory()->create(), ['held_commission_micro' => 1_800]);

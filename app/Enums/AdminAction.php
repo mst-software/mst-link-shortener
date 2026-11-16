@@ -15,6 +15,7 @@ enum AdminAction: string
     case RoleChanged = 'role_changed';
     case BalanceAdjusted = 'balance_adjusted';
     case HeldCommissionPaid = 'held_commission_paid';
+    case HeldCommissionDiscarded = 'held_commission_discarded';
 
     public function label(): string
     {
@@ -27,6 +28,7 @@ enum AdminAction: string
             self::RoleChanged => 'Changed role',
             self::BalanceAdjusted => 'Adjusted balance',
             self::HeldCommissionPaid => 'Paid held referral commission',
+            self::HeldCommissionDiscarded => 'Discarded held referral commission',
         };
     }
 }

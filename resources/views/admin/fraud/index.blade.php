@@ -3,6 +3,14 @@
 @section('title', 'Fraud flags')
 
 @section('content')
+  @if ($errors->any())
+    <div class="alert alert-danger">
+      @foreach ($errors->all() as $error)
+        <div>{{ $error }}</div>
+      @endforeach
+    </div>
+  @endif
+
   <div class="box box-primary">
     <div class="box-header with-border">
       <h3 class="box-title">{{ $showResolved ? 'All flags' : 'Open flags' }}</h3>

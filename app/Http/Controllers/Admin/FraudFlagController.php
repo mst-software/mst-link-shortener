@@ -46,9 +46,13 @@ class FraudFlagController extends Controller
         return redirect()->back()->with('success', 'Held commission of '.Money::format($paid, 6).' paid to the referrer.');
     }
 
-    public function resolve(FraudFlag $fraudFlag): RedirectResponse
+    public function resolve(Request $request, FraudFlag $fraudFlag, ReferralCommissionService $referralCommissions): RedirectResponse
     {
-        $fraudFlag->update(['resolved_at' => $fraudFlag->resolved_at ?? now()]);
+        if ($fraudFlag->reason === ReferralCommissionService::FLAG_REASON) {
+            $referralCommissions->resolveWithoutPaying($request->user(), $fraudFlag);
+        } else {
+            $fraudFlag->update(['resolved_at' => $fraudFlag->resolved_at ?? now()]);
+        }
 
         return redirect()->back()->with('success', 'Flag marked as handled.');
     }

@@ -60,6 +60,32 @@ test('a same-footprint referral raises one flag per pair and still pays when hol
         ->and($referrer->refresh()->balance_micro)->toBe(2_400);
 });
 
+test('a referral pair inside an 11-account farm on one ip and browser is still flagged', function () {
+    [$referrer, $referred] = sameFootprintPair();
+    UserLogin::factory()->signup()->withUserAgent('Mozilla/5.0 SameBrowser')->count(11)->create(['ip' => '198.51.100.50']);
+
+    releaseEarningsFor($referred, 10_000);
+
+    expect(FraudFlag::query()->sole())
+        ->user_id->toBe($referrer->id)
+        ->details->toMatchArray(['referred_user_id' => $referred->id]);
+});
+
+test('a pair that did not match is not compared again for an hour', function () {
+    [$referrer, $referred] = sameFootprintPair('Mozilla/5.0 OtherBrowser');
+    releaseEarningsFor($referred, 10_000);
+
+    UserLogin::factory()->for($referred)->withUserAgent('Mozilla/5.0 SameBrowser')->create(['ip' => '198.51.100.51']);
+    releaseEarningsFor($referred, 10_000);
+
+    expect(FraudFlag::query()->count())->toBe(0);
+
+    $this->travel(61)->minutes();
+    releaseEarningsFor($referred, 10_000);
+
+    expect(FraudFlag::query()->count())->toBe(1);
+});
+
 test('a referral sharing only the sign-up ip raises no flag', function () {
     [$referrer, $referred] = sameFootprintPair('Mozilla/5.0 OtherBrowser');
 

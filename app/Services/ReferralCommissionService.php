@@ -9,6 +9,7 @@ use App\Models\DailyStat;
 use App\Models\FraudFlag;
 use App\Models\Transaction;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +24,8 @@ use Illuminate\Validation\ValidationException;
 class ReferralCommissionService
 {
     public const FLAG_REASON = 'multi_account_referral';
+
+    public const CLEAR_PAIR_CACHE_SECONDS = 3600;
 
     public function __construct(
         private readonly WalletService $wallet,
@@ -112,6 +115,10 @@ class ReferralCommissionService
                 throw ValidationException::withMessages(['flag' => 'This flag has no held commission to pay.']);
             }
 
+            if (! $referrer->isActive()) {
+                throw ValidationException::withMessages(['flag' => 'The referrer is banned, so the held commission cannot be paid. Unban them first or mark the flag handled.']);
+            }
+
             $referredUserId = (int) ($locked->details['referred_user_id'] ?? 0);
 
             $this->pay($referrer, $held, $referredUserId, 'Held referral commission paid after review');
@@ -130,6 +137,39 @@ class ReferralCommissionService
         });
     }
 
+    /**
+     * Mark a multi-account referral flag handled without paying. Commission still held on it is discarded,
+     * and the discarded amount is written to the admin audit log. Handling a handled flag does nothing.
+     */
+    public function resolveWithoutPaying(User $admin, FraudFlag $flag): void
+    {
+        DB::transaction(function () use ($admin, $flag): void {
+            $locked = FraudFlag::query()->whereKey($flag->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->resolved_at !== null) {
+                return;
+            }
+
+            $held = (int) ($locked->details['held_commission_micro'] ?? 0);
+
+            if ($held <= 0) {
+                $locked->update(['resolved_at' => now()]);
+
+                return;
+            }
+
+            $locked->update([
+                'details' => [...(array) $locked->details, 'held_commission_micro' => 0, 'discarded_commission_micro' => $held],
+                'resolved_at' => now(),
+            ]);
+
+            $this->audit->record($admin, AdminAction::HeldCommissionDiscarded, User::query()->find($locked->user_id), 'Fraud flag #'.$locked->getKey(),
+                ['held_commission_micro' => $held],
+                ['discarded_commission_micro' => $held],
+            );
+        });
+    }
+
     private function flagFor(User $referrer, User $referred): ?FraudFlag
     {
         return FraudFlag::query()
@@ -142,12 +182,23 @@ class ReferralCommissionService
 
     /**
      * Create the review flag when the two accounts share the sign-up IP and the browser, or return null.
+     * This holds even when the IP or browser is shared by many accounts (a farm on one network), because a
+     * flag only asks for review. A pair that does not match is remembered for CLEAR_PAIR_CACHE_SECONDS,
+     * so a daily release over many referrals does not run the comparison again and again.
      */
     private function raiseFlag(User $referrer, User $referred): ?FraudFlag
     {
+        $cacheKey = 'referral-guard:clear:'.$referrer->getKey().':'.$referred->getKey();
+
+        if (Cache::has($cacheKey)) {
+            return null;
+        }
+
         $related = $this->detector->compare($referrer, $referred);
 
         if ($related === null || ! $related->hasSignal(FootprintSignal::SameSignupIp) || ! $related->hasSignal(FootprintSignal::SameDevice)) {
+            Cache::put($cacheKey, true, self::CLEAR_PAIR_CACHE_SECONDS);
+
             return null;
         }
 
