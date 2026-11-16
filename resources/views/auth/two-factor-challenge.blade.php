@@ -9,6 +9,10 @@
   <form method="post" accept-charset="utf-8" id="two-factor-form" action="{{ route('two-factor.challenge') }}" novalidate>
     @csrf
     <x-auth.input name="code" placeholder="Authentication or recovery code" maxlength="20" value="" />
+    <div class="form-group checkbox">
+      <label for="trust-device"><input type="checkbox" name="trust_device" value="1" id="trust-device">Remember this device for {{ \App\Services\TwoFactorAuthentication::TRUSTED_DEVICE_DAYS }} days</label>
+      <span class="help-block">Only on your own device. You will still need your password.</span>
+    </div>
 
     <button class="btn btn-primary btn-block btn-flat" type="submit">Verify</button>
   </form>

@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\TrustedDevice;
 use App\Models\User;
+use App\Services\TwoFactorAuthentication;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -128,6 +130,17 @@ test('code attempts on the settings page are rate limited', function () {
         ->assertTooManyRequests();
 
     expect($user->refresh()->hasTwoFactorEnabled())->toBeTrue();
+});
+
+test('turning two-factor off forgets the trusted devices', function () {
+    $user = User::factory()->withTwoFactor()->create();
+    TrustedDevice::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->delete(route('member.user.two-factor.destroy'), ['current_password' => 'password', 'code' => totpCode($user)])
+        ->assertCookieExpired(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE);
+
+    expect($user->trustedDevices()->count())->toBe(0);
 });
 
 test('an admin can open the two-factor page', function () {

@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\UserStatus;
+use App\Models\TrustedDevice;
 use App\Models\User;
+use App\Services\TwoFactorAuthentication;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -139,6 +141,52 @@ test('a banned user cannot finish the challenge', function () {
     $user->forceFill(['status' => UserStatus::Banned])->save();
 
     $this->post(route('two-factor.challenge'), ['code' => totpCode($user)])->assertRedirect(route('login'));
+
+    $this->assertGuest();
+});
+
+test('remembering the device stores only a hash and lets the next sign in skip the code', function () {
+    $user = User::factory()->withTwoFactor()->create(['username' => 'jane']);
+
+    $this->post(route('login'), ['username' => 'jane', 'password' => 'password']);
+    $response = $this->post(route('two-factor.challenge'), ['code' => totpCode($user), 'trust_device' => '1'])
+        ->assertCookie(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE);
+
+    $token = $response->getCookie(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE)->getValue();
+    $device = TrustedDevice::query()->sole();
+
+    expect($device->user_id)->toBe($user->id)
+        ->and($device->token_hash)->toBe(hash('sha256', $token))
+        ->and($device->expires_at->equalTo(now()->addDays(30)))->toBeTrue();
+
+    $this->post(route('logout'));
+    $this->withCookie(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE, $token)
+        ->post(route('login'), ['username' => 'jane', 'password' => 'password'])
+        ->assertRedirect(route('member.dashboard'));
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('an expired or foreign trusted device still needs the code', function (string $state) {
+    $user = User::factory()->withTwoFactor()->create(['username' => 'jane']);
+    $owner = $state === 'foreign' ? User::factory()->withTwoFactor()->create() : $user;
+    $factory = TrustedDevice::factory()->for($owner)->withToken('device-token');
+    ($state === 'expired' ? $factory->expired() : $factory)->create();
+
+    $this->withCookie(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE, 'device-token')
+        ->post(route('login'), ['username' => 'jane', 'password' => 'password'])
+        ->assertRedirect(route('two-factor.challenge'));
+
+    $this->assertGuest();
+})->with(['expired', 'foreign']);
+
+test('a trusted device does not skip the password', function () {
+    $user = User::factory()->withTwoFactor()->create(['username' => 'jane']);
+    TrustedDevice::factory()->for($user)->withToken('device-token')->create();
+
+    $this->withCookie(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE, 'device-token')
+        ->post(route('login'), ['username' => 'jane', 'password' => 'wrong-password'])
+        ->assertSessionHasErrors('username');
 
     $this->assertGuest();
 });

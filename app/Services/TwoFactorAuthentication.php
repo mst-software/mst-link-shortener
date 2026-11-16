@@ -14,6 +14,10 @@ class TwoFactorAuthentication
 {
     public const RECOVERY_CODE_COUNT = 8;
 
+    public const TRUSTED_DEVICE_DAYS = 30;
+
+    public const TRUSTED_DEVICE_COOKIE = 'trusted_device';
+
     public function __construct(private Totp $totp) {}
 
     /**
@@ -75,10 +79,43 @@ class TwoFactorAuthentication
     }
 
     /**
-     * Turn two-factor off and forget the secret and recovery codes.
+     * Remember a browser so it can skip the code step after a correct password.
+     *
+     * @return string The plain token for the cookie; only its hash is stored.
+     */
+    public function trustDevice(User $user, ?string $ipAddress, ?string $userAgent): string
+    {
+        $token = Str::random(64);
+
+        $user->trustedDevices()->create([
+            'token_hash' => hash('sha256', $token),
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent === null ? null : Str::limit($userAgent, 500, ''),
+            'expires_at' => now()->addDays(self::TRUSTED_DEVICE_DAYS),
+        ]);
+
+        return $token;
+    }
+
+    /**
+     * Whether the cookie token belongs to a trusted, unexpired device of this user.
+     */
+    public function isTrustedDevice(User $user, ?string $token): bool
+    {
+        if (! is_string($token) || $token === '') {
+            return false;
+        }
+
+        return $user->trustedDevices()->valid()->where('token_hash', hash('sha256', $token))->exists();
+    }
+
+    /**
+     * Turn two-factor off and forget the secret, recovery codes and trusted devices.
      */
     public function disable(User $user): void
     {
+        $user->trustedDevices()->delete();
+
         $user->forceFill([
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,

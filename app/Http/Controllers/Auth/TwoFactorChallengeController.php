@@ -49,7 +49,22 @@ class TwoFactorChallengeController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended($user->dashboardUrl());
+        $response = redirect()->intended($user->dashboardUrl());
+
+        if ($request->boolean('trust_device')) {
+            $token = $twoFactor->trustDevice($user, $request->ip(), $request->userAgent());
+
+            $response->withCookie(cookie(
+                TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE,
+                $token,
+                TwoFactorAuthentication::TRUSTED_DEVICE_DAYS * 24 * 60,
+                secure: $request->secure(),
+                httpOnly: true,
+                sameSite: 'strict',
+            ));
+        }
+
+        return $response;
     }
 
     /**

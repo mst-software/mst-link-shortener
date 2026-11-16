@@ -18,6 +18,7 @@ class TwoFactorChallengeRequest extends FormRequest
     {
         return [
             'code' => ['required', 'string', 'max:20'],
+            'trust_device' => ['nullable', 'boolean'],
         ];
     }
 

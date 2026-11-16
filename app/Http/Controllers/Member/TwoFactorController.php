@@ -78,6 +78,8 @@ class TwoFactorController extends Controller
 
         $this->twoFactor->disable($user);
 
-        return redirect()->route('member.user.two-factor')->with('success', 'Two-factor authentication is now off.');
+        return redirect()->route('member.user.two-factor')
+            ->withCookie(cookie()->forget(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE))
+            ->with('success', 'Two-factor authentication is now off.');
     }
 }
