@@ -18,6 +18,12 @@ it('formats micro-USD with three decimals by default', function (): void {
         ->and(Money::format(4500000))->toBe('$4.500');
 });
 
+it('converts micro-USD to a plain USD number without trailing zeros', function (): void {
+    expect(Money::toUsdString(7_500_000))->toBe('7.5')
+        ->and(Money::toUsdString(10_000))->toBe('0.01')
+        ->and(Money::toUsdString(5_000_000))->toBe('5');
+});
+
 it('formats micro-USD with a custom number of decimals', function (): void {
     expect(Money::format(5000000, 2))->toBe('$5.00');
 });
