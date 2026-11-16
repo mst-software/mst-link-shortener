@@ -16,7 +16,9 @@ return [
     | "*" trusts whichever server connects (only when the app is reachable
     | through that proxy alone). Otherwise a comma-separated list of IPs and
     | CIDR ranges, where "cloudflare" expands to the Cloudflare ranges below,
-    | for example "cloudflare" or "cloudflare,10.0.0.0/8".
+    | for example "cloudflare" or "10.0.0.0/8". Cloudflare in front of another
+    | proxy is not supported: the edge is then not the connecting server, so
+    | CF-Connecting-IP and CF-IPCountry are ignored (app:preflight warns).
     |
     */
 

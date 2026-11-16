@@ -46,6 +46,15 @@ class TrustedProxies
     }
 
     /**
+     * Whether the "cloudflare" preset is combined with other proxies. Not supported: when another proxy sits in
+     * front of PHP the Cloudflare edge is not the connecting server, so CF-Connecting-IP and CF-IPCountry are ignored.
+     */
+    public static function combinesCloudflareWithOtherProxies(): bool
+    {
+        return self::trustsCloudflare() && count(array_diff(self::entries(), [self::CLOUDFLARE_PRESET])) > 0;
+    }
+
+    /**
      * Whether the server that connected (not a forwarded address) is a Cloudflare edge and Cloudflare is trusted.
      */
     public static function isFromTrustedCloudflare(Request $request): bool

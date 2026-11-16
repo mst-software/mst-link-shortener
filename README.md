@@ -109,8 +109,15 @@ country decides the CPM rate. Tell the app which proxies to trust with `TRUSTED_
 | --- | --- |
 | Visitors connect straight to the server | `TRUSTED_PROXIES=` (empty, the default) |
 | Behind Cloudflare | `TRUSTED_PROXIES=cloudflare` |
-| Behind Cloudflare and a load balancer on 10.0.0.0/8 | `TRUSTED_PROXIES=cloudflare,10.0.0.0/8` |
-| Behind a single proxy that is the only way in | `TRUSTED_PROXIES=*` |
+| Behind a load balancer or proxy on 10.0.0.0/8 (no Cloudflare) | `TRUSTED_PROXIES=10.0.0.0/8` |
+| Behind a single proxy that is the only way in | `TRUSTED_PROXIES=*` (preflight warns; prefer listing its IPs) |
+| Cloudflare in front of another proxy or load balancer | **Not supported** (see below) |
+
+Cloudflare in front of another proxy (for example `TRUSTED_PROXIES=cloudflare,10.0.0.0/8`) is deliberately not
+supported for the visitor IP and country: PHP then sees the inner proxy, not a Cloudflare edge, so `CF-Connecting-IP`
+and `CF-IPCountry` are ignored, the visitor IP comes from `X-Forwarded-For` only and every visitor gets the country
+`XX`. `php artisan app:preflight` warns about this combination. Let Cloudflare connect to the web server that runs
+PHP directly instead.
 
 - With `cloudflare`, requests that really come from a Cloudflare edge take the visitor IP from `CF-Connecting-IP`;
   anyone connecting directly cannot fake it with `X-Forwarded-For`.
