@@ -22,5 +22,5 @@
     <p>- OR -</p>
   </div>
 
-  <a href="{{ auth()->user()->isAdvertiser() ? route('advertiser.dashboard') : route('member.dashboard') }}">Continue to your dashboard</a>
+  <a href="{{ auth()->user()->dashboardUrl() }}">Continue to your dashboard</a>
 @endsection

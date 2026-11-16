@@ -140,6 +140,18 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The URL of the dashboard that belongs to this user's role.
+     */
+    public function dashboardUrl(): string
+    {
+        return match (true) {
+            $this->isAdmin() => route('admin.dashboard'),
+            $this->isAdvertiser() => route('advertiser.dashboard'),
+            default => route('member.dashboard'),
+        };
+    }
+
+    /**
      * The user who invited this user.
      *
      * @return BelongsTo<User, $this>

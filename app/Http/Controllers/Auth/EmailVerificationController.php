@@ -17,7 +17,7 @@ class EmailVerificationController extends Controller
         $user = $request->user();
 
         if ($user->hasVerifiedEmail()) {
-            return redirect($this->dashboardUrl($user));
+            return redirect($user->dashboardUrl());
         }
 
         return view('auth.verify-email');
@@ -33,7 +33,7 @@ class EmailVerificationController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return redirect($this->dashboardUrl($user))->with('success', 'Your email address has been verified.');
+        return redirect($user->dashboardUrl())->with('success', 'Your email address has been verified.');
     }
 
     public function send(Request $request): RedirectResponse
@@ -42,20 +42,11 @@ class EmailVerificationController extends Controller
         $user = $request->user();
 
         if ($user->hasVerifiedEmail()) {
-            return redirect($this->dashboardUrl($user));
+            return redirect($user->dashboardUrl());
         }
 
         $user->sendEmailVerificationNotification();
 
         return back()->with('success', 'A new verification link has been sent to your email address.');
-    }
-
-    private function dashboardUrl(User $user): string
-    {
-        return match (true) {
-            $user->isAdmin() => route('admin.dashboard'),
-            $user->isAdvertiser() => route('advertiser.dashboard'),
-            default => route('member.dashboard'),
-        };
     }
 }

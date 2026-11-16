@@ -29,10 +29,23 @@ test('the notice page is shown to an unverified user', function () {
         ->assertSee('Resend verification email');
 });
 
-test('a verified user is redirected away from the notice page', function () {
-    $this->actingAs(User::factory()->create())
+test('a verified user is redirected from the notice page to their own dashboard', function (string $state, string $dashboardRoute) {
+    $user = $state === 'member' ? User::factory()->create() : User::factory()->{$state}()->create();
+
+    $this->actingAs($user)
         ->get(route('verification.notice'))
-        ->assertRedirect(route('member.dashboard'));
+        ->assertRedirect(route($dashboardRoute));
+})->with([
+    'member' => ['member', 'member.dashboard'],
+    'advertiser' => ['advertiser', 'advertiser.dashboard'],
+    'admin' => ['admin', 'admin.dashboard'],
+]);
+
+test('the notice page links an unverified admin to the admin dashboard', function () {
+    $this->actingAs(User::factory()->admin()->unverified()->create())
+        ->get(route('verification.notice'))
+        ->assertOk()
+        ->assertSee('href="'.route('admin.dashboard').'"', false);
 });
 
 test('a guest is sent to sign in from the notice page', function () {
