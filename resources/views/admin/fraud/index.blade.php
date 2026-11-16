@@ -3,6 +3,14 @@
 @section('title', 'Fraud flags')
 
 @section('content')
+  @if ($errors->any())
+    <div class="alert alert-danger">
+      @foreach ($errors->all() as $error)
+        <div>{{ $error }}</div>
+      @endforeach
+    </div>
+  @endif
+
   <div class="box box-primary">
     <div class="box-header with-border">
       <h3 class="box-title">{{ $showResolved ? 'All flags' : 'Open flags' }}</h3>
@@ -32,7 +40,13 @@
             <tr>
               <td>{{ $flag->created_at?->format('d/m/Y H:i') }}</td>
               <td>{{ str($flag->reason)->replace('_', ' ')->ucfirst() }}</td>
-              <td>{{ $flag->user?->username ?? '-' }}</td>
+              <td>
+                @if ($flag->user)
+                  <a href="{{ route('admin.users.show', $flag->user) }}">{{ $flag->user->username }}</a>
+                @else
+                  -
+                @endif
+              </td>
               <td>
                 @if ($flag->link)
                   <code>{{ $flag->link->alias }}</code>
@@ -44,11 +58,43 @@
                 @endif
               </td>
               <td>
-                @foreach ((array) $flag->details as $key => $value)
-                  @if ($value !== null && $value !== '')
-                    <div><strong>{{ str($key)->replace('_', ' ')->ucfirst() }}:</strong> {{ is_scalar($value) ? $value : json_encode($value) }}</div>
+                @if ($flag->reason === App\Services\ReferralCommissionService::FLAG_REASON)
+                  @php
+                    $referredUser = $referredUsers->get((int) ($flag->details['referred_user_id'] ?? 0));
+                    $heldMicro = (int) ($flag->details['held_commission_micro'] ?? 0);
+                  @endphp
+                  <div>
+                    <strong>Referred member:</strong>
+                    @if ($referredUser)
+                      <a href="{{ route('admin.users.show', $referredUser) }}">{{ $referredUser->username }}</a>
+                    @else
+                      #{{ $flag->details['referred_user_id'] ?? '?' }}
+                    @endif
+                    signed up from the same IP address and browser as the referrer.
+                  </div>
+                  <div>
+                    <strong>Signals:</strong>
+                    @foreach ((array) ($flag->details['signals'] ?? []) as $signal)
+                      <span class="label label-default">{{ App\Enums\FootprintSignal::tryFrom((string) $signal)?->label() ?? $signal }}</span>
+                    @endforeach
+                    (score {{ (int) ($flag->details['score'] ?? 0) }})
+                  </div>
+                  @if (! empty($flag->details['shared_ips']))
+                    <div><strong>Shared IPs:</strong> {{ implode(', ', (array) $flag->details['shared_ips']) }}</div>
                   @endif
-                @endforeach
+                  @if ($heldMicro > 0)
+                    <div><strong>Held commission:</strong> {{ App\Support\Money::format($heldMicro, 6) }}</div>
+                  @endif
+                  @if (! empty($flag->details['paid_commission_micro']))
+                    <div><strong>Paid after review:</strong> {{ App\Support\Money::format((int) $flag->details['paid_commission_micro'], 6) }}</div>
+                  @endif
+                @else
+                  @foreach ((array) $flag->details as $key => $value)
+                    @if ($value !== null && $value !== '')
+                      <div><strong>{{ str($key)->replace('_', ' ')->ucfirst() }}:</strong> {{ is_scalar($value) ? $value : json_encode($value) }}</div>
+                    @endif
+                  @endforeach
+                @endif
               </td>
               <td>
                 @if ($flag->resolved_at)
@@ -58,8 +104,14 @@
                 @endif
               </td>
               <td class="text-right">
+                @if (! $flag->resolved_at && (int) ($flag->details['held_commission_micro'] ?? 0) > 0)
+                  <form action="{{ route('admin.fraud-flags.pay-held-commission', $flag) }}" method="post" style="display: inline" onsubmit="return confirm('Pay the held commission to the referrer and mark this flag handled?')">
+                    @csrf
+                    <button type="submit" class="btn btn-success btn-xs">Pay held commission</button>
+                  </form>
+                @endif
                 @unless ($flag->resolved_at)
-                  <form action="{{ route('admin.fraud-flags.resolve', $flag) }}" method="post" style="display: inline">
+                  <form action="{{ route('admin.fraud-flags.resolve', $flag) }}" method="post" style="display: inline" @if ((int) ($flag->details['held_commission_micro'] ?? 0) > 0) onsubmit="return confirm('Mark handled without paying? The held commission will not be paid.')" @endif>
                     @csrf
                     @method('PATCH')
                     <button type="submit" class="btn btn-default btn-xs">Mark handled</button>

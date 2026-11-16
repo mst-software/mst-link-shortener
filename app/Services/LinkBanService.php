@@ -17,7 +17,11 @@ use Illuminate\Support\Str;
 
 class LinkBanService
 {
-    public function __construct(private readonly WalletService $wallet, private readonly AdvertiserBilling $billing) {}
+    public function __construct(
+        private readonly WalletService $wallet,
+        private readonly AdvertiserBilling $billing,
+        private readonly ReferralCommissionService $referralCommissions,
+    ) {}
 
     /**
      * Ban a link. Everything happens in one database transaction:
@@ -70,6 +74,8 @@ class LinkBanService
 
     /**
      * Take back the released earnings from the link owner and the commission from the owner's referrer.
+     * Commission that is still held on a multi-account referral flag was never paid, so it is removed
+     * from the flag instead and only the paid part is debited.
      */
     private function reverseReleasedEarnings(Link $link, int $releasedMicro, string $reason): void
     {
@@ -97,6 +103,12 @@ class LinkBanService
         $referrer = User::query()->find($owner->referred_by);
 
         if ($referrer === null) {
+            return;
+        }
+
+        $commission -= $this->referralCommissions->reverseHeld($referrer, $owner, $commission);
+
+        if ($commission <= 0) {
             return;
         }
 

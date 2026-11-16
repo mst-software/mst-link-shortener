@@ -30,6 +30,7 @@ class RegisterController extends Controller
         }
 
         $user->save();
+        $request->countSignup();
 
         rescue(fn () => event(new Registered($user)));
 

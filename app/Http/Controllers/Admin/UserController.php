@@ -15,6 +15,7 @@ use App\Models\Link;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Services\MultiAccountDetector;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -55,7 +56,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function show(User $user): View
+    public function show(User $user, MultiAccountDetector $detector): View
     {
         $user->load('referrer:id,username');
 
@@ -82,6 +83,8 @@ class UserController extends Controller
             'recentReferrals' => $user->referrals()->latest('id')->limit(10)->get(['id', 'username', 'created_at']),
             'fraudFlags' => FraudFlag::query()->with('link:id,alias')->where('user_id', $user->id)->latest('id')->limit(10)->get(),
             'auditLogs' => AdminAuditLog::query()->with('admin:id,username')->where('target_user_id', $user->id)->latest('id')->limit(30)->get(),
+            'relatedAccounts' => $detector->relatedAccounts($user),
+            'recentLogins' => $user->logins()->latest('id')->limit(5)->get(['id', 'event', 'ip', 'country', 'created_at']),
         ]);
     }
 }

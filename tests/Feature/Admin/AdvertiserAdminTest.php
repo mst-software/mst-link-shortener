@@ -41,6 +41,10 @@ function advertiserSettingsPayload(array $overrides = []): array
         'code_session_seconds' => 600,
         'tutorial_video_url' => '',
         'advertiser_default_price_usd' => '0.012',
+        'login_purge_days' => 90,
+        'multi_account_shared_ip_limit' => 10,
+        'signups_per_ip_per_day' => 5,
+        'referral_hold_on_suspicion' => '0',
     ], $overrides);
 }
 

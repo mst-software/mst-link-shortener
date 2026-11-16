@@ -4,16 +4,19 @@ namespace App\Services\Views;
 
 use App\Enums\TransactionAction;
 use App\Enums\ViewStatus;
-use App\Models\DailyStat;
 use App\Models\User;
 use App\Models\View;
+use App\Services\ReferralCommissionService;
 use App\Services\Settings;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 
 class EarningsReleaser
 {
-    public function __construct(private readonly WalletService $wallet) {}
+    public function __construct(
+        private readonly WalletService $wallet,
+        private readonly ReferralCommissionService $referralCommissions,
+    ) {}
 
     /**
      * Release every pending view whose review period has ended, crediting each
@@ -84,7 +87,8 @@ class EarningsReleaser
 
     /**
      * Pay the referrer a percentage of the released total as a separate
-     * transaction. The referred user's own earnings are not reduced.
+     * transaction. The referred user's own earnings are not reduced. A pair that looks like one person
+     * is flagged for review, and the commission may be held (see ReferralCommissionService).
      */
     private function payReferrer(User $user, int $total, string $reference): void
     {
@@ -104,15 +108,10 @@ class EarningsReleaser
             return;
         }
 
-        $this->wallet->credit($referrer, $commission, TransactionAction::ReferralCommission, (string) $user->id, 'Referral commission for release '.$reference);
+        if ($this->referralCommissions->holdIfSuspicious($referrer, $user, $commission)) {
+            return;
+        }
 
-        $statDate = now()->utc()->toDateString();
-
-        DailyStat::query()->firstOrCreate(['user_id' => $referrer->id, 'stat_date' => $statDate]);
-
-        DailyStat::query()
-            ->where('user_id', $referrer->id)
-            ->whereDate('stat_date', $statDate)
-            ->incrementEach(['ref_earn_micro' => $commission]);
+        $this->referralCommissions->pay($referrer, $commission, $user->id, 'Referral commission for release '.$reference);
     }
 }

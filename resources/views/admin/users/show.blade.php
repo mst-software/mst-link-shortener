@@ -256,6 +256,48 @@
     </div>
   </div>
 
+  <div class="box box-danger" id="related-accounts">
+    <div class="box-header with-border">
+      <h3 class="box-title">Related accounts</h3>
+      <span class="pull-right text-muted small">
+        Last sign-ins:
+        @forelse ($recentLogins as $login)
+          <span title="{{ $login->event->label() }} {{ $login->created_at?->format('d/m/Y H:i') }}">{{ $login->ip }}{{ $login->country ? ' ('.$login->country.')' : '' }}</span>@unless ($loop->last), @endunless
+        @empty
+          none recorded
+        @endforelse
+      </span>
+    </div>
+    <div class="box-body table-responsive no-padding">
+      <table class="table table-hover">
+        <thead><tr><th>Account</th><th>Score</th><th>Reasons</th><th>Shared IPs</th><th>Last IP</th></tr></thead>
+        <tbody>
+          @forelse ($relatedAccounts as $related)
+            <tr>
+              <td>
+                <a href="{{ route('admin.users.show', $related->user) }}">{{ $related->user->username }}</a>
+                @unless ($related->user->isActive())
+                  <span class="label label-danger">{{ $related->user->status->label() }}</span>
+                @endunless
+              </td>
+              <td>
+                <span @class(['label', 'label-danger' => $related->level() === 'high', 'label-warning' => $related->level() === 'medium', 'label-default' => $related->level() === 'low'])>{{ $related->score() }}</span>
+              </td>
+              <td>{{ collect($related->signals)->map(fn ($signal) => $signal->label().($related->isWeak($signal) ? ' (shared network)' : ''))->implode(', ') }}</td>
+              <td>{{ implode(', ', $related->sharedIps) ?: '-' }}</td>
+              <td>{{ $related->lastIp ?? '-' }}@if ($related->lastSeenAt) <span class="text-muted">({{ $related->lastSeenAt->format('d/m/Y H:i') }})</span>@endif</td>
+            </tr>
+          @empty
+            <tr><td colspan="5" class="text-center text-muted">No accounts share this user's sign-up or sign-in footprints.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+    <div class="box-footer text-muted small">
+      Accounts that share the sign-up IP, a sign-in IP or the browser in the last {{ App\Services\MultiAccountDetector::LOOKBACK_DAYS }} days. Matches through IPs or browsers used by many accounts (shared networks) count for a quarter of their weight. This is a hint for review; nothing is banned automatically.
+    </div>
+  </div>
+
   <div class="box">
     <div class="box-header with-border">
       <h3 class="box-title">Admin audit log</h3>
