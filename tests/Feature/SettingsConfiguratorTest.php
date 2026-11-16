@@ -1,8 +1,10 @@
 <?php
 
+use App\Providers\SettingsServiceProvider;
 use App\Services\Settings;
 use App\Support\SettingsConfigurator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
@@ -88,6 +90,29 @@ test('an empty payment setting falls back to the env value', function () {
 
     expect(config('services.paypal.client_id'))->toBe('env-client');
 });
+
+test('an unreachable settings store keeps the env configuration at boot', function () {
+    Cache::shouldReceive('remember')->andThrow(new RuntimeException('cache down'));
+
+    (new SettingsServiceProvider(app()))->boot();
+
+    expect(config('app.name'))->toBe('EnvName')
+        ->and(config('services.paypal.client_id'))->toBe('env-client');
+});
+
+test('the commands that print or cache the configuration skip the overrides', function (string $command) {
+    Settings::set('site_name', 'ShortPay');
+    $argv = $_SERVER['argv'];
+    $_SERVER['argv'] = ['artisan', $command];
+
+    try {
+        (new SettingsServiceProvider(app()))->boot();
+    } finally {
+        $_SERVER['argv'] = $argv;
+    }
+
+    expect(config('app.name'))->toBe('EnvName');
+})->with(['config:cache', 'config:show', 'optimize', 'about']);
 
 test('the site name setting replaces the app name', function () {
     Settings::set('site_name', 'ShortPay');
