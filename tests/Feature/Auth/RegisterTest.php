@@ -1,7 +1,11 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 uses(RefreshDatabase::class);
 
@@ -30,6 +34,28 @@ test('registering creates a user and signs them in', function () {
         ->and($user->referral_code)->toHaveLength(7);
 
     $this->assertAuthenticatedAs($user);
+});
+
+test('registering sends a verification mail and leaves the email unverified', function () {
+    Notification::fake();
+
+    $this->post(route('register'), registrationData());
+
+    $user = User::query()->where('username', 'newmember')->sole();
+
+    expect($user->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentToTimes($user, VerifyEmail::class, 1);
+});
+
+test('registering still succeeds when the verification mail cannot be sent', function () {
+    Exceptions::fake();
+    Notification::shouldReceive('send')->andThrow(new TransportException('Mail server is down.'));
+
+    $this->post(route('register'), registrationData())
+        ->assertRedirect(route('member.dashboard'));
+
+    $this->assertAuthenticatedAs(User::query()->where('username', 'newmember')->sole());
+    Exceptions::assertReported(TransportException::class);
 });
 
 test('a duplicate username is rejected', function () {

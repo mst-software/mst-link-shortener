@@ -60,6 +60,8 @@
     </x-member.page-header>
 
     <section class="content">
+      <x-verify-email-banner :user="$advertiser" />
+
       @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif

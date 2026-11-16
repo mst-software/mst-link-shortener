@@ -2,7 +2,11 @@
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 uses(RefreshDatabase::class);
 
@@ -20,6 +24,34 @@ it('registers an advertiser with accepted terms', function () {
     expect($user->role)->toBe(UserRole::Advertiser)
         ->and($user->terms_accepted_at)->not->toBeNull();
     $this->assertAuthenticatedAs($user);
+});
+
+it('sends a verification mail to a new advertiser', function () {
+    Notification::fake();
+
+    $this->post(route('advertiser.register'), [
+        'username' => 'acme_ads',
+        'email' => 'ads@example.com',
+        'password' => 'secret-pass-1',
+        'accept' => '1',
+    ])->assertRedirect(route('advertiser.dashboard'));
+
+    Notification::assertSentToTimes(User::query()->where('username', 'acme_ads')->sole(), VerifyEmail::class, 1);
+});
+
+it('still registers an advertiser when the verification mail cannot be sent', function () {
+    Exceptions::fake();
+    Notification::shouldReceive('send')->andThrow(new TransportException('Mail server is down.'));
+
+    $this->post(route('advertiser.register'), [
+        'username' => 'acme_ads',
+        'email' => 'ads@example.com',
+        'password' => 'secret-pass-1',
+        'accept' => '1',
+    ])->assertRedirect(route('advertiser.dashboard'));
+
+    $this->assertAuthenticatedAs(User::query()->where('username', 'acme_ads')->sole());
+    Exceptions::assertReported(TransportException::class);
 });
 
 it('rejects registration without accepting the terms', function () {
@@ -77,4 +109,19 @@ it('blocks an advertiser from link shortening', function () {
     $this->actingAs(User::factory()->advertiser()->create())
         ->post(route('links.shorten'), ['url' => 'https://example.com'])
         ->assertForbidden();
+});
+
+it('shows an unverified advertiser the verification banner with a resend button', function () {
+    $this->actingAs(User::factory()->advertiser()->unverified()->create())
+        ->get(route('advertiser.dashboard'))
+        ->assertOk()
+        ->assertSee('id="verify-email-banner"', false)
+        ->assertSee(route('verification.send'), false);
+});
+
+it('hides the verification banner from a verified advertiser', function () {
+    $this->actingAs(User::factory()->advertiser()->create())
+        ->get(route('advertiser.dashboard'))
+        ->assertOk()
+        ->assertDontSee('id="verify-email-banner"', false);
 });

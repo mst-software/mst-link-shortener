@@ -51,6 +51,18 @@ test('a valid request reserves the amount and creates a pending withdrawal', fun
         ->and(Transaction::query()->where('action', TransactionAction::WithdrawRequest)->where('reference_id', (string) $withdrawal->id)->count())->toBe(1);
 });
 
+test('an unverified member cannot request a withdrawal', function () {
+    $member = withdrawingMember();
+    $member->forceFill(['email_verified_at' => null])->save();
+
+    $this->actingAs($member)
+        ->post(route('member.withdraws.store'), withdrawalPayload())
+        ->assertRedirect(route('verification.notice'));
+
+    expect(Withdrawal::query()->count())->toBe(0)
+        ->and($member->fresh()->balance_micro)->toBe(20_000_000);
+});
+
 test('a request below the minimum is rejected', function () {
     $member = withdrawingMember();
 

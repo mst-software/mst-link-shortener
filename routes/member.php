@@ -27,7 +27,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
     Route::post('links/restore', [LinkController::class, 'restore'])->name('links.restore');
 
     Route::get('withdraws', [WithdrawController::class, 'index'])->name('withdraws');
-    Route::post('withdraws', [WithdrawController::class, 'store'])->name('withdraws.store');
+    Route::post('withdraws', [WithdrawController::class, 'store'])->middleware('verified')->name('withdraws.store');
 
     Route::prefix('tools')->name('tools.')->group(function () {
         Route::get('quick', [ToolController::class, 'quick'])->name('quick');
@@ -43,7 +43,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile');
         Route::post('profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('change-password', [PasswordController::class, 'edit'])->name('change-password');
-        Route::post('change-password', [PasswordController::class, 'update'])->name('change-password.update');
+        Route::post('change-password', [PasswordController::class, 'update'])->middleware('verified')->name('change-password.update');
         Route::get('change-email', [EmailController::class, 'edit'])->name('change-email');
         Route::post('change-email', [EmailController::class, 'update'])->name('change-email.update');
     });
