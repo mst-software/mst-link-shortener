@@ -93,3 +93,18 @@ it('blocks an advertiser from link shortening', function () {
         ->post(route('links.shorten'), ['url' => 'https://example.com'])
         ->assertForbidden();
 });
+
+it('shows an unverified advertiser the verification banner with a resend button', function () {
+    $this->actingAs(User::factory()->advertiser()->unverified()->create())
+        ->get(route('advertiser.dashboard'))
+        ->assertOk()
+        ->assertSee('id="verify-email-banner"', false)
+        ->assertSee(route('verification.send'), false);
+});
+
+it('hides the verification banner from a verified advertiser', function () {
+    $this->actingAs(User::factory()->advertiser()->create())
+        ->get(route('advertiser.dashboard'))
+        ->assertOk()
+        ->assertDontSee('id="verify-email-banner"', false);
+});
