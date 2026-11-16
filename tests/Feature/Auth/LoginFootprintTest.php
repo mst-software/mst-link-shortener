@@ -1,11 +1,13 @@
 <?php
 
+use App\Contracts\CountryResolver;
 use App\Enums\LoginEvent;
 use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Models\UserLogin;
 use App\Services\TwoFactorAuthentication;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 
 uses(RefreshDatabase::class);
 
@@ -78,6 +80,25 @@ test('a sign in from a trusted device records a login footprint', function () {
         ->assertRedirect(route('member.dashboard'));
 
     expect(UserLogin::query()->sole())->user_id->toBe($user->id)->event->toBe(LoginEvent::Login);
+});
+
+test('a failing footprint write is reported but does not block the sign in', function () {
+    Exceptions::fake();
+    $this->app->bind(CountryResolver::class, fn () => new class implements CountryResolver
+    {
+        public function resolve(string $ip, ?string $cfCountryHeader): string
+        {
+            throw new RuntimeException('Resolver is down.');
+        }
+    });
+    $user = User::factory()->create(['username' => 'jane']);
+
+    $this->post(route('login'), ['username' => 'jane', 'password' => 'password'])
+        ->assertRedirect(route('member.dashboard'));
+
+    $this->assertAuthenticatedAs($user);
+    expect(UserLogin::query()->count())->toBe(0);
+    Exceptions::assertReported(RuntimeException::class);
 });
 
 test('a long user agent is trimmed and hashed in full', function () {
