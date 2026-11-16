@@ -210,7 +210,7 @@ class PreflightCommand extends Command
         $connection = (string) config('queue.default');
 
         return $connection === 'sync'
-            ? [PreflightStatus::Warn, 'QUEUE_CONNECTION is sync, so emails are sent during the request. Use database or redis with a queue worker.']
+            ? [PreflightStatus::Warn, 'QUEUE_CONNECTION is sync, so queued work runs inside web requests. Use database or redis with a queue worker.']
             : [PreflightStatus::Pass, 'Connection "'.$connection.'". Keep php artisan queue:work running (supervisor) and run php artisan queue:restart after each deploy and after saving mail or payment settings.'];
     }
 
