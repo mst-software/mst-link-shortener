@@ -6,6 +6,7 @@ use App\Models\Setting;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class Settings
 {
@@ -36,7 +37,15 @@ class Settings
         $stored = self::all();
 
         if (array_key_exists($key, $stored)) {
-            return self::isSecret($key) ? self::decrypt($stored[$key]) : $stored[$key];
+            if (! self::isSecret($key)) {
+                return $stored[$key];
+            }
+
+            $secret = self::decrypt($key, $stored[$key]);
+
+            if ($secret !== null) {
+                return $secret;
+            }
         }
 
         return config('linkcash.defaults.'.$key, $default);
@@ -119,9 +128,11 @@ class Settings
     }
 
     /**
-     * Decrypt a stored secret. Values saved before secrets were encrypted are plain text and are returned unchanged.
+     * Decrypt a stored secret. Values saved before secrets were encrypted are plain text and are returned
+     * unchanged. An encrypted value that no longer decrypts (for example after APP_KEY changed) counts as
+     * unset (null), so the ciphertext is never used as the secret.
      */
-    private static function decrypt(?string $value): ?string
+    private static function decrypt(string $key, ?string $value): ?string
     {
         if ($value === null || $value === '') {
             return $value;
@@ -130,8 +141,24 @@ class Settings
         try {
             return Crypt::decryptString($value);
         } catch (DecryptException) {
-            return $value;
+            if (! self::looksEncrypted($value)) {
+                return $value;
+            }
+
+            Log::warning('The saved secret setting "'.$key.'" cannot be decrypted (was APP_KEY changed?). It is treated as not set; save it again in the admin settings.');
+
+            return null;
         }
+    }
+
+    /**
+     * Whether the value has the shape of a Laravel encrypter payload: base64 JSON with iv, value and mac.
+     */
+    private static function looksEncrypted(string $value): bool
+    {
+        $payload = json_decode((string) base64_decode($value, true), true);
+
+        return is_array($payload) && isset($payload['iv'], $payload['value'], $payload['mac']);
     }
 
     /**

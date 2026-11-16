@@ -1,10 +1,13 @@
 <?php
 
 use App\Models\Setting;
+use App\Models\User;
 use App\Services\Settings;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 uses(RefreshDatabase::class);
 
@@ -62,6 +65,31 @@ it('still reads a legacy plain-text secret', function (): void {
     Setting::factory()->create(['key' => 'turnstile_secret_key', 'value' => 'legacy-plain-secret']);
 
     expect(Settings::get('turnstile_secret_key'))->toBe('legacy-plain-secret');
+});
+
+it('treats a secret encrypted with another app key as not set and logs a warning', function (): void {
+    Log::spy();
+    $otherKey = new Encrypter(random_bytes(32), 'AES-256-CBC');
+    Setting::factory()->create(['key' => 'paypal_secret', 'value' => $otherKey->encryptString('old-secret')]);
+
+    expect(Settings::get('paypal_secret'))->toBeNull()
+        ->and(Settings::get('paypal_secret', 'fallback'))->toBe('fallback')
+        ->and(Settings::string('paypal_secret'))->toBe('');
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message): bool => str_contains($message, '"paypal_secret"') && ! str_contains($message, 'old-secret'));
+});
+
+it('shows a secret that no longer decrypts as not set on the admin page', function (): void {
+    $otherKey = new Encrypter(random_bytes(32), 'AES-256-CBC');
+    Setting::factory()->create(['key' => 'turnstile_secret_key', 'value' => $otherKey->encryptString('old-secret')]);
+
+    $html = $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.settings.captcha.edit'))
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toMatch('#Secret key\s*<span class="label label-default">Not set</span>#')
+        ->not->toContain('old-secret');
 });
 
 it('forgets a stored setting so the default applies again', function (): void {
