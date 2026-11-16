@@ -15,6 +15,7 @@ enum InvalidReason: string
     case NoCookie = 'no_cookie';
     case MissingCode = 'missing_code';
     case CodeInvalid = 'code_invalid';
+    case OwnerBanned = 'owner_banned';
 
     public function label(): string
     {
@@ -30,6 +31,7 @@ enum InvalidReason: string
             self::NoCookie => 'No cookie',
             self::MissingCode => 'Missing code',
             self::CodeInvalid => 'Invalid code',
+            self::OwnerBanned => 'Link owner banned',
         };
     }
 }
