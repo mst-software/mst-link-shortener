@@ -112,5 +112,7 @@ it('exposes the project defaults in config', function (): void {
         'sepay_account_number' => '',
         'sepay_account_name' => '',
         'payout_methods' => 'paypal,bank_transfer,momo,usdt',
+        'registration_open' => true,
+        'maintenance_mode' => false,
     ]);
 });
