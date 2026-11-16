@@ -25,6 +25,23 @@ enum PayoutMethod: string
         return $enabled === [] ? self::cases() : $enabled;
     }
 
+    /**
+     * Methods a member may keep in their profile: the enabled ones plus the one they saved before it was
+     * switched off, so they can still save other profile fields.
+     *
+     * @return list<self>
+     */
+    public static function selectableFor(?self $current): array
+    {
+        $enabled = self::enabled();
+
+        if ($current === null || in_array($current, $enabled, true)) {
+            return $enabled;
+        }
+
+        return array_values(array_filter(self::cases(), fn (self $method): bool => $method === $current || in_array($method, $enabled, true)));
+    }
+
     public function isEnabled(): bool
     {
         return in_array($this, self::enabled(), true);

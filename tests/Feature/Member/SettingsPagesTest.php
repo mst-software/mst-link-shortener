@@ -206,3 +206,24 @@ test('a payout method the admin switched off cannot be chosen', function () {
 
     expect($user->refresh()->payout_method)->toBeNull();
 });
+
+test('a member whose saved payout method was switched off can still save other profile fields', function () {
+    $user = User::factory()->create([
+        'payout_method' => PayoutMethod::Paypal,
+        'payout_details' => ['paypal_email' => 'jane@paypal.test'],
+    ]);
+    Settings::set('payout_methods', 'bank_transfer');
+
+    $this->actingAs($user)
+        ->get(route('member.user.profile'))
+        ->assertOk()
+        ->assertSee('value="paypal"', false)
+        ->assertSee('Payouts by PayPal are no longer offered.');
+
+    $this->actingAs($user)
+        ->post(route('member.user.profile.update'), profileData(['fullname' => 'Jane Updated']))
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh()->fullname)->toBe('Jane Updated')
+        ->and($user->payout_method)->toBe(PayoutMethod::Paypal);
+});

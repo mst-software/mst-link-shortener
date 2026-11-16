@@ -99,11 +99,17 @@
               <div>
                 @foreach ($payoutMethods as $method)
                   <label class="radio-inline">
-                    <input type="radio" name="payout_method" value="{{ $method->value }}" @checked($selectedMethod === $method->value)> {{ $method->label() }}
+                    <input type="radio" name="payout_method" value="{{ $method->value }}" @checked($selectedMethod === $method->value)> {{ $method->label() }}@unless ($method->isEnabled()) (no longer offered)@endunless
                   </label>
                 @endforeach
               </div>
-              <span class="help-block">{{ $errors->first('payout_method') }}</span>
+              <span class="help-block">
+                @if ($errors->has('payout_method'))
+                  {{ $errors->first('payout_method') }}
+                @elseif ($member->payout_method && ! $member->payout_method->isEnabled())
+                  Payouts by {{ $member->payout_method->label() }} are no longer offered. Choose another payment method to be able to withdraw.
+                @endif
+              </span>
             </div>
 
             @foreach ($detailFields as $method => $fields)
