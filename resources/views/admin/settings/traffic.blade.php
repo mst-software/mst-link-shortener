@@ -47,6 +47,22 @@
     </div>
 
     <div class="box box-primary">
+      <div class="box-header with-border"><h3 class="box-title">Multiple accounts and sign-ups</h3></div>
+      <div class="box-body">
+        <x-admin.setting-input name="signups_per_ip_per_day" label="Sign-ups per IP address per day" help="How many new accounts one IP address may create in 24 hours. 0 turns the limit off. Sign-ins are never blocked." type="number" :value="$values['signups_per_ip_per_day']" min="0" max="1000" step="1" required />
+        <x-admin.setting-input name="multi_account_shared_ip_limit" label="Shared network limit (accounts)" help="An IP address or browser used by more accounts than this is treated as a shared network (office, school, mobile carrier) and ignored when looking for related accounts. Between 2 and 1000." type="number" :value="$values['multi_account_shared_ip_limit']" min="2" max="1000" step="1" required />
+        <x-admin.setting-input name="login_purge_days" label="Sign-in history retention (days)" help="Sign-up and sign-in records (IP address, browser, country) older than this are deleted every night. Between 7 and 365." type="number" :value="$values['login_purge_days']" min="7" max="365" step="1" required />
+        <div @class(['form-group', 'has-error' => $errors->has('referral_hold_on_suspicion')])>
+          <input type="hidden" name="referral_hold_on_suspicion" value="0">
+          <div class="checkbox">
+            <label><input type="checkbox" name="referral_hold_on_suspicion" value="1" @checked(old('referral_hold_on_suspicion', $values['referral_hold_on_suspicion']))> Hold suspicious referral commission</label>
+          </div>
+          <span class="help-block">@error('referral_hold_on_suspicion'){{ $message }}@else When a member and the person who invited them signed up from the same IP address and browser, a fraud flag is always raised. With this on, the referral commission for that pair is also kept on the flag until you pay it out or mark the flag handled. With it off, the commission is paid as usual.@enderror</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">Advertiser pricing</h3></div>
       <div class="box-body">
         <x-admin.setting-input name="advertiser_default_price_usd" label="Default price per valid view (USD)" help="Charged to the advertiser unless the campaign has its own price. Keep it above the highest publisher payout." type="number" :value="$values['advertiser_default_price_usd']" min="0" step="0.0001" required />

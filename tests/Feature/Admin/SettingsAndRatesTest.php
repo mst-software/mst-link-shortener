@@ -30,6 +30,10 @@ function settingsPayload(array $overrides = []): array
         'code_session_seconds' => 600,
         'tutorial_video_url' => '',
         'advertiser_default_price_usd' => '0.01',
+        'login_purge_days' => 90,
+        'multi_account_shared_ip_limit' => 10,
+        'signups_per_ip_per_day' => 5,
+        'referral_hold_on_suspicion' => '0',
     ], $overrides);
 }
 
@@ -67,6 +71,41 @@ test('dwell seconds outside 5 to 60 are rejected', function (int $value) {
 
     expect(Settings::int('dwell_seconds'))->toBe(10);
 })->with([4, 61]);
+
+test('admins can change the multi-account and sign-up settings', function () {
+    $this->actingAs($this->admin)->get(route('admin.settings.traffic.edit'))
+        ->assertOk()
+        ->assertSee('Sign-ups per IP address per day')
+        ->assertSee('Hold suspicious referral commission');
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.traffic.update'), settingsPayload([
+            'login_purge_days' => 30,
+            'multi_account_shared_ip_limit' => 25,
+            'signups_per_ip_per_day' => 0,
+            'referral_hold_on_suspicion' => '1',
+        ]))
+        ->assertRedirect(route('admin.settings.traffic.edit'));
+
+    expect(Settings::int('login_purge_days'))->toBe(30)
+        ->and(Settings::int('multi_account_shared_ip_limit'))->toBe(25)
+        ->and(Settings::int('signups_per_ip_per_day'))->toBe(0)
+        ->and(Settings::bool('referral_hold_on_suspicion'))->toBeTrue();
+});
+
+test('multi-account and sign-up settings outside their ranges are rejected', function (string $field, mixed $value) {
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.traffic.update'), settingsPayload([$field => $value]))
+        ->assertSessionHasErrors($field);
+})->with([
+    ['login_purge_days', 6],
+    ['login_purge_days', 366],
+    ['multi_account_shared_ip_limit', 1],
+    ['multi_account_shared_ip_limit', 1001],
+    ['signups_per_ip_per_day', -1],
+    ['signups_per_ip_per_day', 1001],
+    ['referral_hold_on_suspicion', 'maybe'],
+]);
 
 test('an unknown captcha provider is rejected', function () {
     $this->actingAs($this->admin)

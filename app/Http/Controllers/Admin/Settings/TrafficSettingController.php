@@ -26,6 +26,7 @@ class TrafficSettingController extends Controller
                 'visit_mode' => Settings::string('visit_mode', 'auto'),
                 'tutorial_video_url' => Settings::string('tutorial_video_url'),
                 'advertiser_default_price_usd' => Money::toUsdString(Settings::int('advertiser_default_price_micro')),
+                'referral_hold_on_suspicion' => Settings::bool('referral_hold_on_suspicion'),
             ],
         ]);
     }
@@ -40,6 +41,7 @@ class TrafficSettingController extends Controller
 
         Settings::set('visit_mode', $data['visit_mode']);
         Settings::set('tutorial_video_url', $data['tutorial_video_url'] ?? '');
+        Settings::set('referral_hold_on_suspicion', $data['referral_hold_on_suspicion'] ? '1' : '0');
 
         $price = Money::toMicro($data['advertiser_default_price_usd']);
         Settings::set('advertiser_default_price_micro', $price);
