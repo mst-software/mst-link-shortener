@@ -62,6 +62,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'api_token',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_last_used_step',
     ];
 
     /**
@@ -105,6 +108,10 @@ class User extends Authenticatable implements MustVerifyEmail
             'processing_micro' => 'integer',
             'terms_accepted_at' => 'datetime',
             'default_level' => 'integer',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'array',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_last_used_step' => 'integer',
         ];
     }
 
@@ -137,6 +144,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isActive(): bool
     {
         return $this->status === UserStatus::Active;
+    }
+
+    /**
+     * Whether the user has confirmed an authenticator app and must enter its codes.
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_confirmed_at !== null && $this->two_factor_secret !== null;
     }
 
     /**
