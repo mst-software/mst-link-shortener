@@ -90,20 +90,6 @@ class MediaUploader
     }
 
     /**
-     * Store the new image, then delete the file it replaces.
-     *
-     * @throws MediaUploadException
-     */
-    public function replace(UploadedFile $file, MediaPreset $preset, ?string $oldReference): string
-    {
-        $reference = $this->store($file, $preset);
-
-        MediaStorage::delete($oldReference);
-
-        return $reference;
-    }
-
-    /**
      * @throws MediaUploadException
      */
     private function assertAcceptable(UploadedFile $file): void

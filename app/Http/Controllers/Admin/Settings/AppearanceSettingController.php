@@ -14,6 +14,7 @@ use App\Support\MediaStorage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Throwable;
 
 class AppearanceSettingController extends Controller
 {
@@ -30,6 +31,11 @@ class AppearanceSettingController extends Controller
         ]);
     }
 
+    /**
+     * Save the colour and the uploaded images. Each new image is stored and saved in the settings before
+     * the file it replaces is deleted, so the settings never point at a deleted file; a rejected image
+     * keeps the current one.
+     */
     public function update(UpdateAppearanceSettingsRequest $request, MediaUploader $uploader): RedirectResponse
     {
         Branding::setColor($request->validated('brand_color'));
@@ -44,10 +50,24 @@ class AppearanceSettingController extends Controller
             }
 
             try {
-                Settings::set($asset->settingKey(), $uploader->replace($file, $asset->preset(), Settings::string($asset->settingKey())));
+                $reference = $uploader->store($file, $asset->preset());
             } catch (MediaUploadException $exception) {
                 $errors[$asset->value] = $exception->getMessage();
+
+                continue;
             }
+
+            $oldReference = Settings::string($asset->settingKey());
+
+            try {
+                Settings::set($asset->settingKey(), $reference);
+            } catch (Throwable $exception) {
+                MediaStorage::delete($reference);
+
+                throw $exception;
+            }
+
+            MediaStorage::delete($oldReference);
         }
 
         if ($errors !== []) {

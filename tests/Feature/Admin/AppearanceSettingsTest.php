@@ -83,6 +83,17 @@ test('replacing an image deletes the old file', function () {
     Storage::disk('public')->assertExists($second);
 });
 
+test('a rejected replacement keeps the current image and its file', function () {
+    saveAppearance(['logo_light' => UploadedFile::fake()->image('first.png')]);
+    $current = Settings::string('brand_logo_light');
+
+    saveAppearance(['logo_light' => UploadedFile::fake()->createWithContent('logo.png', "\x89PNG\r\n\x1a\n".'broken')])
+        ->assertSessionHasErrors('logo_light');
+
+    expect(Settings::string('brand_logo_light'))->toBe($current)
+        ->and(Storage::disk('public')->allFiles())->toBe([$current]);
+});
+
 test('reset to default removes the uploaded image and its file', function () {
     saveAppearance(['favicon' => UploadedFile::fake()->image('icon.png', 64, 64)]);
     $reference = Settings::string('brand_favicon');

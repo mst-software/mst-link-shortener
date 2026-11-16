@@ -140,15 +140,6 @@ test('animated gifs are rejected', function () {
         ->toThrow(MediaUploadException::class, 'Animated GIFs are not supported.');
 });
 
-test('replacing an image deletes the old file', function () {
-    $old = $this->uploader->store(UploadedFile::fake()->image('old.png'), MediaPreset::Logo);
-
-    $new = $this->uploader->replace(UploadedFile::fake()->image('new.png'), MediaPreset::Logo, $old);
-
-    Storage::disk('public')->assertMissing($old);
-    Storage::disk('public')->assertExists($new);
-});
-
 test('uploads go to the s3 disk when it is selected and keep working after switching back', function () {
     Settings::set('upload_disk', 's3');
 
