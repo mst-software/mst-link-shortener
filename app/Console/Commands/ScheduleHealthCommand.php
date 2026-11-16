@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\ScheduleStatus;
 use App\Services\ScheduleHealth;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
@@ -28,7 +27,7 @@ class ScheduleHealthCommand extends Command
             ], $report),
         );
 
-        $unhealthy = array_filter($report, fn (array $job): bool => $job['status'] !== ScheduleStatus::Ok);
+        $unhealthy = array_filter($report, fn (array $job): bool => $job['status']->needsAttention());
 
         if ($unhealthy !== []) {
             $this->error(count($unhealthy).' scheduled job(s) late or failing. Is the scheduler running?');

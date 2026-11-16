@@ -35,6 +35,11 @@ class ScheduleHealth
      */
     public const STATS_JOB = 'views:aggregate';
 
+    /**
+     * A job that never ran is Late when it runs at least this often, and Waiting (e.g. right after a deploy) otherwise.
+     */
+    private const FREQUENT_JOB_MAX_INTERVAL_MINUTES = 60;
+
     private const KEY_PREFIX = 'schedule_health.';
 
     private const MESSAGE_LIMIT = 500;
@@ -135,6 +140,7 @@ class ScheduleHealth
             'last_failure_message' => $heartbeat['last_failure_message'] ?? null,
             'status' => match (true) {
                 $failedSinceSuccess => ScheduleStatus::Failed,
+                $lastSuccessAt === null && $intervalMinutes > self::FREQUENT_JOB_MAX_INTERVAL_MINUTES => ScheduleStatus::Waiting,
                 $isOverdue => ScheduleStatus::Late,
                 default => ScheduleStatus::Ok,
             },

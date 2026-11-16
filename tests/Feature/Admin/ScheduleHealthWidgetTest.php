@@ -23,6 +23,7 @@ it('shows the status of every scheduled job', function (): void {
         ->assertOk()
         ->assertSeeInOrder(['views:aggregate', '16/11/2026 10:00', 'OK'])
         ->assertSeeInOrder(['earnings:release', '16/11/2026 10:01', 'Ledger lock timeout.', 'Failed'])
+        ->assertSeeInOrder(['views:purge', 'Never', 'label-default', 'Waiting'])
         ->assertSeeInOrder(['sepay:sync', 'Never', 'Late'])
         ->assertDontSee('Member statistics are not updating.');
 });

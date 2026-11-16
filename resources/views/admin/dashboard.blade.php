@@ -64,6 +64,6 @@
         </tbody>
       </table>
     </div>
-    <div class="box-footer text-muted small">A job is late when it has not succeeded within twice its interval.</div>
+    <div class="box-footer text-muted small">A job is late when it has not succeeded within twice its interval. Daily jobs that have not run yet since setup are waiting.</div>
   </div>
 @endsection

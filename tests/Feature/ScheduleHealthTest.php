@@ -104,6 +104,18 @@ it('marks a job late when it never succeeded', function (): void {
         ->and(app(ScheduleHealth::class)->isOverdue('views:aggregate'))->toBeTrue();
 });
 
+it('marks a daily job that never ran as waiting instead of late', function (): void {
+    expect(jobHealth('earnings:release')['status'])->toBe(ScheduleStatus::Waiting)
+        ->and(jobHealth('fraud:scan')['status'])->toBe(ScheduleStatus::Late);
+});
+
+it('marks a daily job late once it ran but not within twice its interval', function (): void {
+    app(ScheduleHealth::class)->recordSuccess('views:purge');
+    Carbon::setTestNow(now()->addHours(49));
+
+    expect(jobHealth('views:purge')['status'])->toBe(ScheduleStatus::Late);
+});
+
 it('marks a job late only once it has not succeeded within twice its interval', function (): void {
     app(ScheduleHealth::class)->recordSuccess('views:aggregate');
 
@@ -133,6 +145,14 @@ it('exits successfully when every job is healthy', function (): void {
 
     $this->artisan('schedule:health')
         ->expectsOutputToContain('All scheduled jobs are healthy.')
+        ->assertSuccessful();
+});
+
+it('exits successfully while daily jobs are still waiting for their first run', function (): void {
+    markJobsHealthy(except: ['earnings:release', 'views:purge']);
+
+    $this->artisan('schedule:health')
+        ->expectsOutputToContain('Waiting')
         ->assertSuccessful();
 });
 
