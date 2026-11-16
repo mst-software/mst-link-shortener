@@ -51,7 +51,7 @@ test('a referral without any shared footprint is not a signal', function () {
     expect(app(MultiAccountDetector::class)->relatedAccounts($referrer))->toBeEmpty();
 });
 
-test('an ip shared by more accounts than the limit is ignored as a shared network', function () {
+test('an ip shared by more accounts than the limit counts as a weak shared network signal', function () {
     Settings::set('multi_account_shared_ip_limit', 3);
     $user = User::factory()->create();
     UserLogin::factory()->signup()->for($user)->withUserAgent('Browser 0')->create(['ip' => '198.51.100.30']);
@@ -60,11 +60,28 @@ test('an ip shared by more accounts than the limit is ignored as a shared networ
         UserLogin::factory()->signup()->withUserAgent('Browser '.$index)->create(['ip' => '198.51.100.30']);
     }
 
-    expect(app(MultiAccountDetector::class)->relatedAccounts($user))->toBeEmpty();
+    $related = app(MultiAccountDetector::class)->relatedAccounts($user);
+
+    expect($related)->toHaveCount(3)
+        ->and($related->first()->isWeak(FootprintSignal::SameSignupIp))->toBeTrue()
+        ->and($related->first()->score())->toBe(10)
+        ->and($related->first()->level())->toBe('low');
 
     Settings::set('multi_account_shared_ip_limit', 4);
 
-    expect(app(MultiAccountDetector::class)->relatedAccounts($user))->toHaveCount(3);
+    expect(app(MultiAccountDetector::class)->relatedAccounts($user)->first()->score())->toBe(40);
+});
+
+test('an account farm behind one ip and browser still shows up, at a reduced score', function () {
+    $user = User::factory()->create();
+    UserLogin::factory()->signup()->for($user)->withUserAgent('Farm browser')->create(['ip' => '198.51.100.31']);
+    UserLogin::factory()->signup()->withUserAgent('Farm browser')->count(11)->create(['ip' => '198.51.100.31']);
+
+    $related = app(MultiAccountDetector::class)->relatedAccounts($user);
+
+    expect($related)->toHaveCount(11)
+        ->and($related->first()->signals)->toBe([FootprintSignal::SameSignupIp, FootprintSignal::SameDevice])
+        ->and($related->first()->score())->toBe(16);
 });
 
 test('sign-in footprints older than the lookback window are ignored but the sign-up ip is kept', function () {

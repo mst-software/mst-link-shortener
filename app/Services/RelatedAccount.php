@@ -16,8 +16,14 @@ final readonly class RelatedAccount
     public const MEDIUM_SCORE = 40;
 
     /**
+     * Share of a signal's weight that counts when it only comes from a shared network or a common browser.
+     */
+    public const SHARED_WEIGHT_PERCENT = 25;
+
+    /**
      * @param  list<FootprintSignal>  $signals
      * @param  list<string>  $sharedIps
+     * @param  list<FootprintSignal>  $weakSignals  Signals found only through values used by many accounts.
      */
     public function __construct(
         public User $user,
@@ -25,14 +31,20 @@ final readonly class RelatedAccount
         public array $sharedIps,
         public ?string $lastIp = null,
         public ?CarbonInterface $lastSeenAt = null,
+        public array $weakSignals = [],
     ) {}
 
     /**
-     * Sum of the signal weights, capped at 100.
+     * Sum of the signal weights, capped at 100. A weak signal counts SHARED_WEIGHT_PERCENT of its weight.
      */
     public function score(): int
     {
-        return min(100, array_sum(array_map(fn (FootprintSignal $signal): int => $signal->weight(), $this->signals)));
+        $points = array_map(
+            fn (FootprintSignal $signal): int => $this->isWeak($signal) ? intdiv($signal->weight() * self::SHARED_WEIGHT_PERCENT, 100) : $signal->weight(),
+            $this->signals,
+        );
+
+        return min(100, array_sum($points));
     }
 
     /**
@@ -50,5 +62,13 @@ final readonly class RelatedAccount
     public function hasSignal(FootprintSignal $signal): bool
     {
         return in_array($signal, $this->signals, true);
+    }
+
+    /**
+     * Whether the signal only comes from a shared network or a common browser.
+     */
+    public function isWeak(FootprintSignal $signal): bool
+    {
+        return in_array($signal, $this->weakSignals, true);
     }
 }

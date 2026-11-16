@@ -283,7 +283,7 @@
               <td>
                 <span @class(['label', 'label-danger' => $related->level() === 'high', 'label-warning' => $related->level() === 'medium', 'label-default' => $related->level() === 'low'])>{{ $related->score() }}</span>
               </td>
-              <td>{{ collect($related->signals)->map(fn ($signal) => $signal->label())->implode(', ') }}</td>
+              <td>{{ collect($related->signals)->map(fn ($signal) => $signal->label().($related->isWeak($signal) ? ' (shared network)' : ''))->implode(', ') }}</td>
               <td>{{ implode(', ', $related->sharedIps) ?: '-' }}</td>
               <td>{{ $related->lastIp ?? '-' }}@if ($related->lastSeenAt) <span class="text-muted">({{ $related->lastSeenAt->format('d/m/Y H:i') }})</span>@endif</td>
             </tr>
@@ -294,7 +294,7 @@
       </table>
     </div>
     <div class="box-footer text-muted small">
-      Accounts that share the sign-up IP, a sign-in IP or the browser in the last {{ App\Services\MultiAccountDetector::LOOKBACK_DAYS }} days. IPs used by many accounts (shared networks) are ignored. This is a hint for review; nothing is banned automatically.
+      Accounts that share the sign-up IP, a sign-in IP or the browser in the last {{ App\Services\MultiAccountDetector::LOOKBACK_DAYS }} days. Matches through IPs or browsers used by many accounts (shared networks) count for a quarter of their weight. This is a hint for review; nothing is banned automatically.
     </div>
   </div>
 
