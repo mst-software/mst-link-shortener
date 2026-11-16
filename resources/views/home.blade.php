@@ -4,7 +4,6 @@
 
 @section('content')
   <x-hero>
-    <span class="hero-badge anim-up"><span class="hero-badge-dot" aria-hidden="true"></span>Free to join &middot; Paid for every valid view</span>
     <h1 class="intro-heading anim-up">
       <span class="intro-lead-in">Shorten URLs and</span>
       <span class="shimmer">earn money</span>
