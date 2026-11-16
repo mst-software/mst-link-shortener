@@ -114,7 +114,9 @@ class VisitController extends Controller
     {
         $link = $this->activeLinkOrFail($alias);
 
-        $request->session()->push(self::UNLOCKED_SESSION_KEY, $link->getKey());
+        if ($link->isPasswordProtected() && ! $this->isUnlocked($request, $link)) {
+            $request->session()->push(self::UNLOCKED_SESSION_KEY, $link->getKey());
+        }
 
         return redirect()->route('visit.start', ['alias' => $link->alias]);
     }

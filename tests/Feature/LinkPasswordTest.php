@@ -46,6 +46,16 @@ it('starts the visit flow after the right password', function () {
     expect(VisitSession::query()->sole()->link_id)->toBe($this->link->id);
 });
 
+it('stores each unlocked link once and nothing for an unprotected link', function () {
+    Link::factory()->create(['alias' => 'Open1']);
+
+    $this->post('/go/Locked1/unlock', ['password' => 'open-sesame']);
+    $this->post('/go/Locked1/unlock', ['password' => 'open-sesame']);
+    $this->post('/go/Open1/unlock', ['password' => 'anything'])->assertRedirect('/Open1');
+
+    expect(session('visit.unlocked_links'))->toBe([$this->link->id]);
+});
+
 it('refuses the step endpoints until the link is unlocked', function () {
     $this->postJson(route('visit.info'), ['alias' => 'Locked1'])->assertForbidden();
     $this->postJson(route('visit.check-captcha'), ['alias' => 'Locked1', 'token' => 'x'])->assertForbidden();
