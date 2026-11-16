@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CpmRateController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\Settings\AppearanceSettingController;
 use App\Http\Controllers\Admin\Settings\CaptchaSettingController;
 use App\Http\Controllers\Admin\Settings\EmailSettingController;
 use App\Http\Controllers\Admin\Settings\GeneralSettingController;
@@ -20,6 +21,11 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('general', [GeneralSettingController::class, 'edit'])->name('general.edit');
         Route::put('general', [GeneralSettingController::class, 'update'])->name('general.update');
+
+        Route::get('appearance', [AppearanceSettingController::class, 'edit'])->name('appearance.edit');
+        Route::put('appearance', [AppearanceSettingController::class, 'update'])->name('appearance.update');
+        Route::delete('appearance/images/{asset}', [AppearanceSettingController::class, 'resetImage'])->name('appearance.images.reset');
+        Route::delete('appearance/color', [AppearanceSettingController::class, 'resetColor'])->name('appearance.color.reset');
 
         Route::get('email', [EmailSettingController::class, 'edit'])->name('email.edit');
         Route::put('email', [EmailSettingController::class, 'update'])->name('email.update');

@@ -12,7 +12,7 @@
     <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">Site</h3></div>
       <div class="box-body">
-        <x-admin.setting-input name="site_name" label="Site name" help="Shown in page titles, the footer, emails and the legal pages. The logo image does not change." :value="$values['site_name']" maxlength="60" required />
+        <x-admin.setting-input name="site_name" label="Site name" help="Shown in page titles, the footer, emails and the legal pages. Change the logo on the Appearance page." :value="$values['site_name']" maxlength="60" required />
         <x-admin.setting-input name="support_email" label="Support email" help="Optional. Shown in the footer and on the Terms of Use and Privacy Policy pages so people can contact you." type="email" :value="$values['support_email']" maxlength="254" placeholder="support@example.com" />
       </div>
     </div>

@@ -12,6 +12,7 @@ namespace App\Enums;
 enum SettingsPage: string
 {
     case General = 'general';
+    case Appearance = 'appearance';
     case Email = 'email';
     case Payments = 'payments';
     case Traffic = 'traffic';
@@ -22,6 +23,7 @@ enum SettingsPage: string
     {
         return match ($this) {
             self::General => 'General',
+            self::Appearance => 'Appearance',
             self::Email => 'Email',
             self::Payments => 'Payments',
             self::Traffic => 'Traffic and earnings',
@@ -37,6 +39,7 @@ enum SettingsPage: string
     {
         return match ($this) {
             self::General => 'globe',
+            self::Appearance => 'paint-brush',
             self::Email => 'envelope',
             self::Payments => 'credit-card',
             self::Traffic => 'chart-line',
