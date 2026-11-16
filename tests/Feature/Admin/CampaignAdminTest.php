@@ -147,6 +147,32 @@ test('instruction images go to the s3 disk when it is selected', function () {
     Storage::disk('s3')->assertMissing(substr($reference, 3));
 });
 
+test('a rejected image keeps the campaign, its old images and no new files', function () {
+    Storage::fake('public');
+    $campaign = Campaign::factory()->create([
+        'name' => 'Original name',
+        'image_google' => 'campaigns/oldgoogle.png',
+        'image_button' => 'campaigns/oldbutton.png',
+    ]);
+    Storage::disk('public')->put('campaigns/oldgoogle.png', 'old google');
+    Storage::disk('public')->put('campaigns/oldbutton.png', 'old button');
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.campaigns.update', $campaign), campaignPayload([
+            'name' => 'Renamed',
+            'image_google' => UploadedFile::fake()->image('google.png'),
+            'image_button' => UploadedFile::fake()->createWithContent('button.png', "\x89PNG\r\n\x1a\n".'broken'),
+        ]))
+        ->assertSessionHasErrors('image_button');
+
+    $campaign->refresh();
+
+    expect($campaign->name)->toBe('Original name')
+        ->and($campaign->image_google)->toBe('campaigns/oldgoogle.png')
+        ->and($campaign->image_button)->toBe('campaigns/oldbutton.png')
+        ->and(Storage::disk('public')->allFiles('campaigns'))->toEqualCanonicalizing(['campaigns/oldgoogle.png', 'campaigns/oldbutton.png']);
+});
+
 test('an image that passes the form rules but cannot be decoded is rejected', function () {
     Storage::fake('public');
 

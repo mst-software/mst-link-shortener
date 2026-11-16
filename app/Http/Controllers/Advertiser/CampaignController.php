@@ -74,9 +74,7 @@ class CampaignController extends Controller
         $campaign->display_domain = DomainMasker::mask($campaign->domain);
         $campaign->widget_key = Campaign::generateWidgetKey();
 
-        $this->applyCampaignImages($request, $campaign);
-
-        $campaign->save();
+        $this->saveCampaignWithImages($request, $campaign);
 
         return redirect()->route('advertiser.campaigns.edit', $campaign)
             ->with('success', 'Campaign submitted. It will start running once it has been reviewed.');
@@ -107,9 +105,7 @@ class CampaignController extends Controller
             $campaign->review_note = null;
         }
 
-        $this->applyCampaignImages($request, $campaign);
-
-        $campaign->save();
+        $this->saveCampaignWithImages($request, $campaign);
 
         return redirect()->route('advertiser.campaigns.edit', $campaign)->with(
             'success',
