@@ -5,7 +5,8 @@ namespace App\Services\Views;
 use App\Contracts\CountryResolver;
 
 /**
- * Reads the country from the Cloudflare "CF-IPCountry" header.
+ * Reads the country from the Cloudflare "CF-IPCountry" header. VisitorContext passes the header only
+ * when the request came from a trusted Cloudflare edge (TrustedProxies::trustsCountryHeader()).
  */
 class HeaderCountryResolver implements CountryResolver
 {

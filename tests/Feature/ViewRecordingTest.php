@@ -28,7 +28,11 @@ beforeEach(function () {
 
     $this->link = Link::factory()->create(['alias' => 'Rec3ab', 'level' => 3, 'url' => RECORDING_DESTINATION]);
 
-    $this->withCredentials()->withHeaders(['User-Agent' => RECORDING_UA, 'CF-IPCountry' => 'VN']);
+    // Visitors arrive through a Cloudflare edge, which is the only source of a trusted country header.
+    config(['trustedproxy.proxies' => 'cloudflare']);
+    $this->withCredentials()
+        ->withServerVariables(['REMOTE_ADDR' => '173.245.48.10'])
+        ->withHeaders(['User-Agent' => RECORDING_UA, 'CF-IPCountry' => 'VN', 'CF-Connecting-IP' => '127.0.0.1']);
 });
 
 afterEach(function () {
