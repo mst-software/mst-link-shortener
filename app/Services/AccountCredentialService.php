@@ -30,4 +30,18 @@ class AccountCredentialService
             $guard->logoutOtherDevices($password);
         }
     }
+
+    /**
+     * Change the user's email address, mark it unverified and send a verification link to it.
+     * A mail that cannot be sent is reported but never undoes the change.
+     */
+    public function changeEmail(User $user, string $email): void
+    {
+        $user->forceFill([
+            'email' => $email,
+            'email_verified_at' => null,
+        ])->save();
+
+        rescue(fn () => $user->sendEmailVerificationNotification());
+    }
 }
