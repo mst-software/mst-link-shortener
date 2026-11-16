@@ -91,6 +91,18 @@ it('falls back to 30 days for an invalid range on the page and rejects it with 4
         ->assertJson(['success' => false]);
 })->with(['14', 'abc', '-7', '7.5']);
 
+it('keeps the range when changing the month and the month when changing the range', function () {
+    $this->actingAs($this->member)
+        ->get(route('member.statistic', ['month' => '10/2026', 'range' => '7']))
+        ->assertOk()
+        ->assertSeeInOrder([
+            '<input type="hidden" name="range" value="7">',
+            '<select name="month"',
+            '<input type="hidden" name="month" value="10/2026">',
+            '<select name="range"',
+        ], false);
+});
+
 it('shows empty states and the retention notice when there are no views', function () {
     $this->actingAs($this->member)
         ->get(route('member.statistic', ['range' => '90']))

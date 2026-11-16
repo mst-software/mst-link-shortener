@@ -3,7 +3,7 @@
 @section('title', 'Statistics')
 
 @section('content')
-  <x-member.month-picker :months="$months" :selected="$month" />
+  <x-member.month-picker :months="$months" :selected="$month" :range="$range" />
 
   <h3>Monthly report</h3>
 
