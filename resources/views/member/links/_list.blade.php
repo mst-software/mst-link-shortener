@@ -24,6 +24,14 @@
         <small>
           <i class="fa fa-bar-chart"></i> <a href="{{ route('link.info', $link->alias) }}" target="_blank">Stats</a> -
           <i class="fa fa-calendar"></i> {{ $link->created_at?->format('H:i d/m/Y') }} -
+          @if ($link->isPasswordProtected())
+            <span class="label label-info"><i class="fa fa-lock"></i> Password</span> -
+          @endif
+          @if ($link->isExpired())
+            <span class="label label-danger">Expired</span> -
+          @elseif ($link->expires_at)
+            <span class="label label-default">Expires {{ $link->expires_at->format('H:i d/m/Y') }} UTC</span> -
+          @endif
           <a target="_blank" rel="nofollow noopener noreferrer" href="{{ $link->url }}">{{ $link->url }}</a>
         </small>
       </p>

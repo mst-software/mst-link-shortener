@@ -44,4 +44,28 @@ class LinkFactory extends Factory
     {
         return $this->state(fn (array $attributes) => ['status' => LinkStatus::Banned]);
     }
+
+    /**
+     * Indicate that visitors must enter the given password.
+     */
+    public function passwordProtected(string $password = 'secret-pass'): static
+    {
+        return $this->state(fn (array $attributes) => ['password' => $password]);
+    }
+
+    /**
+     * Indicate that the link expired a day ago.
+     */
+    public function expired(): static
+    {
+        return $this->state(fn (array $attributes) => ['expires_at' => now()->subDay()]);
+    }
+
+    /**
+     * Indicate that the link expires in a week.
+     */
+    public function expiresSoon(): static
+    {
+        return $this->state(fn (array $attributes) => ['expires_at' => now()->addWeek()]);
+    }
 }

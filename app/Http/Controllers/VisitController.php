@@ -9,6 +9,7 @@ use App\Enums\VisitMode;
 use App\Http\Requests\Visit\CheckCaptchaRequest;
 use App\Http\Requests\Visit\ReportLinkRequest;
 use App\Http\Requests\Visit\StepInfoRequest;
+use App\Http\Requests\Visit\UnlockLinkRequest;
 use App\Models\FraudFlag;
 use App\Models\Link;
 use App\Models\VisitSession;
@@ -35,6 +36,11 @@ class VisitController extends Controller
     private const COOKIE_MINUTES = 60 * 24 * 30;
 
     /**
+     * Session key listing the ids of the password protected links this visitor has unlocked.
+     */
+    private const UNLOCKED_SESSION_KEY = 'visit.unlocked_links';
+
+    /**
      * Layout states the local preview can show; the first one of each mode is the default.
      */
     private const PREVIEW_STATES = [
@@ -55,6 +61,14 @@ class VisitController extends Controller
     public function start(Request $request, string $alias): RedirectResponse
     {
         $link = $this->activeLinkOrFail($alias);
+
+        // A protected link starts no session until the visitor has entered its password.
+        if (! $this->isUnlocked($request, $link)) {
+            return redirect()
+                ->route('visit.show', ['alias' => $link->alias])
+                ->header('Cache-Control', 'no-store');
+        }
+
         $context = $this->context($request);
 
         $session = $this->flow->findSession($link, $this->cookieValue($request));
@@ -75,6 +89,13 @@ class VisitController extends Controller
     public function show(Request $request, string $alias): Response
     {
         $link = $this->activeLinkOrFail($alias);
+
+        if (! $this->isUnlocked($request, $link)) {
+            return response()
+                ->view('visit.password', ['alias' => $link->alias])
+                ->header('Cache-Control', 'no-store');
+        }
+
         $captcha = CaptchaProvider::current();
 
         return response()
@@ -87,11 +108,25 @@ class VisitController extends Controller
     }
 
     /**
+     * Let the visitor start the flow once the request has accepted the password of a protected link.
+     */
+    public function unlock(UnlockLinkRequest $request, string $alias): RedirectResponse
+    {
+        $link = $this->activeLinkOrFail($alias);
+
+        if ($link->isPasswordProtected() && ! $this->isUnlocked($request, $link)) {
+            $request->session()->push(self::UNLOCKED_SESSION_KEY, $link->getKey());
+        }
+
+        return redirect()->route('visit.start', ['alias' => $link->alias]);
+    }
+
+    /**
      * Issue the token of the current step, or move to the next step when the dwell time has passed.
      */
     public function info(StepInfoRequest $request): JsonResponse
     {
-        $link = $this->activeLinkOrFail($request->string('alias')->toString());
+        $link = $this->unlockedLinkOrFail($request, $request->string('alias')->toString());
         $sessionId = $this->cookieValue($request);
 
         if ($sessionId === null) {
@@ -118,7 +153,7 @@ class VisitController extends Controller
      */
     public function checkCaptcha(CheckCaptchaRequest $request): JsonResponse
     {
-        $link = $this->activeLinkOrFail($request->string('alias')->toString());
+        $link = $this->unlockedLinkOrFail($request, $request->string('alias')->toString());
         $token = $request->string('token')->toString();
         $fingerprint = $request->filled('fingerprint') ? $request->string('fingerprint')->toString() : null;
         $captchaResponse = $request->filled('captcha_response') ? $request->string('captcha_response')->toString() : null;
@@ -194,7 +229,7 @@ class VisitController extends Controller
      */
     public function report(ReportLinkRequest $request): JsonResponse
     {
-        $link = $this->activeLinkOrFail($request->string('alias')->toString());
+        $link = $this->unlockedLinkOrFail($request, $request->string('alias')->toString());
 
         $context = $this->context($request);
 
@@ -324,6 +359,27 @@ class VisitController extends Controller
         abort_if($link === null, 404);
 
         return $link;
+    }
+
+    /**
+     * Find an active link whose password, if any, this visitor has already entered.
+     */
+    private function unlockedLinkOrFail(Request $request, string $alias): Link
+    {
+        $link = $this->activeLinkOrFail($alias);
+
+        abort_unless($this->isUnlocked($request, $link), 403);
+
+        return $link;
+    }
+
+    private function isUnlocked(Request $request, Link $link): bool
+    {
+        if (! $link->isPasswordProtected()) {
+            return true;
+        }
+
+        return in_array($link->getKey(), (array) $request->session()->get(self::UNLOCKED_SESSION_KEY, []), true);
     }
 
     private function cookieValue(Request $request): ?string

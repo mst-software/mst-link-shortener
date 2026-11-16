@@ -4,6 +4,7 @@ use App\Enums\LinkStatus;
 use App\Models\Link;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -30,6 +31,36 @@ it('returns 422 json for invalid data', function () {
         ->assertStatus(422)->assertJson(['success' => false]);
 });
 
+it('creates a link with a password and an expiry date', function () {
+    $this->actingAs($this->member)
+        ->postJson('/links/shorten', [
+            'url' => 'https://example.com/page',
+            'alias' => 'locked-link',
+            'password' => 'open-sesame',
+            'expires_at' => now()->addDays(3)->format('Y-m-d\TH:i'),
+        ])
+        ->assertOk();
+
+    $link = Link::query()->where('alias', 'locked-link')->first();
+
+    expect(Hash::check('open-sesame', $link->password))->toBeTrue()
+        ->and($link->expires_at->isFuture())->toBeTrue();
+});
+
+it('rejects an invalid link password or expiry date', function (array $data, string $field) {
+    $this->actingAs($this->member)
+        ->postJson('/links/shorten', ['url' => 'https://example.com', ...$data])
+        ->assertStatus(422)
+        ->assertJson(['success' => false])
+        ->assertJsonValidationErrors($field);
+})->with([
+    'password too short' => [['password' => 'abc'], 'password'],
+    'password too long' => [['password' => str_repeat('a', 65)], 'password'],
+    'password over 72 bytes' => [['password' => str_repeat('é', 40)], 'password'],
+    'expiry in the past' => [['expires_at' => '2020-01-01 10:00'], 'expires_at'],
+    'expiry not a date' => [['expires_at' => 'tomorrow-ish'], 'expires_at'],
+]);
+
 it('uses the member default level when ad_type is missing', function () {
     $member = User::factory()->create(['default_level' => 3]);
 
@@ -48,6 +79,16 @@ it('lists only the member links and filters by alias', function () {
 
     $this->actingAs($this->member)->post('/member/links', ['filter' => ['alias' => 'mine']])
         ->assertOk()->assertSee('mine-one')->assertDontSee('other-two')->assertDontSee('mine-three');
+});
+
+it('shows password and expiry badges in the link list', function () {
+    Link::factory()->for($this->member)->passwordProtected()->expired()->create(['alias' => 'old-locked']);
+    Link::factory()->for($this->member)->create(['alias' => 'later-one', 'expires_at' => now()->addWeek()]);
+    Link::factory()->for($this->member)->create(['alias' => 'plain-one']);
+
+    $this->actingAs($this->member)->get('/member/links')
+        ->assertOk()
+        ->assertSeeInOrder(['plain-one', 'later-one', 'Expires', 'UTC', 'old-locked', 'Password', 'Expired']);
 });
 
 it('hides and restores a link', function () {

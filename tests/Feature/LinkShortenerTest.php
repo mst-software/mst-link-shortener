@@ -8,6 +8,7 @@ use App\Services\LinkShortener;
 use App\Services\Settings;
 use App\Support\Alias;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -118,3 +119,23 @@ it('belongs to its owner', function () {
 
     expect($link->user->is($this->user))->toBeTrue();
 });
+
+it('stores a hashed password and an expiry date', function () {
+    $expiresAt = now()->addWeek()->startOfSecond();
+
+    $link = $this->shortener->create($this->user, 'https://example.com', null, password: 'open-sesame', expiresAt: $expiresAt);
+
+    expect($link->password)->not->toBe('open-sesame')
+        ->and(Hash::check('open-sesame', $link->password))->toBeTrue()
+        ->and($link->expires_at->equalTo($expiresAt))->toBeTrue();
+});
+
+it('stores no password when an empty one is given', function () {
+    $link = $this->shortener->create($this->user, 'https://example.com', null, password: '');
+
+    expect($link->isPasswordProtected())->toBeFalse();
+});
+
+it('rejects an expiry date in the past', function () {
+    $this->shortener->create($this->user, 'https://example.com', null, expiresAt: now()->subMinute());
+})->throws(InvalidLinkException::class, 'The expiry date must be in the future.');

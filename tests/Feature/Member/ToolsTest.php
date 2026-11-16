@@ -31,6 +31,16 @@ it('creates a link for the token owner through quick link with the default level
         ->and($response->getContent())->toBe(url($link->alias));
 });
 
+it('ignores password and expiry parameters on the quick link', function () {
+    $this->get("/st?api={$this->member->api_token}&url=https://example.com/q&password=open-sesame&expires_at=2020-01-01")
+        ->assertOk();
+
+    $link = Link::query()->where('user_id', $this->member->id)->firstOrFail();
+
+    expect($link->password)->toBeNull()
+        ->and($link->expires_at)->toBeNull();
+});
+
 it('mass shrinks every line with the default level', function () {
     $this->actingAs($this->member)
         ->post('/member/tools/mass-shrinker', ['urls' => "https://example.com/1\nhttps://example.com/2"])

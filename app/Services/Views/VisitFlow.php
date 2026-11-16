@@ -41,13 +41,14 @@ class VisitFlow
     ) {}
 
     /**
-     * Find a link that visitors may open; hidden and banned links are treated as missing.
+     * Find a link that visitors may open; hidden, banned and expired links are treated as missing.
      */
     public function findActiveLink(string $alias): ?Link
     {
         return Link::query()
             ->where('alias', $alias)
             ->where('status', LinkStatus::Active)
+            ->notExpired()
             ->first();
     }
 
