@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\Settings;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
@@ -103,3 +104,30 @@ test('an unknown ref cookie leaves referred_by empty', function () {
 
     expect(User::query()->where('username', 'newmember')->value('referred_by'))->toBeNull();
 });
+
+test('closed sign-ups show a message instead of the sign-up forms', function (string $route) {
+    Settings::set('registration_open', '0');
+
+    $this->get(route($route))
+        ->assertOk()
+        ->assertSee('Sign-ups are closed at the moment. Please check back later.')
+        ->assertDontSee('id="signup-form"', false);
+})->with(['register', 'advertiser.register']);
+
+test('closed sign-ups refuse new members and advertisers', function (string $route) {
+    Settings::set('registration_open', '0');
+
+    $this->post(route($route), registrationData())
+        ->assertForbidden()
+        ->assertSee('Sign-ups are closed at the moment.');
+
+    expect(User::query()->count())->toBe(0);
+    $this->assertGuest();
+})->with(['register', 'advertiser.register']);
+
+test('open sign-ups show the sign-up forms', function (string $route) {
+    $this->get(route($route))
+        ->assertOk()
+        ->assertSee('id="signup-form"', false)
+        ->assertDontSee('Sign-ups are closed');
+})->with(['register', 'advertiser.register']);

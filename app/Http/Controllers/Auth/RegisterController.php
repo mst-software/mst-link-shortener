@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Services\Settings;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ class RegisterController extends Controller
 {
     public function show(): View
     {
-        return view('auth.register');
+        return view('auth.register', ['registrationOpen' => Settings::bool('registration_open')]);
     }
 
     public function store(RegisterRequest $request): RedirectResponse

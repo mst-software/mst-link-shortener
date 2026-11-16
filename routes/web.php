@@ -24,7 +24,7 @@ Route::get('blog', [BlogController::class, 'index'])->name('blog');
 Route::get('auth/signin', [LoginController::class, 'show'])->name('login');
 Route::post('auth/signin', [LoginController::class, 'store']);
 Route::get('auth/signup', [RegisterController::class, 'show'])->name('register');
-Route::post('auth/signup', [RegisterController::class, 'store'])->middleware('throttle:register');
+Route::post('auth/signup', [RegisterController::class, 'store'])->middleware(['registration-open', 'throttle:register']);
 Route::post('auth/signout', LogoutController::class)->name('logout');
 Route::get('auth/forgot-password', [ForgotPasswordController::class, 'show'])->name('password.request');
 Route::post('auth/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');

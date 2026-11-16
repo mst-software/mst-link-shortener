@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRegistrationIsOpen;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsAdvertiser;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'advertiser' => EnsureUserIsAdvertiser::class,
             'not-advertiser' => EnsureUserIsNotAdvertiser::class,
+            'registration-open' => EnsureRegistrationIsOpen::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
