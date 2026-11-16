@@ -103,6 +103,14 @@ it('keeps the range when changing the month and the month when changing the rang
         ], false);
 });
 
+it('labels the breakdowns with the rolling day range rather than the selected month', function () {
+    $this->actingAs($this->member)
+        ->get(route('member.statistic', ['month' => '09/2026', 'range' => '7']))
+        ->assertOk()
+        ->assertSee('View breakdowns: last 7 days (UTC)')
+        ->assertSee('regardless of the month selected above');
+});
+
 it('shows empty states and the retention notice when there are no views', function () {
     $this->actingAs($this->member)
         ->get(route('member.statistic', ['range' => '90']))

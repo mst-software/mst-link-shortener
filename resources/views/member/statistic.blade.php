@@ -68,7 +68,8 @@
     </div>
   </div>
 
-  <h3 id="breakdowns">View breakdowns</h3>
+  <h3 id="breakdowns">View breakdowns: last {{ $range }} days (UTC)</h3>
+  <p class="text-muted small">This section always covers the last {{ $range }} days up to now, regardless of the month selected above.</p>
 
   <div class="text-center">
     <form method="get" action="{{ route('member.statistic') }}#breakdowns" class="form form-inline" style="margin: 10px auto;">
