@@ -8,10 +8,35 @@ class Money
 
     /**
      * Convert a USD amount to micro-USD (1 USD = 1,000,000 micro-USD).
+     *
+     * Plain decimal strings (what forms send) are converted digit by digit, so no float rounding
+     * is involved; digits after the sixth decimal are rounded half up. Floats are first written
+     * with six decimals, and other numeric strings (such as "1e3") fall back to that float path.
      */
     public static function toMicro(string|int|float $usd): int
     {
-        return (int) round((float) $usd * self::MICRO_PER_USD);
+        if (is_int($usd)) {
+            return $usd * self::MICRO_PER_USD;
+        }
+
+        if (is_float($usd)) {
+            $usd = sprintf('%.6F', $usd);
+        }
+
+        $usd = trim($usd);
+
+        if (preg_match('/^([+-]?)(\d*)(?:\.(\d*))?$/', $usd, $parts) !== 1 || ($parts[2] === '' && ($parts[3] ?? '') === '')) {
+            return is_numeric($usd) ? self::toMicro((float) $usd) : 0;
+        }
+
+        $fraction = str_pad($parts[3] ?? '', 7, '0');
+        $micro = (int) $parts[2] * self::MICRO_PER_USD + (int) substr($fraction, 0, 6);
+
+        if ((int) $fraction[6] >= 5) {
+            $micro++;
+        }
+
+        return $parts[1] === '-' ? -$micro : $micro;
     }
 
     /**

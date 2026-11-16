@@ -51,12 +51,18 @@ class ViewRecorder
             return $existing;
         }
 
+        $link = Link::query()->with('user:id,status')->findOrFail($locked->link_id);
+
+        // The owner may have been banned while this visit was in progress: record it, but unpaid.
+        if ($reason === null && $link->user?->isActive() !== true) {
+            $reason = InvalidReason::OwnerBanned;
+        }
+
         if ($reason === null && ! $this->claimDedup($locked)) {
             $reason = InvalidReason::Duplicate;
         }
 
         $isValid = $reason === null;
-        $link = Link::query()->findOrFail($locked->link_id);
         $campaign = $locked->mode === VisitMode::Keyword && $locked->campaign_id !== null
             ? Campaign::query()->with('owner')->find($locked->campaign_id)
             : null;

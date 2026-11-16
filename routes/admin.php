@@ -14,3 +14,4 @@ require __DIR__.'/admin-ads.php';
 require __DIR__.'/admin-security.php';
 require __DIR__.'/admin-campaigns.php';
 require __DIR__.'/admin-advertisers.php';
+require __DIR__.'/admin-users.php';
