@@ -88,6 +88,17 @@
     <section class="content">
       <x-member.shorten-box :default-level="$member->default_level" />
 
+      @unless ($member->hasVerifiedEmail())
+        <div class="alert alert-warning" id="verify-email-banner">
+          <form method="post" action="{{ route('verification.send') }}" class="pull-right">
+            @csrf
+            <button type="submit" class="btn btn-default btn-sm">Resend verification email</button>
+          </form>
+          <i class="icon fa fa-envelope"></i>
+          Please verify your email address <strong>{{ $member->email }}</strong>. You need a verified email to request withdrawals or change your email or password.
+        </div>
+      @endunless
+
       @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif

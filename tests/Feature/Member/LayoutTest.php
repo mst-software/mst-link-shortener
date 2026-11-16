@@ -128,3 +128,18 @@ test('member pages contain no vietnamese text', function () {
     expect($this->actingAs(User::factory()->create())->get(route('member.dashboard'))->getContent())
         ->not->toMatch('/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/iu');
 });
+
+test('an unverified member sees the verification banner with a resend button', function () {
+    $this->actingAs(User::factory()->unverified()->create())
+        ->get(route('member.dashboard'))
+        ->assertOk()
+        ->assertSee('id="verify-email-banner"', false)
+        ->assertSee(route('verification.send'), false);
+});
+
+test('a verified member does not see the verification banner', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('member.dashboard'))
+        ->assertOk()
+        ->assertDontSee('id="verify-email-banner"', false);
+});
