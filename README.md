@@ -96,8 +96,14 @@ Add one cron entry for the web server user:
 ```
 
 It runs view aggregation (every 5 minutes), SePay sync (every minute), fraud scan (hourly), earnings release,
-old view purge and the database backup (daily). `php artisan schedule:health` and the admin dashboard show when each
-job last succeeded.
+old view purge, sign-in history purge and the database backup (daily). `php artisan schedule:health` and the admin
+dashboard show when each job last succeeded.
+
+Sign-in history: every sign-up and sign-in stores the IP address, a SHA-256 hash of the browser user agent, the user
+agent trimmed to 255 characters and the country (from `CF-IPCountry`, when trusted) in `user_logins`. Nothing else is
+stored and nothing is sent to third parties. Admins see related accounts on the user page and
+`multi_account_referral` fraud flags; nobody is banned automatically. `logins:purge` deletes rows older than the
+"Sign-in history retention" setting (Admin > Settings > Traffic and earnings, default 90 days).
 
 ### 4. Cloudflare and reverse proxies
 
