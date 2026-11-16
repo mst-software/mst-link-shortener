@@ -69,6 +69,25 @@ it('stops a running session once its link expires', function () {
     stepInfoRequest($session)->assertNotFound();
 });
 
+it('refuses to finish or report a link once it expires', function () {
+    $this->link->update(['expires_at' => now()->addMinute()]);
+    $session = openShortLink();
+    $token = stepInfoRequest($session)->json('token');
+
+    Carbon::setTestNow(now()->addMinutes(2));
+
+    $this->withCredentials()
+        ->withCookie(VisitController::COOKIE, $session->getKey())
+        ->postJson(route('visit.check-captcha'), ['alias' => 'Ab3xYz', 'token' => $token, 'fingerprint' => VISIT_FLOW_FINGERPRINT, 'captcha_response' => 'ok'])
+        ->assertNotFound()
+        ->assertJsonMissingPath('destination');
+
+    $this->postJson(route('visit.report'), ['alias' => 'Ab3xYz', 'reason' => 'other', 'captcha_response' => 'ok'])
+        ->assertNotFound();
+
+    expect(FraudFlag::query()->count())->toBe(0);
+});
+
 it('redirects a short link to the visit page with a session cookie and no caching', function () {
     $response = $this->get('/Ab3xYz');
 
