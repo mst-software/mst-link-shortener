@@ -58,6 +58,7 @@ class ScheduleHealth
 
     /**
      * Record the outcome of a scheduled artisan command after each run.
+     * A heartbeat that cannot be written is reported, never allowed to break the scheduler run.
      */
     public static function monitor(Event $event): void
     {
@@ -67,11 +68,11 @@ class ScheduleHealth
             return;
         }
 
-        $event->onSuccess(fn (ScheduleHealth $health) => $health->recordSuccess($command))
+        $event->onSuccess(fn (ScheduleHealth $health) => rescue(fn () => $health->recordSuccess($command)))
             ->onFailureWithOutput(function (Stringable $output, ScheduleHealth $health) use ($event, $command): void {
                 $message = trim((string) $output) !== '' ? (string) $output : 'Exited with code '.$event->exitCode.'.';
 
-                $health->recordFailure($command, $message);
+                rescue(fn () => $health->recordFailure($command, $message));
             });
     }
 

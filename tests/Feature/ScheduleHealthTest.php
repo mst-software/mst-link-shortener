@@ -7,6 +7,8 @@ use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Exceptions;
+use Mockery\MockInterface;
 
 uses(RefreshDatabase::class);
 
@@ -87,6 +89,21 @@ it('records the time and output of a failed scheduled run', function (): void {
         ->and($job['last_success_at']->equalTo(now()->subMinutes(2)))->toBeTrue()
         ->and($job['status'])->toBe(ScheduleStatus::Failed);
 });
+
+it('reports a heartbeat that cannot be written instead of failing the scheduler run', function (bool $succeeded): void {
+    Exceptions::fake();
+    $this->mock(ScheduleHealth::class, function (MockInterface $health): void {
+        $health->shouldReceive('recordSuccess', 'recordFailure')->andThrow(new RuntimeException('Database went away.'));
+    });
+    $event = scheduledEvent('views:aggregate');
+    $event->output = tempnam(sys_get_temp_dir(), 'schedule');
+    $event->exitCode = $succeeded ? 0 : 1;
+
+    $event->callAfterCallbacks(app());
+    unlink($event->output);
+
+    Exceptions::assertReported(fn (RuntimeException $exception): bool => $exception->getMessage() === 'Database went away.');
+})->with(['success' => true, 'failure' => false]);
 
 it('falls back to the exit code when a failed run printed nothing', function (): void {
     $event = scheduledEvent('sepay:sync');
