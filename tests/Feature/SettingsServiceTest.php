@@ -4,6 +4,7 @@ use App\Models\Setting;
 use App\Services\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 
 uses(RefreshDatabase::class);
 
@@ -39,6 +40,54 @@ it('clears the cache when a value is set', function (): void {
 
     expect(Cache::has('settings.all'))->toBeFalse()
         ->and(Settings::int('alias_length'))->toBe(8);
+});
+
+it('stores secret settings encrypted and reads them back in plain text', function (): void {
+    Settings::set('paypal_secret', 'paypal-secret-value');
+
+    $stored = Setting::query()->where('key', 'paypal_secret')->value('value');
+
+    expect($stored)->not->toBe('paypal-secret-value')
+        ->and(Crypt::decryptString($stored))->toBe('paypal-secret-value')
+        ->and(Settings::get('paypal_secret'))->toBe('paypal-secret-value');
+});
+
+it('stores non-secret settings in plain text', function (): void {
+    Settings::set('paypal_client_id', 'client-id');
+
+    $this->assertDatabaseHas('settings', ['key' => 'paypal_client_id', 'value' => 'client-id']);
+});
+
+it('still reads a legacy plain-text secret', function (): void {
+    Setting::factory()->create(['key' => 'turnstile_secret_key', 'value' => 'legacy-plain-secret']);
+
+    expect(Settings::get('turnstile_secret_key'))->toBe('legacy-plain-secret');
+});
+
+it('forgets a stored setting so the default applies again', function (): void {
+    Settings::set('dwell_seconds', 20);
+    Settings::forget('dwell_seconds');
+
+    expect(Settings::int('dwell_seconds'))->toBe(10)
+        ->and(Settings::has('dwell_seconds'))->toBeFalse();
+});
+
+it('encrypts legacy plain-text secrets in the data migration and leaves encrypted ones alone', function (): void {
+    Setting::factory()->create(['key' => 'hcaptcha_secret_key', 'value' => 'legacy-plain-secret']);
+    Settings::set('recaptcha_secret_key', 'already-encrypted');
+    $encrypted = Setting::query()->where('key', 'recaptcha_secret_key')->value('value');
+    Setting::factory()->create(['key' => 'hcaptcha_site_key', 'value' => 'public-site-key']);
+
+    $migration = require database_path('migrations/2026_11_16_004016_encrypt_secret_settings.php');
+    $migration->up();
+
+    $hcaptcha = Setting::query()->where('key', 'hcaptcha_secret_key')->value('value');
+
+    expect($hcaptcha)->not->toBe('legacy-plain-secret')
+        ->and(Crypt::decryptString($hcaptcha))->toBe('legacy-plain-secret')
+        ->and(Setting::query()->where('key', 'recaptcha_secret_key')->value('value'))->toBe($encrypted)
+        ->and(Setting::query()->where('key', 'hcaptcha_site_key')->value('value'))->toBe('public-site-key')
+        ->and(Settings::get('hcaptcha_secret_key'))->toBe('legacy-plain-secret');
 });
 
 it('exposes the project defaults in config', function (): void {
