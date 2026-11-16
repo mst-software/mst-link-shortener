@@ -188,21 +188,30 @@ class UserAccountService
      */
     public function markEmailVerified(User $admin, User $user, ?string $reason = null): void
     {
-        if ($user->hasVerifiedEmail()) {
-            throw ValidationException::withMessages(['user' => 'This email address is already verified.']);
-        }
+        DB::transaction(function () use ($admin, $user, $reason): void {
+            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
 
-        $user->markEmailAsVerified();
+            if ($locked->hasVerifiedEmail()) {
+                throw ValidationException::withMessages(['user' => 'This email address is already verified.']);
+            }
+
+            $locked->markEmailAsVerified();
+
+            $this->audit->record($admin, AdminAction::EmailVerified, $locked, $reason,
+                ['email_verified_at' => null],
+                ['email_verified_at' => $locked->email_verified_at?->toDateTimeString()],
+            );
+        });
+
+        $user->refresh();
+
         event(new Verified($user));
-
-        $this->audit->record($admin, AdminAction::EmailVerified, $user, $reason,
-            ['email_verified_at' => null],
-            ['email_verified_at' => $user->email_verified_at?->toDateTimeString()],
-        );
     }
 
     /**
-     * Send the user a new email verification link.
+     * Send the user a new email verification link. The audit row is written first and the mail is
+     * sent inside the same transaction, so a mail that fails to send also removes its audit row
+     * and a sent mail is never left unaudited.
      *
      * @throws ValidationException
      */
@@ -212,25 +221,30 @@ class UserAccountService
             throw ValidationException::withMessages(['user' => 'This email address is already verified.']);
         }
 
-        $user->sendEmailVerificationNotification();
+        DB::transaction(function () use ($admin, $user, $reason): void {
+            $this->audit->record($admin, AdminAction::VerificationEmailSent, $user, $reason, [], ['email' => $user->email]);
 
-        $this->audit->record($admin, AdminAction::VerificationEmailSent, $user, $reason, [], ['email' => $user->email]);
+            $user->sendEmailVerificationNotification();
+        });
     }
 
     /**
      * Send the user a password reset link, using the same broker as the forgot password page.
+     * Like the verification mail, the audit row is written first and rolled back when nothing was sent.
      *
      * @throws ValidationException
      */
     public function sendPasswordResetLink(User $admin, User $user, ?string $reason = null): void
     {
-        $status = Password::sendResetLink(['email' => $user->email]);
+        DB::transaction(function () use ($admin, $user, $reason): void {
+            $this->audit->record($admin, AdminAction::PasswordResetSent, $user, $reason, [], ['email' => $user->email]);
 
-        if ($status !== Password::RESET_LINK_SENT) {
-            throw ValidationException::withMessages(['user' => __($status)]);
-        }
+            $status = Password::sendResetLink(['email' => $user->email]);
 
-        $this->audit->record($admin, AdminAction::PasswordResetSent, $user, $reason, [], ['email' => $user->email]);
+            if ($status !== Password::RESET_LINK_SENT) {
+                throw ValidationException::withMessages(['user' => __($status)]);
+            }
+        });
     }
 
     /**
