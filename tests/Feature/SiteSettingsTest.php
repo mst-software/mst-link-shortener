@@ -49,3 +49,37 @@ test('without a support email the legal pages point to the contact form', functi
         ->assertDontSee('yourdomain.com')
         ->assertSee(route('home').'#contact', false);
 })->with(['terms', 'privacy']);
+
+test('the footer shows only the social links and support email that are filled in', function () {
+    Settings::set('support_email', 'help@shortpay.test');
+    Settings::set('social_telegram', 'https://t.me/shortpay');
+    Settings::set('social_facebook', '');
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('Contact us')
+        ->assertSee('href="https://t.me/shortpay"', false)
+        ->assertSee('mailto:help@shortpay.test', false)
+        ->assertDontSee('>Facebook</a>', false);
+});
+
+test('the footer has no contact block when nothing is filled in', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertDontSee('Contact us');
+});
+
+test('the notice message is shown as an escaped banner on public and sign-in pages', function (string $route) {
+    Settings::set('maintenance_message', 'Payouts are delayed <b>until Monday</b>.');
+
+    $this->get(route($route))
+        ->assertOk()
+        ->assertSee('class="site-notice"', false)
+        ->assertSee('Payouts are delayed &lt;b&gt;until Monday&lt;/b&gt;.', false);
+})->with(['home', 'login']);
+
+test('no banner is shown without a notice message', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertDontSee('class="site-notice"', false);
+});

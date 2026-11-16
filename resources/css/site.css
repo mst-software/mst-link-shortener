@@ -307,6 +307,10 @@ footer { position: relative; padding: 0; background: radial-gradient(40rem 20rem
 .footer-links li { margin-bottom: 10px; }
 .footer-links a { font-size: 15px; color: rgb(255 255 255 / .72); transition: color .2s; }
 .footer-links a:hover { color: #fff; }
+.footer-brand .footer-contact-label { margin-top: 24px; }
+.footer-contact { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0; padding: 0; list-style: none; }
+.footer-contact a { font-size: 15px; color: rgb(255 255 255 / .72); overflow-wrap: anywhere; transition: color .2s; }
+.footer-contact a:hover { color: #fff; }
 .footer-bottom { padding: 22px 0; border-top: 1px solid rgb(255 255 255 / .1); font-size: 14px; color: rgb(255 255 255 / .6); }
 .dev-credit a { font-weight: 600; color: var(--color-lime2); border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
 .dev-credit a:hover { color: #fff; border-bottom-color: #fff; }

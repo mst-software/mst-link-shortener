@@ -11,6 +11,17 @@
             <img src="{{ Vite::asset('resources/images/paypal.png') }}" alt="PayPal">
             <img src="{{ Vite::asset('resources/images/bitcoin.png') }}" alt="Bitcoin">
           </div>
+          @if ($supportEmail !== '' || $socialLinks !== [])
+            <p class="footer-label footer-contact-label">Contact us</p>
+            <ul class="footer-contact">
+              @if ($supportEmail !== '')
+                <li><a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a></li>
+              @endif
+              @foreach ($socialLinks as $label => $url)
+                <li><a href="{{ $url }}" target="_blank" rel="noopener noreferrer">{{ $label }}</a></li>
+              @endforeach
+            </ul>
+          @endif
         </div>
         <div class="w-1/2 md:w-3/12 px-[15px] mb-8">
           <h2 class="footer-heading">Quick links</h2>

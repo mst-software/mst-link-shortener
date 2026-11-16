@@ -20,6 +20,8 @@
 
 <x-site.footer />
 
+<x-site.notice-banner />
+
 @stack('scripts')
 </body>
 </html>

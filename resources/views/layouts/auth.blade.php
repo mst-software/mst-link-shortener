@@ -21,5 +21,7 @@
   </div>
 </div>
 
+<x-site.notice-banner />
+
 </body>
 </html>
