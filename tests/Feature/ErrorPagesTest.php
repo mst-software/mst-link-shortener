@@ -42,6 +42,24 @@ it('shows the message an access denial was given for visitors', function () {
     $this->get('testing/closed')->assertForbidden()->assertSee('Sign-ups are &lt;closed&gt;.', false);
 });
 
+it('renders the error pages with inline styling when the frontend build is missing', function (string $url, int $status, string $title) {
+    $publicPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.'error-pages-public-'.bin2hex(random_bytes(4));
+    mkdir($publicPath);
+    $this->app->usePublicPath($publicPath);
+    $this->withVite();
+
+    $this->get($url)
+        ->assertStatus($status)
+        ->assertSee($title)
+        ->assertSee('<style>', false)
+        ->assertDontSee('/build/', false);
+
+    rmdir($publicPath);
+})->with([
+    'not found' => ['testing/no/such/page', 404, 'Page not found'],
+    'server error' => ['testing/crash', 500, 'Something went wrong'],
+]);
+
 it('renders the not found page for an unknown address', function () {
     $this->get('testing/no/such/page')->assertNotFound()->assertSee('Page not found');
 });
