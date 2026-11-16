@@ -13,6 +13,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\TrustProxies as BaseTrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\AuthenticateSession;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -34,7 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
         $middleware->append(SecurityHeaders::class);
         $middleware->validateCsrfTokens(except: ['widget/*']);
-        $middleware->web(append: [CheckMaintenanceMode::class]);
+        // AuthenticateSession signs out every other session once the password changes.
+        $middleware->web(append: [AuthenticateSession::class, CheckMaintenanceMode::class]);
         $middleware->api(append: [CheckMaintenanceMode::class]);
 
         $middleware->alias([

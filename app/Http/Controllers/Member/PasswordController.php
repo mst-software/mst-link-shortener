@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Member;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\ChangePasswordRequest;
 use App\Models\User;
+use App\Services\AccountCredentialService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -15,13 +16,12 @@ class PasswordController extends Controller
         return view('member.user.change-password');
     }
 
-    public function update(ChangePasswordRequest $request): RedirectResponse
+    public function update(ChangePasswordRequest $request, AccountCredentialService $credentials): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
 
-        $user->update(['password' => $request->validated('password')]);
-        $user->trustedDevices()->delete();
+        $credentials->changePassword($user, $request->validated('password'));
 
         return redirect()->route('member.user.change-password')->with('success', 'Saved.');
     }
