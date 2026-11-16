@@ -73,7 +73,7 @@
             <label for="{{ $name }}">{{ $label }} (optional)</label>
             @if ($campaign->{$name})
               <div style="margin-bottom: 8px">
-                <img src="{{ Storage::disk('public')->url($campaign->{$name}) }}" alt="{{ $label }}" style="max-width: 240px; max-height: 160px">
+                <img src="{{ \App\Support\MediaStorage::url($campaign->{$name}) }}" alt="{{ $label }}" style="max-width: 240px; max-height: 160px">
                 <label class="checkbox-inline" style="margin-left: 12px">
                   <input type="checkbox" name="remove_{{ $name }}" value="1"> Remove
                 </label>
@@ -83,6 +83,8 @@
             <span class="help-block">@error($name){{ $message }}@else{{ $help }} JPG, PNG or WebP, up to 1 MB.@enderror</span>
           </div>
         @endforeach
+        <p class="help-block">Images larger than 1 MB are refused. Each image is checked and saved as WebP.</p>
+        <x-upload-limit-note :max-kilobytes="1024" />
 
         <div class="form-group @error('notes') has-error @enderror">
           <label for="notes">Notes (optional)</label>

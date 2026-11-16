@@ -16,8 +16,8 @@ use App\Services\Settings;
 use App\Services\Visits\CampaignSelector;
 use App\Services\Visits\CodeRedeemer;
 use App\Services\Visits\CodeResult;
+use App\Support\MediaStorage;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Server side state machine of the visitor page.
@@ -370,19 +370,14 @@ class VisitFlow
                 'keyword' => $campaign->keyword,
                 'display_domain' => $campaign->display_domain,
                 'images' => [
-                    'google' => $this->imageUrl($campaign->image_google),
-                    'button' => $this->imageUrl($campaign->image_button),
-                    'position' => $this->imageUrl($campaign->image_position),
+                    'google' => MediaStorage::url($campaign->image_google),
+                    'button' => MediaStorage::url($campaign->image_button),
+                    'position' => MediaStorage::url($campaign->image_position),
                 ],
                 'session_seconds_left' => $this->sessionSecondsLeft($session),
                 'tutorial_video_url' => (string) Settings::get('tutorial_video_url', ''),
             ],
         );
-    }
-
-    private function imageUrl(?string $path): ?string
-    {
-        return $path !== null && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /**

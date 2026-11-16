@@ -31,6 +31,7 @@ class Settings
         'mail_password',
         'paypal_secret',
         'sepay_api_token',
+        's3_secret',
     ];
 
     /**

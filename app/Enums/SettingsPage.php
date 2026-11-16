@@ -12,19 +12,23 @@ namespace App\Enums;
 enum SettingsPage: string
 {
     case General = 'general';
+    case Appearance = 'appearance';
     case Email = 'email';
     case Payments = 'payments';
     case Traffic = 'traffic';
     case Captcha = 'captcha';
+    case Storage = 'storage';
 
     public function label(): string
     {
         return match ($this) {
             self::General => 'General',
+            self::Appearance => 'Appearance',
             self::Email => 'Email',
             self::Payments => 'Payments',
             self::Traffic => 'Traffic and earnings',
             self::Captcha => 'Captcha',
+            self::Storage => 'File storage',
         };
     }
 
@@ -35,10 +39,12 @@ enum SettingsPage: string
     {
         return match ($this) {
             self::General => 'globe',
+            self::Appearance => 'paint-brush',
             self::Email => 'envelope',
             self::Payments => 'credit-card',
             self::Traffic => 'chart-line',
             self::Captcha => 'shield-alt',
+            self::Storage => 'hdd',
         };
     }
 

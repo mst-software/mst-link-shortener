@@ -3,7 +3,7 @@
     <div class="container">
       <div class="flex flex-wrap -mx-[15px]">
         <div class="w-full md:w-5/12 px-[15px] mb-10 footer-brand">
-          <a href="{{ route('home') }}"><img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}" class="h-[40px] w-auto"></a>
+          <a href="{{ route('home') }}"><img src="{{ \App\Services\Branding::imageUrl(\App\Enums\BrandAsset::LogoDark) }}" alt="{{ config('app.name') }}" class="h-[40px] w-auto"></a>
           <p>Shorten your links, share them anywhere and get paid for every valid view. Clear rates, fast payouts and a support team that answers.</p>
           <p class="footer-label">We pay via</p>
           <div class="pay-icons">

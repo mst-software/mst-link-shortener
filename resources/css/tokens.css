@@ -22,6 +22,8 @@
     --color-brand-800: #034f12;
     --color-brand-900: #023a0e;
     --color-brand-950: #01240a;
+    /* Text on --color-brand-600; the admin brand colour switches it to dark for light colours */
+    --color-brand-contrast: #fff;
 
     /* Neutrals with a slight green tint */
     --color-ink: #0f1f15;

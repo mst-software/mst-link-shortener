@@ -81,9 +81,7 @@ class CampaignController extends Controller
         $campaign = new Campaign($this->attributes($request));
         $campaign->widget_key = Campaign::generateWidgetKey();
 
-        $this->applyCampaignImages($request, $campaign);
-
-        $campaign->save();
+        $this->saveCampaignWithImages($request, $campaign);
 
         return redirect()->route('admin.campaigns.edit', $campaign)->with('success', 'Campaign created.');
     }
@@ -97,9 +95,7 @@ class CampaignController extends Controller
     {
         $campaign->fill($this->attributes($request));
 
-        $this->applyCampaignImages($request, $campaign);
-
-        $campaign->save();
+        $this->saveCampaignWithImages($request, $campaign);
 
         return redirect()->route('admin.campaigns.edit', $campaign)
             ->with('success', 'Campaign updated.')

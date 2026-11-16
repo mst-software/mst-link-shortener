@@ -107,6 +107,90 @@ test('instruction images are stored on the public disk', function () {
     Storage::disk('public')->assertExists($path);
 });
 
+test('instruction images are converted to webp and replacing one deletes the old file', function () {
+    Storage::fake('public');
+    $campaign = Campaign::factory()->create(['image_google' => 'campaigns/legacyimage.png']);
+    Storage::disk('public')->put('campaigns/legacyimage.png', 'old');
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.campaigns.edit', $campaign))
+        ->assertSee(Storage::disk('public')->url('campaigns/legacyimage.png'));
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.campaigns.update', $campaign), campaignPayload(['image_google' => UploadedFile::fake()->image('google.png')]))
+        ->assertSessionHasNoErrors();
+
+    expect($campaign->refresh()->image_google)->toMatch('#^campaigns/[A-Za-z0-9]{40}\.webp$#');
+    Storage::disk('public')->assertMissing('campaigns/legacyimage.png');
+    Storage::disk('public')->assertExists($campaign->image_google);
+});
+
+test('instruction images go to the s3 disk when it is selected', function () {
+    Storage::fake('public');
+    Storage::fake('s3');
+    Settings::set('upload_disk', 's3');
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.campaigns.store'), campaignPayload(['image_google' => UploadedFile::fake()->image('google.png')]))
+        ->assertRedirect();
+
+    $reference = Campaign::query()->sole()->image_google;
+
+    expect($reference)->toStartWith('s3:campaigns/');
+    Storage::disk('s3')->assertExists(substr($reference, 3));
+    expect(Storage::disk('public')->allFiles())->toBeEmpty();
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.campaigns.update', Campaign::query()->sole()), campaignPayload(['remove_image_google' => '1']))
+        ->assertSessionHasNoErrors();
+
+    Storage::disk('s3')->assertMissing(substr($reference, 3));
+});
+
+test('the campaign forms explain the image upload limit', function () {
+    $this->actingAs($this->admin)->get(route('admin.campaigns.create'))->assertOk()->assertSee('Images larger than 1 MB are refused.');
+    $this->actingAs(User::factory()->advertiser()->create())->get(route('advertiser.campaigns.create'))->assertOk()->assertSee('Images larger than 1 MB are refused.');
+});
+
+test('a rejected image keeps the campaign, its old images and no new files', function () {
+    Storage::fake('public');
+    $campaign = Campaign::factory()->create([
+        'name' => 'Original name',
+        'image_google' => 'campaigns/oldgoogle.png',
+        'image_button' => 'campaigns/oldbutton.png',
+    ]);
+    Storage::disk('public')->put('campaigns/oldgoogle.png', 'old google');
+    Storage::disk('public')->put('campaigns/oldbutton.png', 'old button');
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.campaigns.update', $campaign), campaignPayload([
+            'name' => 'Renamed',
+            'image_google' => UploadedFile::fake()->image('google.png'),
+            'image_button' => UploadedFile::fake()->createWithContent('button.png', "\x89PNG\r\n\x1a\n".'broken'),
+        ]))
+        ->assertSessionHasErrors('image_button');
+
+    $campaign->refresh();
+
+    expect($campaign->name)->toBe('Original name')
+        ->and($campaign->image_google)->toBe('campaigns/oldgoogle.png')
+        ->and($campaign->image_button)->toBe('campaigns/oldbutton.png')
+        ->and(Storage::disk('public')->allFiles('campaigns'))->toEqualCanonicalizing(['campaigns/oldgoogle.png', 'campaigns/oldbutton.png']);
+});
+
+test('an image that passes the form rules but cannot be decoded is rejected', function () {
+    Storage::fake('public');
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.campaigns.store'), campaignPayload([
+            'image_google' => UploadedFile::fake()->createWithContent('google.png', "\x89PNG\r\n\x1a\n".'<?php echo 1; ?>'),
+        ]))
+        ->assertSessionHasErrors('image_google');
+
+    expect(Campaign::query()->count())->toBe(0)
+        ->and(Storage::disk('public')->allFiles())->toBeEmpty();
+});
+
 test('images with the wrong format or size are rejected', function () {
     Storage::fake('public');
 
