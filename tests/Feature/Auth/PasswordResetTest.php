@@ -17,6 +17,24 @@ test('a reset link notification is sent to a registered email', function () {
     Notification::assertSentTo($user, ResetPassword::class);
 });
 
+test('the reset email explains the request and links to the reset page', function () {
+    Notification::fake();
+    $user = User::factory()->create();
+
+    $this->post(route('password.email'), ['email' => $user->email]);
+
+    Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
+        $mail = $notification->toMail($user);
+
+        expect($mail->subject)->toBe('Reset your '.config('app.name').' password')
+            ->and($mail->actionText)->toBe('Reset password')
+            ->and($mail->actionUrl)->toBe(route('password.reset', ['token' => $notification->token, 'email' => $user->email]))
+            ->and(implode("\n", $mail->outroLines))->toContain('expires in 60 minutes');
+
+        return true;
+    });
+});
+
 test('an unknown email gets the same response and no notification', function () {
     Notification::fake();
 

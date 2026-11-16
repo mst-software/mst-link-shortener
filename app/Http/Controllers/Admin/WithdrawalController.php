@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RejectWithdrawalRequest;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Notifications\WithdrawalApproved;
+use App\Notifications\WithdrawalRejected;
 use App\Services\WalletService;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
@@ -83,6 +85,10 @@ class WithdrawalController extends Controller
             return redirect()->route('admin.withdrawals.index')
                 ->with('error', 'This withdrawal has already been processed.');
         }
+
+        // Sent after the commit; a mail failure is reported but must not hide a processed withdrawal.
+        $notification = $target === WithdrawalStatus::Paid ? new WithdrawalApproved($processed) : new WithdrawalRejected($processed);
+        rescue(fn () => $processed->user->notify($notification));
 
         $outcome = $target === WithdrawalStatus::Paid ? 'marked as paid' : 'rejected and the money returned';
 

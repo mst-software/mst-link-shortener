@@ -9,6 +9,7 @@ use App\Http\Requests\Member\StoreWithdrawalRequest;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Notifications\WithdrawalRequested;
 use App\Services\Settings;
 use App\Services\WalletService;
 use App\Support\Money;
@@ -45,7 +46,7 @@ class WithdrawController extends Controller
 
         try {
             // The row and the reservation commit together; the reserve re-checks the balance under a row lock.
-            DB::transaction(function () use ($request, $wallet, $user, $micro): void {
+            $withdrawal = DB::transaction(function () use ($request, $wallet, $user, $micro): Withdrawal {
                 $withdrawal = Withdrawal::query()->create([
                     'user_id' => $user->id,
                     'amount_micro' => $micro,
@@ -55,10 +56,15 @@ class WithdrawController extends Controller
                 ]);
 
                 $wallet->reserveForWithdrawal($user, $micro, (string) $withdrawal->id);
+
+                return $withdrawal;
             });
         } catch (InsufficientBalanceException) {
             return back()->withInput()->withErrors(['amount' => 'The amount is more than your available balance.']);
         }
+
+        // Sent after the commit; a mail failure is reported but must not hide a saved request.
+        rescue(fn () => $user->notify(new WithdrawalRequested($withdrawal)));
 
         return redirect()->route('member.withdraws')
             ->with('success', 'Your withdrawal request for '.Money::format($micro, 2).' has been submitted.');
