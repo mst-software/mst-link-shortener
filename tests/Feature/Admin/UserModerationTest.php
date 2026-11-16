@@ -277,6 +277,29 @@ test('a balance adjustment needs a positive amount and a reason', function (arra
     'unknown direction' => [['direction' => 'set'], 'direction'],
 ]);
 
+test('balance adjustment amounts are checked at their limits', function (string $amount, ?int $creditedMicro) {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($this->admin)
+        ->post(route('admin.users.balance-adjustments.store', $user), ['direction' => 'credit', 'amount' => $amount, 'reason' => 'Limit check']);
+
+    if ($creditedMicro === null) {
+        $response->assertSessionHasErrors('amount');
+        expect(Transaction::query()->count())->toBe(0);
+
+        return;
+    }
+
+    $response->assertSessionHasNoErrors();
+    expect($user->refresh()->balance_micro)->toBe($creditedMicro)
+        ->and(Transaction::query()->sole()->amount_micro)->toBe($creditedMicro);
+})->with([
+    'maximum' => ['100000', 100_000_000_000],
+    'just above the maximum' => ['100000.000001', null],
+    'minimum' => ['0.000001', 1],
+    'seven decimals' => ['1.0000001', null],
+]);
+
 test('an admin can mark an email verified', function () {
     $user = User::factory()->unverified()->create();
 
