@@ -33,6 +33,8 @@ class BackupDatabase extends Command
      */
     private const DUMP_TIMEOUT_SECONDS = 3600;
 
+    private const VACUUM_INTO_MIN_VERSION = '3.27.0';
+
     public function handle(): int
     {
         $keep = filter_var($this->option('keep'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -50,12 +52,15 @@ class BackupDatabase extends Command
         try {
             $config = DB::connection($connection)->getConfig();
             File::ensureDirectoryExists($directory, 0700);
+            chmod($directory, 0700);
 
             $file = match ($config['driver'] ?? null) {
-                'sqlite' => $this->backUpSqlite($config, $basePath.'.sqlite'),
+                'sqlite' => $this->backUpSqlite($connection, $config, $basePath.'.sqlite'),
                 'mysql', 'mariadb' => $this->backUpMysql($config, $basePath.'.sql'),
                 default => throw new RuntimeException('Backing up the "'.($config['driver'] ?? '?').'" driver is not supported. Use the database server\'s own backup tool.'),
             };
+
+            chmod($file, 0600);
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());
 
@@ -74,9 +79,20 @@ class BackupDatabase extends Command
     }
 
     /**
+     * Whether this SQLite version has VACUUM INTO (3.27.0 and newer).
+     */
+    public static function supportsVacuumInto(string $sqliteVersion): bool
+    {
+        return version_compare($sqliteVersion, self::VACUUM_INTO_MIN_VERSION, '>=');
+    }
+
+    /**
+     * Write a consistent snapshot with VACUUM INTO, which also captures changes still in the WAL file.
+     * Older SQLite versions fall back to copying the file with its -wal and -shm sidecars.
+     *
      * @param  array<string, mixed>  $config
      */
-    private function backUpSqlite(array $config, string $file): string
+    private function backUpSqlite(string $connection, array $config, string $file): string
     {
         $database = (string) ($config['database'] ?? '');
 
@@ -84,8 +100,36 @@ class BackupDatabase extends Command
             throw new RuntimeException('The SQLite database file was not found, so there is nothing to back up.');
         }
 
+        $sqlite = DB::connection($connection);
+
+        try {
+            $version = (string) $sqlite->selectOne('select sqlite_version() as version')->version;
+
+            if (self::supportsVacuumInto($version)) {
+                $sqlite->statement('VACUUM INTO ?', [$file]);
+
+                return $file;
+            }
+        } catch (Throwable $exception) {
+            File::delete($file);
+
+            throw new RuntimeException('The SQLite database could not be backed up: '.ScheduleHealth::summarizeFailure($exception->getMessage()));
+        }
+
+        return $this->copySqliteFiles($database, $file);
+    }
+
+    private function copySqliteFiles(string $database, string $file): string
+    {
         if (! File::copy($database, $file)) {
             throw new RuntimeException('The SQLite database file could not be copied to '.$file.'.');
+        }
+
+        foreach (['-wal', '-shm'] as $suffix) {
+            if (is_file($database.$suffix)) {
+                File::copy($database.$suffix, $file.$suffix);
+                chmod($file.$suffix, 0600);
+            }
         }
 
         return $file;
@@ -93,13 +137,16 @@ class BackupDatabase extends Command
 
     /**
      * Dump with mysqldump. The credentials go in a temporary option file readable by this user only,
-     * never on the command line, where other users of the server could see them.
+     * never on the command line, where other users of the server could see them. A dump that fails
+     * or is interrupted (a timeout included) is deleted, so it never counts as a kept backup.
      *
      * @param  array<string, mixed>  $config
      */
     private function backUpMysql(array $config, string $file): string
     {
-        if (! $this->mysqldumpIsAvailable()) {
+        $help = $this->mysqldumpHelp();
+
+        if ($help === null) {
             throw new RuntimeException('mysqldump was not found. Install the MySQL or MariaDB client tools on this server (for example the "mysql-client" or "mariadb-client" package).');
         }
 
@@ -114,9 +161,15 @@ class BackupDatabase extends Command
                 '--routines',
                 '--triggers',
                 '--no-tablespaces',
+                // MySQL 8 clients otherwise query column statistics that MariaDB and older servers do not have.
+                ...(str_contains($help, 'column-statistics') ? ['--column-statistics=0'] : []),
                 '--result-file='.$file,
                 (string) $config['database'],
             ]);
+        } catch (Throwable $exception) {
+            File::delete($file);
+
+            throw new RuntimeException('mysqldump failed: '.ScheduleHealth::summarizeFailure($exception->getMessage()));
         } finally {
             File::delete($optionsFile);
         }
@@ -130,13 +183,18 @@ class BackupDatabase extends Command
         return $file;
     }
 
-    private function mysqldumpIsAvailable(): bool
+    /**
+     * The output of `mysqldump --help`, or null when mysqldump cannot be run.
+     */
+    private function mysqldumpHelp(): ?string
     {
         try {
-            return Process::run(['mysqldump', '--version'])->successful();
+            $result = Process::run(['mysqldump', '--help']);
         } catch (Throwable) {
-            return false;
+            return null;
         }
+
+        return $result->successful() ? $result->output() : null;
     }
 
     /**

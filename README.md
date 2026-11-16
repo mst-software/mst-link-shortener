@@ -125,12 +125,15 @@ country decides the CPM rate. Tell the app which proxies to trust with `TRUSTED_
 ### 5. Backups
 
 `php artisan db:backup` writes a dump of the default database to `storage/app/backups` (or `DB_BACKUP_PATH`) and
-keeps the newest 14 (`--keep=14`). It runs daily at 02:30 through the scheduler.
+keeps the newest 14 (`--keep=14`). It runs daily at 02:30 through the scheduler. The backup directory is made
+readable by its owner only (0700) and each backup file 0600. A dump that fails or times out is deleted.
 
 - MySQL / MariaDB: uses `mysqldump --single-transaction`. The credentials are passed in a temporary option file
   readable only by the current user, never on the command line. Without `mysqldump` the command fails with a clear
-  message.
-- SQLite: copies the database file.
+  message. When the installed `mysqldump` knows `--column-statistics` (MySQL 8 clients), it is called with
+  `--column-statistics=0`, so a MySQL 8 client can also dump a MariaDB or older MySQL server.
+- SQLite: writes a consistent snapshot with `VACUUM INTO` (SQLite 3.27+), which includes changes still in the WAL
+  file. On older SQLite versions it copies the database file with its `-wal` and `-shm` files.
 
 Copy the backups off the server (object storage, another machine): a backup on the same disk does not survive the
 loss of that disk.
