@@ -36,7 +36,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
         Route::post('mass-shrinker', [ToolController::class, 'massShrink'])->name('mass-shrinker.submit');
         Route::get('full', [ToolController::class, 'fullPageScript'])->name('full');
         Route::get('api', [ToolController::class, 'api'])->name('api');
-        Route::post('api/token', [ToolController::class, 'regenerateApiToken'])->name('api.regenerate-token');
+        Route::post('api/token', [ToolController::class, 'regenerateApiToken'])->middleware('throttle:api-token-regenerate')->name('api.regenerate-token');
     });
 
     Route::get('referrals', [ReferralController::class, 'index'])->name('referrals');
@@ -45,9 +45,9 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
         Route::get('profile', [ProfileController::class, 'edit'])->name('profile');
         Route::post('profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('change-password', [PasswordController::class, 'edit'])->name('change-password');
-        Route::post('change-password', [PasswordController::class, 'update'])->middleware('verified')->name('change-password.update');
+        Route::post('change-password', [PasswordController::class, 'update'])->middleware(['verified', 'throttle:current-password'])->name('change-password.update');
         Route::get('change-email', [EmailController::class, 'edit'])->name('change-email');
-        Route::post('change-email', [EmailController::class, 'update'])->name('change-email.update');
+        Route::post('change-email', [EmailController::class, 'update'])->middleware('throttle:current-password')->name('change-email.update');
         Route::get('two-factor', [TwoFactorController::class, 'edit'])->name('two-factor');
         Route::post('two-factor', [TwoFactorController::class, 'store'])->name('two-factor.store');
         Route::middleware('throttle:two-factor-code')->group(function () {

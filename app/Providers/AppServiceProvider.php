@@ -47,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('two-factor-challenge', fn (Request $request) => Limit::perMinute(5)->by($request->session()->get(TwoFactorChallengeController::SESSION_KEY.'.user_id').'|'.$request->ip()));
         RateLimiter::for('two-factor-code', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->getAuthIdentifier().'|'.$request->ip()));
+        RateLimiter::for('current-password', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->getAuthIdentifier().'|'.$request->ip()));
+        RateLimiter::for('api-token-regenerate', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->getAuthIdentifier().'|'.$request->ip()));
 
         ResetPassword::toMailUsing(fn (User $user, string $token): MailMessage => $this->passwordResetMail($user, $token));
     }
