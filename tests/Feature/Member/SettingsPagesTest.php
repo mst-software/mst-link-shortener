@@ -110,6 +110,22 @@ test('the email is changed', function () {
     expect($user->refresh()->email)->toBe('fresh@example.com');
 });
 
+test('an unverified member cannot change their password or email', function (string $route, array $payload) {
+    $user = User::factory()->unverified()->create(['email' => 'old@example.com']);
+
+    $this->actingAs($user)
+        ->post(route($route), ['current_password' => 'password', ...$payload])
+        ->assertRedirect(route('verification.notice'));
+
+    $user->refresh();
+
+    expect($user->email)->toBe('old@example.com')
+        ->and(Hash::check('password', $user->password))->toBeTrue();
+})->with([
+    'password' => ['member.user.change-password.update', ['password' => 'a-new-password']],
+    'email' => ['member.user.change-email.update', ['email' => 'fresh@example.com']],
+]);
+
 test('a wrong current password is rejected when changing the email', function () {
     $this->actingAs(User::factory()->create())
         ->post(route('member.user.change-email.update'), ['current_password' => 'wrong', 'email' => 'fresh@example.com'])
