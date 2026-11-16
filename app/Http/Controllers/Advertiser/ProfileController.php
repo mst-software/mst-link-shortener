@@ -27,10 +27,14 @@ class ProfileController extends Controller
         return redirect()->route('advertiser.profile')->with('success', 'Password changed.');
     }
 
-    public function email(ChangeEmailRequest $request): RedirectResponse
+    public function email(ChangeEmailRequest $request, AccountCredentialService $credentials): RedirectResponse
     {
-        $request->user()->update(['email' => $request->validated('email')]);
+        /** @var User $user */
+        $user = $request->user();
 
-        return redirect()->route('advertiser.profile')->with('success', 'Email changed.');
+        $credentials->changeEmail($user, $request->validated('email'));
+
+        return redirect()->route('advertiser.profile')
+            ->with('success', 'Email changed. We sent a verification link to your new email address.');
     }
 }
