@@ -3,9 +3,11 @@
 use App\Enums\PayoutMethod;
 use App\Enums\TransactionAction;
 use App\Enums\WithdrawalStatus;
+use App\Exceptions\InsufficientBalanceException;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Services\WalletService;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -80,6 +82,23 @@ test('a rejected withdrawal does not use up the recovery code', function () {
 
     expect($member->fresh()->two_factor_recovery_codes)->toHaveCount(count(UserFactory::RECOVERY_CODES));
 });
+
+test('the code is not used up when the locked balance check fails', function (string $kind) {
+    $this->freezeSecond();
+    $member = withdrawingMember(withTwoFactor: true);
+    $code = $kind === 'totp' ? totpCode($member) : UserFactory::RECOVERY_CODES[0];
+    $this->mock(WalletService::class)->shouldReceive('reserveForWithdrawal')->andThrow(new InsufficientBalanceException);
+
+    $this->actingAs($member)
+        ->post(route('member.withdraws.store'), withdrawalPayload(['code' => $code]))
+        ->assertSessionHasErrors('amount');
+
+    $member->refresh();
+
+    expect(Withdrawal::query()->count())->toBe(0)
+        ->and($member->two_factor_last_used_step)->toBeNull()
+        ->and($member->two_factor_recovery_codes)->toHaveCount(count(UserFactory::RECOVERY_CODES));
+})->with(['totp', 'recovery code']);
 
 test('the withdraw form asks for a code only when two-factor is on', function (bool $hasTwoFactor) {
     $member = withdrawingMember(withTwoFactor: $hasTwoFactor);

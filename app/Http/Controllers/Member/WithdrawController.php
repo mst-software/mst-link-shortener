@@ -11,12 +11,14 @@ use App\Models\User;
 use App\Models\Withdrawal;
 use App\Notifications\WithdrawalRequested;
 use App\Services\Settings;
+use App\Services\TwoFactorAuthentication;
 use App\Services\WalletService;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class WithdrawController extends Controller
 {
@@ -39,7 +41,7 @@ class WithdrawController extends Controller
         ]);
     }
 
-    public function store(StoreWithdrawalRequest $request, WalletService $wallet): RedirectResponse
+    public function store(StoreWithdrawalRequest $request, WalletService $wallet, TwoFactorAuthentication $twoFactor): RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -47,7 +49,8 @@ class WithdrawController extends Controller
 
         try {
             // The row and the reservation commit together; the reserve re-checks the balance under a row lock.
-            $withdrawal = DB::transaction(function () use ($request, $wallet, $user, $micro): Withdrawal {
+            // The two-factor code is checked last, so it is only used up when the withdrawal is created.
+            $withdrawal = DB::transaction(function () use ($request, $wallet, $twoFactor, $user, $micro): Withdrawal {
                 $withdrawal = Withdrawal::query()->create([
                     'user_id' => $user->id,
                     'amount_micro' => $micro,
@@ -57,6 +60,10 @@ class WithdrawController extends Controller
                 ]);
 
                 $wallet->reserveForWithdrawal($user, $micro, (string) $withdrawal->id);
+
+                if ($user->hasTwoFactorEnabled() && ! $twoFactor->verify($user, (string) $request->validated('code'))) {
+                    throw ValidationException::withMessages(['code' => 'The authentication code is invalid.']);
+                }
 
                 return $withdrawal;
             });

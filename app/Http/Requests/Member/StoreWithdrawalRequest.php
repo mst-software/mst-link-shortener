@@ -4,7 +4,6 @@ namespace App\Http\Requests\Member;
 
 use App\Models\User;
 use App\Services\Settings;
-use App\Services\TwoFactorAuthentication;
 use App\Support\Money;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,7 +38,8 @@ class StoreWithdrawalRequest extends FormRequest
     }
 
     /**
-     * Business checks. The balance is checked again under a row lock when the money is reserved.
+     * Business checks. The balance is checked again under a row lock when the money is reserved,
+     * and the two-factor code is checked there too so it is only used up by a created withdrawal.
      *
      * @return list<callable(Validator): void>
      */
@@ -66,12 +66,6 @@ class StoreWithdrawalRequest extends FormRequest
                     $validator->errors()->add('amount', 'The minimum withdrawal is '.Money::format($minimum, 2).'.');
                 } elseif ($this->amountMicro() > $user->balance_micro) {
                     $validator->errors()->add('amount', 'The amount is more than your available balance.');
-                }
-
-                // Checked last so a rejected request does not use up a recovery code.
-                if ($validator->errors()->isEmpty() && $this->hasTwoFactor()
-                    && ! app(TwoFactorAuthentication::class)->verify($user, (string) $this->input('code'))) {
-                    $validator->errors()->add('code', 'The authentication code is invalid.');
                 }
             },
         ];
