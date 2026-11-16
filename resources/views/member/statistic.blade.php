@@ -67,6 +67,138 @@
       </div>
     </div>
   </div>
+
+  <h3 id="breakdowns">View breakdowns</h3>
+
+  <div class="text-center">
+    <form method="get" action="{{ route('member.statistic') }}#breakdowns" class="form form-inline" style="margin: 10px auto;">
+      <input type="hidden" name="month" value="{{ $month }}">
+      <div class="form-group">
+        <select name="range" class="form-control" onchange="this.form.submit()" aria-label="Breakdown range">
+          @foreach ($ranges as $option)
+            <option value="{{ $option }}" @selected($option === $range)>Last {{ $option }} days</option>
+          @endforeach
+        </select>
+      </div>
+    </form>
+  </div>
+
+  <p class="text-muted small">
+    Valid views since {{ $breakdowns['from']->format('d/m/Y') }} (UTC). Breakdowns are built from detailed view records, which are
+    only kept for the last {{ $breakdowns['retention_days'] }} days.
+    @if ($breakdowns['from']->lt($breakdowns['retained_from']))
+      <strong>Days before {{ $breakdowns['retained_from']->format('d/m/Y') }} are not included.</strong>
+    @endif
+  </p>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <i class="fa fa-globe"></i>
+          <h3 class="box-title">By country</h3>
+        </div>
+        <div class="box-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th class="text-center">Country</th>
+                  <th class="text-center">Views</th>
+                  <th class="text-center">Earnings ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                @forelse ($breakdowns['by_country'] as $row)
+                  <tr>
+                    <td>{{ $row['name'] }}</td>
+                    <td class="text-right">{{ number_format($row['views']) }}</td>
+                    <td class="text-right">{{ number_format($row['earn_micro'] / \App\Support\Money::MICRO_PER_USD, 3) }}</td>
+                  </tr>
+                @empty
+                  <tr>
+                    <td colspan="3" class="text-center text-muted">No valid views in this period.</td>
+                  </tr>
+                @endforelse
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <i class="fa fa-list"></i>
+          <h3 class="box-title">By level</h3>
+        </div>
+        <div class="box-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th class="text-center">Level</th>
+                  <th class="text-center">Views</th>
+                  <th class="text-center">Earnings ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                @forelse ($breakdowns['by_level'] as $row)
+                  <tr>
+                    <td>Level {{ $row['level'] }}</td>
+                    <td class="text-right">{{ number_format($row['views']) }}</td>
+                    <td class="text-right">{{ number_format($row['earn_micro'] / \App\Support\Money::MICRO_PER_USD, 3) }}</td>
+                  </tr>
+                @empty
+                  <tr>
+                    <td colspan="3" class="text-center text-muted">No valid views in this period.</td>
+                  </tr>
+                @endforelse
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box box-success">
+    <div class="box-header with-border">
+      <i class="fa fa-fire"></i>
+      <h3 class="box-title">Top 10 links</h3>
+    </div>
+    <div class="box-body">
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th class="text-center">No</th>
+              <th class="text-center">Links</th>
+              <th class="text-center">Shorten Link</th>
+              <th class="text-center">Views</th>
+              <th class="text-center">Earnings ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @forelse ($breakdowns['by_link'] as $row)
+              <tr>
+                <td>{{ $loop->iteration }}</td>
+                <td style="max-width: 500px; word-break: break-all;">{{ $row['link']->url }}</td>
+                <td>{{ url($row['link']->alias) }}</td>
+                <td class="text-right">{{ number_format($row['views']) }}</td>
+                <td class="text-right">{{ number_format($row['earn_micro'] / \App\Support\Money::MICRO_PER_USD, 3) }}</td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="5" class="text-center text-muted">No valid views in this period.</td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @push('scripts')
