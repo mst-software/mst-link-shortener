@@ -344,3 +344,34 @@ test('an admin can send a password reset link', function () {
     Notification::assertSentToTimes($user, ResetPassword::class, 1);
     expect(AdminAuditLog::query()->sole()->action)->toBe(AdminAction::PasswordResetSent);
 });
+
+test('a password reset link that is not sent leaves no audit row', function () {
+    Notification::fake();
+    $user = User::factory()->create();
+
+    $this->actingAs($this->admin)->post(route('admin.users.password-reset', $user))->assertSessionHasNoErrors();
+    $this->actingAs($this->admin)->post(route('admin.users.password-reset', $user))->assertSessionHasErrors('user');
+
+    Notification::assertSentToTimes($user, ResetPassword::class, 1);
+    expect(AdminAuditLog::query()->count())->toBe(1);
+});
+
+test('a verification email that fails to send leaves no audit row', function () {
+    $user = User::factory()->unverified()->create();
+    Notification::shouldReceive('send')->andThrow(new RuntimeException('Mail server down'));
+
+    expect(fn () => app(UserAccountService::class)->sendVerificationEmail($this->admin, $user))
+        ->toThrow(RuntimeException::class, 'Mail server down')
+        ->and(AdminAuditLog::query()->count())->toBe(0);
+});
+
+test('two admins can still demote and ban each other one after the other', function () {
+    $colleague = User::factory()->admin()->create();
+    $accounts = app(UserAccountService::class);
+
+    $accounts->changeRole($this->admin, $colleague, UserRole::Member);
+
+    expect(fn () => $accounts->ban($colleague->refresh(), $this->admin, 'Revenge'))
+        ->toThrow(ValidationException::class, 'The last active admin cannot be banned.');
+    expect($this->admin->refresh()->isActive())->toBeTrue();
+});
