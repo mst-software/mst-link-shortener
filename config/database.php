@@ -181,19 +181,4 @@ return [
 
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Database Backups
-    |--------------------------------------------------------------------------
-    |
-    | Where `php artisan db:backup` writes its dumps (scheduled daily). Copy
-    | them off the server as well: a backup on the same disk does not survive
-    | losing that disk.
-    |
-    */
-
-    'backups' => [
-        'path' => env('DB_BACKUP_PATH', storage_path('app/backups')),
-    ],
-
 ];

@@ -28,7 +28,7 @@ class MediaStorage
      */
     public const DISKS = [
         self::DISK_PUBLIC => 'This server (public folder)',
-        self::DISK_S3 => 'S3-compatible storage (Amazon S3, Cloudflare R2, MinIO and others)',
+        self::DISK_S3 => 'S3-compatible storage (e.g. Cloudfly, Amazon S3, Cloudflare R2)',
     ];
 
     /**

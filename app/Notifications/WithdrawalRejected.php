@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Tells the member that an admin rejected their withdrawal and why.
- * Sent synchronously: the default queue connection is "database" and no worker is guaranteed.
+ * Sent synchronously during the request: the app runs without a queue worker.
  */
 class WithdrawalRejected extends Notification
 {
