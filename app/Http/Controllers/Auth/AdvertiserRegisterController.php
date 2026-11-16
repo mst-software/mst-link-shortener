@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,8 @@ class AdvertiserRegisterController extends Controller
         $user->role = UserRole::Advertiser;
         $user->terms_accepted_at = now();
         $user->save();
+
+        event(new Registered($user));
 
         Auth::guard('web')->login($user);
 

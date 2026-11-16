@@ -2,7 +2,9 @@
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -20,6 +22,19 @@ it('registers an advertiser with accepted terms', function () {
     expect($user->role)->toBe(UserRole::Advertiser)
         ->and($user->terms_accepted_at)->not->toBeNull();
     $this->assertAuthenticatedAs($user);
+});
+
+it('sends a verification mail to a new advertiser', function () {
+    Notification::fake();
+
+    $this->post(route('advertiser.register'), [
+        'username' => 'acme_ads',
+        'email' => 'ads@example.com',
+        'password' => 'secret-pass-1',
+        'accept' => '1',
+    ])->assertRedirect(route('advertiser.dashboard'));
+
+    Notification::assertSentToTimes(User::query()->where('username', 'acme_ads')->sole(), VerifyEmail::class, 1);
 });
 
 it('rejects registration without accepting the terms', function () {
