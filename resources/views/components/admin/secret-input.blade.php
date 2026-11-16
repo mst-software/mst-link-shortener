@@ -12,7 +12,7 @@
       <span class="label label-default">Not set</span>
     @endif
   </label>
-  <input type="password" id="{{ $name }}" name="{{ $name }}" class="form-control" maxlength="255" autocomplete="new-password" value="" placeholder="{{ $saved ? 'Saved. Leave blank to keep it.' : 'Not set' }}">
+  <input type="password" id="{{ $name }}" name="{{ $name }}" class="form-control" maxlength="{{ \App\Services\Settings::SECRET_MAX_LENGTH }}" autocomplete="new-password" value="" placeholder="{{ $saved ? 'Saved. Leave blank to keep it.' : 'Not set' }}">
   <span class="help-block">@error($name){{ $message }}@else{{ $help }} For safety the saved value is never shown again; type a new one to replace it.@enderror</span>
   @if ($saved)
     <div class="checkbox">

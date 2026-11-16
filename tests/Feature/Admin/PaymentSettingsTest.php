@@ -106,3 +106,17 @@ test('members cannot save the payment settings', function () {
 
     expect(Settings::has('payout_methods'))->toBeFalse();
 });
+
+test('long API tokens up to 1000 characters are accepted', function () {
+    $token = str_repeat('t', 1000);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.payments.update'), paymentSettingsPayload(['sepay_api_token' => $token]))
+        ->assertSessionHasNoErrors();
+
+    expect(Settings::get('sepay_api_token'))->toBe($token);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.payments.update'), paymentSettingsPayload(['sepay_api_token' => $token.'t']))
+        ->assertSessionHasErrors('sepay_api_token');
+});

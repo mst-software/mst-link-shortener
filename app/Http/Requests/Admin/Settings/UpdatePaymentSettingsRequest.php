@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Settings;
 
 use App\Enums\PayoutMethod;
+use App\Services\Settings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -32,10 +33,10 @@ class UpdatePaymentSettingsRequest extends FormRequest
             'advertiser_min_topup_usd' => ['required', 'numeric', 'min:1', 'max:10000'],
             'vnd_per_usd' => ['required', 'integer', 'min:1', 'max:1000000'],
             'paypal_client_id' => ['nullable', 'string', 'max:255'],
-            'paypal_secret' => ['nullable', 'string', 'max:255'],
+            'paypal_secret' => ['nullable', 'string', 'max:'.Settings::SECRET_MAX_LENGTH],
             'clear_paypal_secret' => ['nullable', 'boolean'],
             'paypal_mode' => ['required', Rule::in(['sandbox', 'live'])],
-            'sepay_api_token' => ['nullable', 'string', 'max:255'],
+            'sepay_api_token' => ['nullable', 'string', 'max:'.Settings::SECRET_MAX_LENGTH],
             'clear_sepay_api_token' => ['nullable', 'boolean'],
             'sepay_base_url' => ['nullable', 'string', 'max:255', 'url:https'],
             'sepay_bank_name' => ['nullable', 'string', 'max:100'],

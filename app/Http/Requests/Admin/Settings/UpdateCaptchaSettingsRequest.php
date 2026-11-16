@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin\Settings;
 
 use App\Enums\CaptchaProvider;
+use App\Services\Settings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,7 @@ class UpdateCaptchaSettingsRequest extends FormRequest
 
         foreach (CaptchaProvider::cases() as $provider) {
             $rules[$provider->value.'_site_key'] = ['nullable', 'string', 'max:255'];
-            $rules[$provider->value.'_secret_key'] = ['nullable', 'string', 'max:255'];
+            $rules[$provider->value.'_secret_key'] = ['nullable', 'string', 'max:'.Settings::SECRET_MAX_LENGTH];
             $rules['clear_'.$provider->value.'_secret_key'] = ['nullable', 'boolean'];
         }
 

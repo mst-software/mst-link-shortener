@@ -15,6 +15,11 @@ class Settings
     private const CACHE_TTL_SECONDS = 3600;
 
     /**
+     * Longest secret an operator can save (API tokens can be long).
+     */
+    public const SECRET_MAX_LENGTH = 1000;
+
+    /**
      * Settings holding credentials. They are stored encrypted and must never be rendered back into a page.
      *
      * @var list<string>
