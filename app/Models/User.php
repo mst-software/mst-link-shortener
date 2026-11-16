@@ -203,4 +203,14 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(self::class, 'referred_by');
     }
+
+    /**
+     * Sign-up and sign-in footprints (IP address and browser) of this user.
+     *
+     * @return HasMany<UserLogin, $this>
+     */
+    public function logins(): HasMany
+    {
+        return $this->hasMany(UserLogin::class);
+    }
 }
