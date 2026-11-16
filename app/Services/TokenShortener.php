@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\InvalidLinkException;
 use App\Models\Link;
 use App\Models\User;
+use Carbon\CarbonInterface;
 
 class TokenShortener
 {
@@ -15,8 +16,14 @@ class TokenShortener
      *
      * @throws InvalidLinkException
      */
-    public function shorten(?string $token, ?string $url, ?string $alias = null, ?int $level = null): Link
-    {
+    public function shorten(
+        ?string $token,
+        ?string $url,
+        ?string $alias = null,
+        ?int $level = null,
+        ?string $password = null,
+        ?CarbonInterface $expiresAt = null,
+    ): Link {
         $user = $token ? User::query()->where('api_token', $token)->first() : null;
 
         if ($user === null || ! $user->isActive()) {
@@ -27,6 +34,6 @@ class TokenShortener
             throw new InvalidLinkException('The URL is required.');
         }
 
-        return $this->shortener->create($user, $url, $alias, $level);
+        return $this->shortener->create($user, $url, $alias, $level, $password, $expiresAt);
     }
 }
