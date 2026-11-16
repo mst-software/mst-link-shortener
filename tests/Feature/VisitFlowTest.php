@@ -51,6 +51,24 @@ it('returns 404 for unknown, hidden and banned aliases', function () {
     $this->get('/go/Unknown1')->assertNotFound();
 });
 
+it('returns 404 for an expired link and keeps serving one that has not expired yet', function () {
+    Link::factory()->expired()->create(['alias' => 'Expired1']);
+    Link::factory()->expiresSoon()->create(['alias' => 'Future1']);
+
+    $this->get('/Expired1')->assertNotFound();
+    $this->get('/go/Expired1')->assertNotFound();
+    $this->get('/Future1')->assertRedirect('/go/Future1');
+});
+
+it('stops a running session once its link expires', function () {
+    $this->link->update(['expires_at' => now()->addMinute()]);
+    $session = openShortLink();
+
+    Carbon::setTestNow(now()->addMinutes(2));
+
+    stepInfoRequest($session)->assertNotFound();
+});
+
 it('redirects a short link to the visit page with a session cookie and no caching', function () {
     $response = $this->get('/Ab3xYz');
 
