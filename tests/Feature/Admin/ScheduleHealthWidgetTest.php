@@ -21,10 +21,10 @@ it('shows the status of every scheduled job', function (): void {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSeeInOrder(['views:aggregate', '16/11/2026 10:00', 'OK'])
-        ->assertSeeInOrder(['earnings:release', '16/11/2026 10:01', 'Ledger lock timeout.', 'Failed'])
-        ->assertSeeInOrder(['views:purge', 'Never', 'label-default', 'Waiting'])
-        ->assertSeeInOrder(['sepay:sync', 'Never', 'Late'])
+        ->assertSeeInOrder(['views:aggregate', 'OK', '16/11/2026 10:00'])
+        ->assertSeeInOrder(['earnings:release', 'Failed', '16/11/2026 10:01', 'Ledger lock timeout.'])
+        ->assertSeeInOrder(['views:purge', 'label-default', 'Waiting', 'Never'])
+        ->assertSeeInOrder(['sepay:sync', 'Late', 'Never'])
         ->assertDontSee('Member statistics are not updating.');
 });
 

@@ -31,16 +31,17 @@
         <thead>
           <tr>
             <th>Command</th>
+            <th>Status</th>
             <th>Every</th>
             <th>Last success</th>
             <th>Last failure</th>
-            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           @foreach ($scheduledJobs as $job)
             <tr>
               <td><code>{{ $job['command'] }}</code></td>
+              <td><span class="label {{ $job['status']->badgeClass() }}">{{ $job['status']->label() }}</span></td>
               <td>{{ $job['interval_minutes'] }} min</td>
               <td>
                 @if ($job['last_success_at'])
@@ -58,7 +59,6 @@
                   -
                 @endif
               </td>
-              <td><span class="label {{ $job['status']->badgeClass() }}">{{ $job['status']->label() }}</span></td>
             </tr>
           @endforeach
         </tbody>
