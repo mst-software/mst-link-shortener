@@ -171,7 +171,7 @@ test('a failing disk gives a readable error', function () {
 test('references that are not generated paths are ignored', function (string $reference) {
     expect(MediaStorage::parse($reference))->toBeNull()
         ->and(MediaStorage::url($reference))->toBeNull();
-})->with(['../.env', '/etc/passwd', 'campaigns/../../.env', 'https://evil.test/a.png', 's3:../secret.txt', 'branding/logo.php ']);
+})->with(['../.env', '/etc/passwd', 'campaigns/../../.env', 'https://evil.test/a.png', 's3:../secret.txt', 'branding/logo.php ', "branding/logo.png\n"]);
 
 test('legacy public disk paths keep resolving', function () {
     expect(MediaStorage::parse('campaigns/AbC123xyz.png'))->toBe(['disk' => 'public', 'path' => 'campaigns/AbC123xyz.png']);
