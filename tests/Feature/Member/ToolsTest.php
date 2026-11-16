@@ -15,6 +15,33 @@ it('shows the member token on every tool page', function (string $path) {
     $this->actingAs($this->member)->get($path)->assertOk()->assertSee($this->member->api_token);
 })->with(['/member/tools/quick', '/member/tools/full', '/member/tools/api']);
 
+it('regenerates the api token and the old token stops working', function () {
+    $oldToken = $this->member->api_token;
+
+    $this->actingAs($this->member)
+        ->post(route('member.tools.api.regenerate-token'), ['current_password' => 'password'])
+        ->assertRedirect(route('member.tools.api'))
+        ->assertSessionHas('success');
+
+    $newToken = $this->member->refresh()->api_token;
+
+    expect($newToken)->not->toBe($oldToken);
+    $this->get(route('member.tools.api'))->assertSee($newToken)->assertDontSee($oldToken);
+    $this->get("/st?api={$oldToken}&url=https://example.com/q")->assertStatus(422);
+    $this->getJson("/api?api={$oldToken}&url=https://example.com/a")->assertJson(['status' => 'error']);
+    $this->get("/st?api={$newToken}&url=https://example.com/q")->assertOk();
+});
+
+it('needs the current password to regenerate the api token', function (?string $currentPassword) {
+    $oldToken = $this->member->api_token;
+
+    $this->actingAs($this->member)
+        ->post(route('member.tools.api.regenerate-token'), ['current_password' => $currentPassword])
+        ->assertSessionHasErrors('current_password');
+
+    expect($this->member->refresh()->api_token)->toBe($oldToken);
+})->with(['wrong password' => 'wrong', 'missing' => null]);
+
 it('shows the full page script variables', function () {
     $this->actingAs($this->member)->get('/member/tools/full')
         ->assertSee('linkcash_url')->assertSee('linkcash_api_token')

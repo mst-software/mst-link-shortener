@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Member;
 use App\Exceptions\InvalidLinkException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\MassShrinkRequest;
+use App\Http\Requests\Member\RegenerateApiTokenRequest;
+use App\Models\User;
 use App\Services\LinkShortener;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class ToolController extends Controller
 {
@@ -44,6 +47,20 @@ class ToolController extends Controller
     public function api(): View
     {
         return view('member.tools.api', $this->toolData());
+    }
+
+    /**
+     * Replace the member's API token, for example after it leaked. The old token stops working at once.
+     */
+    public function regenerateApiToken(RegenerateApiTokenRequest $request): RedirectResponse
+    {
+        /** @var User $member */
+        $member = $request->user();
+
+        $member->regenerateApiToken();
+
+        return redirect()->route('member.tools.api')
+            ->with('success', 'Your API token was regenerated. Update every website and script that uses the old token.');
     }
 
     /**

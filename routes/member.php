@@ -36,6 +36,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
         Route::post('mass-shrinker', [ToolController::class, 'massShrink'])->name('mass-shrinker.submit');
         Route::get('full', [ToolController::class, 'fullPageScript'])->name('full');
         Route::get('api', [ToolController::class, 'api'])->name('api');
+        Route::post('api/token', [ToolController::class, 'regenerateApiToken'])->name('api.regenerate-token');
     });
 
     Route::get('referrals', [ReferralController::class, 'index'])->name('referrals');

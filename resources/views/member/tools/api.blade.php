@@ -14,6 +14,19 @@
         <h4>Your API token:</h4>
         <pre>{{ $token }}</pre>
       </div>
+      <p>Keep your token secret: anyone who has it can create links on your account. If it leaks, regenerate it below. The old token stops working at once, so update every website and script that uses it.</p>
+      <form method="post" action="{{ route('member.tools.api.regenerate-token') }}" class="form-inline" onsubmit="return confirm('Regenerate your API token? The old token stops working at once.')" novalidate>
+        @csrf
+        <div @class(['form-group', 'has-error' => $errors->has('current_password')])>
+          <label for="current_password" class="sr-only">Current password</label>
+          <input type="password" name="current_password" id="current_password" class="form-control" placeholder="Current password" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-warning">Regenerate API token</button>
+        @error('current_password')
+          <span class="help-block text-danger">{{ $message }}</span>
+        @enderror
+      </form>
+      <hr>
       <p>For developers {{ config('app.name') }} prepared an <b>API</b> which returns responses in <b>JSON</b>.</p>
       <p>Currently there is one method which can be used to shorten links on behalf of your account.</p>
       <p>All you have to do is to send a <b>GET</b> request with your API token and URL like the following:</p>
