@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -30,6 +32,17 @@ test('registering creates a user and signs them in', function () {
         ->and($user->referral_code)->toHaveLength(7);
 
     $this->assertAuthenticatedAs($user);
+});
+
+test('registering sends a verification mail and leaves the email unverified', function () {
+    Notification::fake();
+
+    $this->post(route('register'), registrationData());
+
+    $user = User::query()->where('username', 'newmember')->sole();
+
+    expect($user->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentToTimes($user, VerifyEmail::class, 1);
 });
 
 test('a duplicate username is rejected', function () {
