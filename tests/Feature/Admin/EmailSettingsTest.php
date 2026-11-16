@@ -5,6 +5,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\SentMessage;
@@ -135,6 +136,63 @@ test('a failing test email shows the mail server error without the password', fu
         ->not->toContain('smtp-password-value');
 
     $this->followRedirects($response)->assertDontSee('smtp-password-value');
+});
+
+/**
+ * Save SMTP settings with the given password and make the SMTP transport fail with the given message.
+ */
+function failSmtpWith(string $password, string $message): void
+{
+    Settings::set('mail_mailer', 'smtp');
+    Settings::set('mail_host', 'smtp.example.com');
+    Settings::set('mail_port', 587);
+    Settings::set('mail_password', $password);
+    Settings::set('mail_from_address', 'noreply@example.com');
+
+    Mail::extend('smtp', fn () => new class($message) extends AbstractTransport
+    {
+        public function __construct(private readonly string $failure)
+        {
+            parent::__construct();
+        }
+
+        protected function doSend(SentMessage $message): void
+        {
+            throw new TransportException($this->failure);
+        }
+
+        public function __toString(): string
+        {
+            return 'failing-smtp';
+        }
+    });
+}
+
+test('a failing test email is reported to the log', function () {
+    Exceptions::fake();
+    failSmtpWith('smtp-password-value', 'Connection refused');
+
+    $this->actingAs($this->admin)->post(route('admin.settings.email.test'));
+
+    Exceptions::assertReported(TransportException::class);
+});
+
+test('a very short password is not redacted from the error message', function () {
+    failSmtpWith('ab', 'Unable to connect to the server.');
+
+    $this->actingAs($this->admin)->post(route('admin.settings.email.test'));
+
+    expect(session('error'))->toBe('The test email could not be sent: Unable to connect to the server.');
+});
+
+test('the mail server error is shown escaped', function () {
+    failSmtpWith('smtp-password-value', 'Bad greeting <script>alert(1)</script>');
+
+    $response = $this->actingAs($this->admin)->post(route('admin.settings.email.test'));
+
+    $this->followRedirects($response)
+        ->assertSee('Bad greeting &lt;script&gt;alert(1)&lt;/script&gt;', false)
+        ->assertDontSee('<script>alert(1)</script>', false);
 });
 
 test('members cannot send a test email', function () {

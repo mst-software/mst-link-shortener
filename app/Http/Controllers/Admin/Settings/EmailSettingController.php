@@ -19,6 +19,8 @@ class EmailSettingController extends Controller
 {
     use SavesSecretSettings;
 
+    private const MIN_REDACTED_PASSWORD_LENGTH = 4;
+
     public function edit(): View
     {
         $mailer = (string) config('mail.default');
@@ -70,6 +72,8 @@ class EmailSettingController extends Controller
         try {
             Mail::to($admin->email)->send(new SettingsTestMail);
         } catch (Throwable $exception) {
+            report($exception);
+
             return redirect()->route('admin.settings.email.edit')
                 ->with('error', 'The test email could not be sent: '.$this->withoutPassword($exception->getMessage()));
         }
@@ -79,12 +83,13 @@ class EmailSettingController extends Controller
     }
 
     /**
-     * Hide the SMTP password if the mail server echoed it back in its error message.
+     * Hide the SMTP password if the mail server echoed it back in its error message. Very short
+     * passwords are left alone, because replacing them would mangle ordinary words in the message.
      */
     private function withoutPassword(string $message): string
     {
         $password = (string) config('mail.mailers.smtp.password');
 
-        return $password === '' ? $message : str_replace($password, '********', $message);
+        return mb_strlen($password) < self::MIN_REDACTED_PASSWORD_LENGTH ? $message : str_replace($password, '********', $message);
     }
 }
