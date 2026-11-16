@@ -72,6 +72,31 @@ class ReferralCommissionService
     }
 
     /**
+     * Take back commission for reversed earnings from what is still held on the pair's open flag first,
+     * since held commission was never credited. Returns the part that was held (and is now removed from
+     * the flag); the caller debits only the rest from the referrer. Must run inside a database transaction.
+     */
+    public function reverseHeld(User $referrer, User $referred, int $commissionMicro): int
+    {
+        $flag = $this->flagFor($referrer, $referred);
+        $held = (int) ($flag?->details['held_commission_micro'] ?? 0);
+
+        if ($flag === null || $flag->resolved_at !== null || $held <= 0 || $commissionMicro <= 0) {
+            return 0;
+        }
+
+        $fromHeld = min($held, $commissionMicro);
+
+        $flag->update(['details' => [
+            ...(array) $flag->details,
+            'held_commission_micro' => $held - $fromHeld,
+            'reversed_held_micro' => (int) ($flag->details['reversed_held_micro'] ?? 0) + $fromHeld,
+        ]]);
+
+        return $fromHeld;
+    }
+
+    /**
      * Pay the commission held on a flag to the referrer and mark the flag handled.
      *
      * @throws ValidationException

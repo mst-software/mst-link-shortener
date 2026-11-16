@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Models\UserLogin;
 use App\Models\View;
+use App\Services\LinkBanService;
 use App\Services\ReferralCommissionService;
 use App\Services\Settings;
 use App\Services\Views\EarningsReleaser;
@@ -79,6 +80,32 @@ test('with holding on the commission is kept on the open flag instead of being p
         ->and(Transaction::query()->where('action', TransactionAction::ReferralCommission)->count())->toBe(0)
         ->and(FraudFlag::query()->sole()->details['held_commission_micro'])->toBe(1_800)
         ->and($referred->refresh()->balance_micro)->toBe(15_000);
+});
+
+test('banning a link takes held commission off the flag instead of debiting the referrer', function () {
+    Settings::set('referral_hold_on_suspicion', '1');
+    [$referrer, $referred] = sameFootprintPair();
+    $referrer->forceFill(['balance_micro' => 5_000])->save();
+    releaseEarningsFor($referred, 10_000);
+
+    app(LinkBanService::class)->ban(Link::query()->where('user_id', $referred->id)->sole(), 'Fraud');
+
+    $flag = FraudFlag::query()->sole();
+
+    expect($referrer->refresh()->balance_micro)->toBe(5_000)
+        ->and($flag->details['held_commission_micro'])->toBe(0)
+        ->and($flag->details['reversed_held_micro'])->toBe(1_200)
+        ->and(Transaction::query()->where('action', TransactionAction::ReferralReversal)->count())->toBe(0);
+});
+
+test('banning a link still debits commission that was paid to a flagged referrer', function () {
+    [$referrer, $referred] = sameFootprintPair();
+    releaseEarningsFor($referred, 10_000);
+
+    app(LinkBanService::class)->ban(Link::query()->where('user_id', $referred->id)->sole(), 'Fraud');
+
+    expect($referrer->refresh()->balance_micro)->toBe(0)
+        ->and(Transaction::query()->where('action', TransactionAction::ReferralReversal)->sole()->amount_micro)->toBe(1_200);
 });
 
 test('a handled flag lets later commissions be paid even with holding on', function () {
