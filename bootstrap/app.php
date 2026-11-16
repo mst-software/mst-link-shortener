@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: ['widget/*']);
         $middleware->web(append: [CheckMaintenanceMode::class]);
+        $middleware->api(append: [CheckMaintenanceMode::class]);
 
         $middleware->alias([
             'active' => EnsureUserIsActive::class,
