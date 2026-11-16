@@ -25,7 +25,7 @@ class EmailController extends Controller
             'email_verified_at' => null,
         ])->save();
 
-        $user->sendEmailVerificationNotification();
+        rescue(fn () => $user->sendEmailVerificationNotification());
 
         return redirect()->route('member.user.change-email')
             ->with('success', 'Saved. We sent a verification link to your new email address.');

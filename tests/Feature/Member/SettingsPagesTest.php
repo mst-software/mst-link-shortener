@@ -4,8 +4,10 @@ use App\Enums\PayoutMethod;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 uses(RefreshDatabase::class);
 
@@ -142,6 +144,22 @@ test('an unverified member can fix a mistyped email and gets a new verification 
     expect($user->email)->toBe('fixed@example.com')
         ->and($user->hasVerifiedEmail())->toBeFalse();
     Notification::assertSentToTimes($user, VerifyEmail::class, 1);
+});
+
+test('the email change is saved when the verification mail cannot be sent', function () {
+    Exceptions::fake();
+    Notification::shouldReceive('send')->andThrow(new TransportException('Mail server is down.'));
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('member.user.change-email.update'), ['current_password' => 'password', 'email' => 'fresh@example.com'])
+        ->assertRedirect(route('member.user.change-email'));
+
+    $user->refresh();
+
+    expect($user->email)->toBe('fresh@example.com')
+        ->and($user->hasVerifiedEmail())->toBeFalse();
+    Exceptions::assertReported(TransportException::class);
 });
 
 test('the current password is required when changing the email', function (?string $currentPassword) {

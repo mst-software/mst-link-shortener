@@ -4,7 +4,9 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 uses(RefreshDatabase::class);
 
@@ -35,6 +37,21 @@ it('sends a verification mail to a new advertiser', function () {
     ])->assertRedirect(route('advertiser.dashboard'));
 
     Notification::assertSentToTimes(User::query()->where('username', 'acme_ads')->sole(), VerifyEmail::class, 1);
+});
+
+it('still registers an advertiser when the verification mail cannot be sent', function () {
+    Exceptions::fake();
+    Notification::shouldReceive('send')->andThrow(new TransportException('Mail server is down.'));
+
+    $this->post(route('advertiser.register'), [
+        'username' => 'acme_ads',
+        'email' => 'ads@example.com',
+        'password' => 'secret-pass-1',
+        'accept' => '1',
+    ])->assertRedirect(route('advertiser.dashboard'));
+
+    $this->assertAuthenticatedAs(User::query()->where('username', 'acme_ads')->sole());
+    Exceptions::assertReported(TransportException::class);
 });
 
 it('rejects registration without accepting the terms', function () {

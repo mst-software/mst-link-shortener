@@ -25,7 +25,7 @@ class AdvertiserRegisterController extends Controller
         $user->terms_accepted_at = now();
         $user->save();
 
-        event(new Registered($user));
+        rescue(fn () => event(new Registered($user)));
 
         Auth::guard('web')->login($user);
 

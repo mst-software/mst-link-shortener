@@ -30,7 +30,7 @@ class RegisterController extends Controller
 
         $user->save();
 
-        event(new Registered($user));
+        rescue(fn () => event(new Registered($user)));
 
         Auth::guard('web')->login($user);
 
