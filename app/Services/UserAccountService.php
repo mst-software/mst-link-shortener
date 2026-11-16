@@ -13,6 +13,8 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -41,14 +43,14 @@ class UserAccountService
         $this->ensureNotSelf($admin, $user, 'You cannot ban your own account.');
 
         DB::transaction(function () use ($admin, $user, $reason, $banLinks): void {
-            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            [$locked, $otherActiveAdmins] = $this->lockWithActiveAdmins($user);
 
             if (! $locked->isActive()) {
                 throw ValidationException::withMessages(['user' => 'This user is already banned.']);
             }
 
-            if ($locked->isAdmin()) {
-                $this->ensureAnotherActiveAdminRemains($locked, 'The last active admin cannot be banned.');
+            if ($locked->isAdmin() && $otherActiveAdmins === 0) {
+                throw ValidationException::withMessages(['user' => 'The last active admin cannot be banned.']);
             }
 
             $locked->forceFill(['status' => UserStatus::Banned])->setRememberToken(Str::random(60));
@@ -119,7 +121,7 @@ class UserAccountService
         $this->ensureNotSelf($admin, $user, 'You cannot change your own role.');
 
         DB::transaction(function () use ($admin, $user, $role, $reason): void {
-            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            [$locked, $otherActiveAdmins] = $this->lockWithActiveAdmins($user);
             $oldRole = $locked->role;
 
             if ($oldRole === UserRole::Advertiser) {
@@ -130,8 +132,8 @@ class UserAccountService
                 throw ValidationException::withMessages(['role' => 'The user already has this role.']);
             }
 
-            if ($oldRole === UserRole::Admin) {
-                $this->ensureAnotherActiveAdminRemains($locked, 'The last active admin cannot be demoted.');
+            if ($oldRole === UserRole::Admin && $locked->isActive() && $otherActiveAdmins === 0) {
+                throw ValidationException::withMessages(['user' => 'The last active admin cannot be demoted.']);
             }
 
             $locked->forceFill(['role' => $role])->save();
@@ -242,23 +244,31 @@ class UserAccountService
     }
 
     /**
-     * Refuse the change when the given admin is the only active admin left. The admin rows are
-     * locked so two admins demoting each other at the same time cannot both succeed.
+     * Lock the target user together with every active admin in one statement, in ascending id order,
+     * and return the locked target with the number of other active admins. Every role or ban change
+     * takes its locks in this same order, so two admins demoting or banning each other at the same
+     * time wait for one another instead of deadlocking, and the second one sees the first's change.
      *
-     * @throws ValidationException
+     * @return array{0: User, 1: int}
      */
-    private function ensureAnotherActiveAdminRemains(User $admin, string $message): void
+    private function lockWithActiveAdmins(User $user): array
     {
-        $otherActiveAdmins = User::query()
-            ->where('role', UserRole::Admin)
-            ->where('status', UserStatus::Active)
-            ->whereKeyNot($admin->getKey())
+        $rows = User::query()
+            ->where(fn (Builder $query) => $query
+                ->whereKey($user->getKey())
+                ->orWhere(fn (Builder $admins) => $admins->where('role', UserRole::Admin)->where('status', UserStatus::Active)))
+            ->orderBy('id')
             ->lockForUpdate()
-            ->pluck('id');
+            ->get();
 
-        if ($otherActiveAdmins->isEmpty()) {
-            throw ValidationException::withMessages(['user' => $message]);
-        }
+        $locked = $rows->firstWhere('id', $user->getKey()) ?? throw (new ModelNotFoundException)->setModel(User::class, [$user->getKey()]);
+
+        $otherActiveAdmins = $rows
+            ->reject(fn (User $row): bool => $row->is($locked))
+            ->filter(fn (User $row): bool => $row->isAdmin() && $row->isActive())
+            ->count();
+
+        return [$locked, $otherActiveAdmins];
     }
 
     /**
