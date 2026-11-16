@@ -2,8 +2,10 @@
 
 use App\Enums\PayoutMethod;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -100,14 +102,20 @@ test('a wrong current password is rejected when changing the password', function
         ->assertSessionHasErrors('current_password');
 });
 
-test('the email is changed', function () {
+test('changing the email resets verification and sends a new verification mail', function () {
+    Notification::fake();
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->post(route('member.user.change-email.update'), ['current_password' => 'password', 'email' => 'fresh@example.com'])
-        ->assertSessionHas('success', 'Saved.');
+        ->assertRedirect(route('member.user.change-email'))
+        ->assertSessionHas('success');
 
-    expect($user->refresh()->email)->toBe('fresh@example.com');
+    $user->refresh();
+
+    expect($user->email)->toBe('fresh@example.com')
+        ->and($user->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentToTimes($user, VerifyEmail::class, 1);
 });
 
 test('an unverified member cannot change their password or email', function (string $route, array $payload) {
