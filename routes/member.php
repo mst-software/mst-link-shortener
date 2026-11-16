@@ -45,7 +45,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
         Route::get('change-password', [PasswordController::class, 'edit'])->name('change-password');
         Route::post('change-password', [PasswordController::class, 'update'])->middleware('verified')->name('change-password.update');
         Route::get('change-email', [EmailController::class, 'edit'])->name('change-email');
-        Route::post('change-email', [EmailController::class, 'update'])->middleware('verified')->name('change-email.update');
+        Route::post('change-email', [EmailController::class, 'update'])->name('change-email.update');
     });
 
     Route::get('form/support', [SupportController::class, 'show'])->name('form.support');

@@ -11,7 +11,7 @@
   @endif
 
   <p>We sent a verification link to <strong>{{ auth()->user()->email }}</strong>. Click the link in that email to verify your address.</p>
-  <p>Until your email is verified you cannot request withdrawals or change your email or password.</p>
+  <p>Until your email is verified you cannot request withdrawals or change your password. If the address above is wrong, you can change it in your account settings.</p>
 
   <form method="post" action="{{ route('verification.send') }}">
     @csrf

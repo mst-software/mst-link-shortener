@@ -118,27 +118,44 @@ test('changing the email resets verification and sends a new verification mail',
     Notification::assertSentToTimes($user, VerifyEmail::class, 1);
 });
 
-test('an unverified member cannot change their password or email', function (string $route, array $payload) {
-    $user = User::factory()->unverified()->create(['email' => 'old@example.com']);
+test('an unverified member cannot change their password', function () {
+    $user = User::factory()->unverified()->create();
 
     $this->actingAs($user)
-        ->post(route($route), ['current_password' => 'password', ...$payload])
+        ->post(route('member.user.change-password.update'), ['current_password' => 'password', 'password' => 'a-new-password'])
         ->assertRedirect(route('verification.notice'));
+
+    expect(Hash::check('password', $user->refresh()->password))->toBeTrue();
+});
+
+test('an unverified member can fix a mistyped email and gets a new verification mail', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create(['email' => 'typo@example.con']);
+
+    $this->actingAs($user)
+        ->post(route('member.user.change-email.update'), ['current_password' => 'password', 'email' => 'fixed@example.com'])
+        ->assertRedirect(route('member.user.change-email'))
+        ->assertSessionHas('success');
 
     $user->refresh();
 
-    expect($user->email)->toBe('old@example.com')
-        ->and(Hash::check('password', $user->password))->toBeTrue();
-})->with([
-    'password' => ['member.user.change-password.update', ['password' => 'a-new-password']],
-    'email' => ['member.user.change-email.update', ['email' => 'fresh@example.com']],
-]);
-
-test('a wrong current password is rejected when changing the email', function () {
-    $this->actingAs(User::factory()->create())
-        ->post(route('member.user.change-email.update'), ['current_password' => 'wrong', 'email' => 'fresh@example.com'])
-        ->assertSessionHasErrors('current_password');
+    expect($user->email)->toBe('fixed@example.com')
+        ->and($user->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentToTimes($user, VerifyEmail::class, 1);
 });
+
+test('the current password is required when changing the email', function (?string $currentPassword) {
+    $user = User::factory()->unverified()->create(['email' => 'old@example.com']);
+
+    $this->actingAs($user)
+        ->post(route('member.user.change-email.update'), ['current_password' => $currentPassword, 'email' => 'fresh@example.com'])
+        ->assertSessionHasErrors('current_password');
+
+    expect($user->refresh()->email)->toBe('old@example.com');
+})->with([
+    'missing' => [null],
+    'wrong' => ['wrong'],
+]);
 
 test('an email that is already used is rejected', function () {
     User::factory()->create(['email' => 'taken@example.com']);

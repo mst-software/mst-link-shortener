@@ -95,7 +95,7 @@
             <button type="submit" class="btn btn-default btn-sm">Resend verification email</button>
           </form>
           <i class="icon fa fa-envelope"></i>
-          Please verify your email address <strong>{{ $member->email }}</strong>. You need a verified email to request withdrawals or change your email or password.
+          Please verify your email address <strong>{{ $member->email }}</strong>. You need a verified email to request withdrawals or change your password.
         </div>
       @endunless
 
