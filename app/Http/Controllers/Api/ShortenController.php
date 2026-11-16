@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\InvalidLinkException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ShortenRequest;
 use App\Services\TokenShortener;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class ShortenController extends Controller
 {
     public function __construct(private readonly TokenShortener $tokenShortener) {}
 
-    public function __invoke(Request $request): JsonResponse|Response
+    public function __invoke(ShortenRequest $request): JsonResponse|Response
     {
         $isText = $request->query('format') === 'text';
 
@@ -23,6 +24,8 @@ class ShortenController extends Controller
                 $this->stringInput($request, 'url'),
                 $this->stringInput($request, 'alias'),
                 $request->integer('level') ?: null,
+                $this->stringInput($request, 'password'),
+                $this->stringInput($request, 'expires_at') !== null ? $request->date('expires_at') : null,
             );
         } catch (InvalidLinkException $exception) {
             return $this->respond($isText ? response($exception->getMessage()) : response()->json([

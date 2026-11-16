@@ -4,6 +4,7 @@ use App\Enums\UserStatus;
 use App\Models\Link;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -29,6 +30,43 @@ it('honours an explicit level and alias', function () {
     $this->getJson("/api?api={$this->owner->api_token}&url=https://example.com/a&level=2&alias=custom-one")->assertOk();
 
     expect(Link::query()->where('alias', 'custom-one')->first()->level)->toBe(2);
+});
+
+it('accepts an optional password and expiry date', function () {
+    $expiresAt = now()->addDays(2)->format('Y-m-d H:i');
+
+    $this->getJson('/api-shorten/v2?'.http_build_query([
+        'api' => $this->owner->api_token,
+        'url' => 'https://example.com/a',
+        'alias' => 'api-locked',
+        'password' => 'open-sesame',
+        'expires_at' => $expiresAt,
+    ]))->assertOk()->assertJson(['status' => 'success']);
+
+    $link = Link::query()->where('alias', 'api-locked')->first();
+
+    expect(Hash::check('open-sesame', $link->password))->toBeTrue()
+        ->and($link->expires_at->format('Y-m-d H:i'))->toBe($expiresAt);
+});
+
+it('returns an api error for invalid link options', function (array $options, string $message) {
+    $query = http_build_query(['api' => $this->owner->api_token, 'url' => 'https://example.com/a', ...$options]);
+
+    $this->getJson('/api?'.$query)
+        ->assertOk()
+        ->assertHeader('Access-Control-Allow-Origin', '*')
+        ->assertExactJson(['status' => 'error', 'message' => $message]);
+
+    expect(Link::query()->count())->toBe(0);
+})->with([
+    'short password' => [['password' => 'abc'], 'The password field must be at least 4 characters.'],
+    'past expiry' => [['expires_at' => '2020-01-01'], 'The expiry date must be in the future.'],
+]);
+
+it('returns a plain text validation error for format=text', function () {
+    $response = $this->get("/api?api={$this->owner->api_token}&url=https://example.com/a&expires_at=2020-01-01&format=text");
+
+    expect($response->getContent())->toBe('The expiry date must be in the future.');
 });
 
 it('returns a json error for an unknown token', function () {
