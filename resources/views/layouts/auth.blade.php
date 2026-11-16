@@ -21,7 +21,9 @@
   </div>
 </div>
 
-<x-site.notice-banner />
+@unless (View::hasSection('hide_notice'))
+  <x-site.notice-banner />
+@endunless
 
 </body>
 </html>

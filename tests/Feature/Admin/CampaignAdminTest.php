@@ -254,6 +254,8 @@ test('the campaign list runs the same number of queries for any number of campai
     };
 
     Campaign::factory()->create();
+    // The first request loads the cached settings table (maintenance mode check); later ones do not.
+    $countQueries();
     $one = $countQueries();
 
     Campaign::factory()->count(5)->create();
