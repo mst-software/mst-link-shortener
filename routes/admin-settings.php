@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Settings\CaptchaSettingController;
 use App\Http\Controllers\Admin\Settings\EmailSettingController;
 use App\Http\Controllers\Admin\Settings\GeneralSettingController;
 use App\Http\Controllers\Admin\Settings\PaymentSettingController;
+use App\Http\Controllers\Admin\Settings\StorageSettingController;
 use App\Http\Controllers\Admin\Settings\TrafficSettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,10 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
 
         Route::get('captcha', [CaptchaSettingController::class, 'edit'])->name('captcha.edit');
         Route::put('captcha', [CaptchaSettingController::class, 'update'])->name('captcha.update');
+
+        Route::get('storage', [StorageSettingController::class, 'edit'])->name('storage.edit');
+        Route::put('storage', [StorageSettingController::class, 'update'])->name('storage.update');
+        Route::post('storage/test', [StorageSettingController::class, 'test'])->middleware('throttle:6,1')->name('storage.test');
     });
 
     Route::get('rates', [CpmRateController::class, 'index'])->name('rates.index');

@@ -16,6 +16,7 @@ enum SettingsPage: string
     case Payments = 'payments';
     case Traffic = 'traffic';
     case Captcha = 'captcha';
+    case Storage = 'storage';
 
     public function label(): string
     {
@@ -25,6 +26,7 @@ enum SettingsPage: string
             self::Payments => 'Payments',
             self::Traffic => 'Traffic and earnings',
             self::Captcha => 'Captcha',
+            self::Storage => 'File storage',
         };
     }
 
@@ -39,6 +41,7 @@ enum SettingsPage: string
             self::Payments => 'credit-card',
             self::Traffic => 'chart-line',
             self::Captcha => 'shield-alt',
+            self::Storage => 'hdd',
         };
     }
 

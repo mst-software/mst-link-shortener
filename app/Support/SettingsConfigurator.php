@@ -22,6 +22,12 @@ class SettingsConfigurator
         'paypal_mode' => 'services.paypal.mode',
         'sepay_api_token' => 'services.sepay.api_token',
         'sepay_base_url' => 'services.sepay.base_url',
+        's3_key' => 'filesystems.disks.s3.key',
+        's3_secret' => 'filesystems.disks.s3.secret',
+        's3_region' => 'filesystems.disks.s3.region',
+        's3_bucket' => 'filesystems.disks.s3.bucket',
+        's3_endpoint' => 'filesystems.disks.s3.endpoint',
+        's3_url' => 'filesystems.disks.s3.url',
     ];
 
     public static function apply(): void
@@ -32,6 +38,10 @@ class SettingsConfigurator
             if ($value !== '') {
                 config([$configKey => $value]);
             }
+        }
+
+        if (Settings::has('s3_use_path_style')) {
+            config(['filesystems.disks.s3.use_path_style_endpoint' => Settings::bool('s3_use_path_style')]);
         }
 
         MailConfigurator::applyFromSettings();
