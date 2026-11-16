@@ -73,6 +73,7 @@ class TwoFactorAuthentication
             /** @var User $locked */
             $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
             $locked->forceFill(['two_factor_recovery_codes' => $hashes])->save();
+            $locked->trustedDevices()->delete();
             $user->setRawAttributes($locked->getAttributes(), true);
         });
 

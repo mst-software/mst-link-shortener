@@ -143,6 +143,28 @@ test('turning two-factor off forgets the trusted devices', function () {
     expect($user->trustedDevices()->count())->toBe(0);
 });
 
+test('regenerating the recovery codes forgets the trusted devices and their cookie', function () {
+    $user = User::factory()->withTwoFactor()->create();
+    TrustedDevice::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->post(route('member.user.two-factor.recovery-codes'), ['current_password' => 'password', 'code' => totpCode($user)])
+        ->assertCookieExpired(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE);
+
+    expect($user->trustedDevices()->count())->toBe(0);
+});
+
+test('changing the password forgets the trusted devices', function () {
+    $user = User::factory()->withTwoFactor()->create();
+    TrustedDevice::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->post(route('member.user.change-password.update'), ['current_password' => 'password', 'password' => 'a-new-password'])
+        ->assertSessionHasNoErrors();
+
+    expect($user->trustedDevices()->count())->toBe(0);
+});
+
 test('an admin can open the two-factor page', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('member.user.two-factor'))

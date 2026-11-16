@@ -67,7 +67,8 @@ class TwoFactorController extends Controller
         $user = $request->user();
 
         return redirect()->route('member.user.two-factor')
-            ->with('success', 'New recovery codes were created. The old ones no longer work.')
+            ->withCookie(cookie()->forget(TwoFactorAuthentication::TRUSTED_DEVICE_COOKIE))
+            ->with('success', 'New recovery codes were created. The old ones and your remembered devices no longer work.')
             ->with('recoveryCodes', $this->twoFactor->regenerateRecoveryCodes($user));
     }
 
