@@ -9,10 +9,29 @@ use App\Models\User;
 use App\Models\View;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Locale;
 
 class DashboardStats
 {
+    /**
+     * Day ranges a member can pick for the view breakdowns on the statistic page.
+     *
+     * @var list<int>
+     */
+    public const BREAKDOWN_RANGES = [7, 30, 90];
+
+    public const DEFAULT_BREAKDOWN_RANGE = 30;
+
+    /**
+     * Views that pay the publisher.
+     *
+     * @var list<ViewStatus>
+     */
+    private const VALID_STATUSES = [ViewStatus::Pending, ViewStatus::Released];
+
     /**
      * Parse a strict date string such as "13/11/2026" (d/m/Y) or "11/2026" (m/Y) as a UTC day.
      * Returns null when the text is malformed or not a real date.
@@ -143,11 +162,94 @@ class DashboardStats
      */
     public function topLinks(User $user, CarbonImmutable $month, int $limit = 10): Collection
     {
-        $rows = View::query()
+        return $this->topLinksBetween($user, $month->startOfMonth(), $month->endOfMonth(), $limit);
+    }
+
+    /**
+     * Breakdowns of the member's valid views over the last $days UTC days (today included), aggregated in SQL
+     * from the raw views table. Raw views are purged after view_purge_days, so older days are not covered.
+     *
+     * @return array{
+     *     from: CarbonImmutable,
+     *     retention_days: int,
+     *     retained_from: CarbonImmutable,
+     *     by_country: list<array{country: string, name: string, views: int, earn_micro: int}>,
+     *     by_link: Collection<int, array{link: Link, views: int, earn_micro: int}>,
+     *     by_level: list<array{level: int, views: int, earn_micro: int}>,
+     * }
+     */
+    public function breakdowns(User $user, int $days, CarbonImmutable $now): array
+    {
+        $from = $now->subDays($days - 1)->startOfDay();
+
+        $byCountry = $this->validViewsBetween($user, $from, $now)
+            ->selectRaw('country, count(*) as total_views, sum(earn_micro) as total_earn_micro')
+            ->groupBy('country')
+            ->orderByDesc('total_views')
+            ->orderByDesc('total_earn_micro')
+            ->orderBy('country')
+            ->get()
+            ->map(fn (View $row): array => [
+                'country' => $row->country,
+                'name' => self::countryName($row->country),
+                'views' => (int) $row->getAttribute('total_views'),
+                'earn_micro' => (int) $row->getAttribute('total_earn_micro'),
+            ])
+            ->all();
+
+        $byLevel = $this->validViewsBetween($user, $from, $now)
+            ->selectRaw('level, count(*) as total_views, sum(earn_micro) as total_earn_micro')
+            ->groupBy('level')
+            ->orderBy('level')
+            ->get()
+            ->map(fn (View $row): array => [
+                'level' => $row->level,
+                'views' => (int) $row->getAttribute('total_views'),
+                'earn_micro' => (int) $row->getAttribute('total_earn_micro'),
+            ])
+            ->all();
+
+        $retentionDays = Settings::int('view_purge_days');
+
+        return [
+            'from' => $from,
+            'retention_days' => $retentionDays,
+            'retained_from' => $now->subDays($retentionDays)->startOfDay(),
+            'by_country' => $byCountry,
+            'by_link' => $this->topLinksBetween($user, $from, $now),
+            'by_level' => $byLevel,
+        ];
+    }
+
+    /**
+     * English name of an ISO 3166-1 alpha-2 country code; "XX" means the country could not be detected.
+     */
+    public static function countryName(string $code): string
+    {
+        if ($code === 'XX') {
+            return 'Unknown';
+        }
+
+        if (class_exists(Locale::class)) {
+            $name = Locale::getDisplayRegion('-'.$code, 'en');
+
+            if ($name !== '' && $name !== $code) {
+                return $name;
+            }
+        }
+
+        return $code;
+    }
+
+    /**
+     * The member's best links between two moments, ranked by valid views and then earnings.
+     *
+     * @return Collection<int, array{link: Link, views: int, earn_micro: int}>
+     */
+    private function topLinksBetween(User $user, CarbonInterface $from, CarbonInterface $to, int $limit = 10): Collection
+    {
+        $rows = $this->validViewsBetween($user, $from, $to)
             ->selectRaw('link_id, count(*) as total_views, sum(earn_micro) as total_earn_micro')
-            ->where('user_id', $user->id)
-            ->whereIn('status', [ViewStatus::Pending, ViewStatus::Released])
-            ->whereBetween('created_at', [$month->startOfMonth(), $month->endOfMonth()])
             ->groupBy('link_id')
             ->orderByDesc('total_views')
             ->orderByDesc('total_earn_micro')
@@ -165,6 +267,20 @@ class DashboardStats
                 'earn_micro' => (int) $row->getAttribute('total_earn_micro'),
             ])
             ->values();
+    }
+
+    /**
+     * The member's paying views in a time window. Filtering on user_id and created_at uses the
+     * (user_id, created_at) index of the views table.
+     *
+     * @return Builder<View>
+     */
+    private function validViewsBetween(User $user, CarbonInterface $from, CarbonInterface $to): Builder
+    {
+        return View::query()
+            ->where('user_id', $user->id)
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('status', self::VALID_STATUSES);
     }
 
     /**
