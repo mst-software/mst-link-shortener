@@ -14,6 +14,7 @@ Schedule::command('earnings:release')->dailyAt('00:10')->withoutOverlapping();
 Schedule::command('views:purge')->dailyAt('03:00')->withoutOverlapping();
 Schedule::command('fraud:scan')->hourly()->withoutOverlapping();
 Schedule::command('sepay:sync')->everyMinute()->withoutOverlapping();
+Schedule::command('db:backup')->dailyAt('02:30')->withoutOverlapping();
 
 foreach (Schedule::events() as $event) {
     ScheduleHealth::monitor($event);

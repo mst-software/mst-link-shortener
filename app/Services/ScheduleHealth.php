@@ -28,6 +28,7 @@ class ScheduleHealth
         'views:purge' => 1440,
         'fraud:scan' => 60,
         'sepay:sync' => 1,
+        'db:backup' => 1440,
     ];
 
     /**
