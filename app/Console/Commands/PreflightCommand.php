@@ -7,6 +7,7 @@ use App\Enums\PreflightStatus;
 use App\Enums\ScheduleStatus;
 use App\Services\ScheduleHealth;
 use App\Services\Settings;
+use App\Support\MailConfigurator;
 use App\Support\TrustedProxies;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -148,9 +149,15 @@ class PreflightCommand extends Command
             return [PreflightStatus::Warn, 'TRUSTED_PROXIES is empty. Fine when visitors connect straight to this server; behind Cloudflare or a load balancer set it, or every visitor gets the proxy\'s IP and the country "XX".'];
         }
 
-        $description = $proxies === '*' ? 'any server that connects ("*")' : count($proxies).' range(s)';
+        if (TrustedProxies::combinesCloudflareWithOtherProxies()) {
+            return [PreflightStatus::Warn, 'The cloudflare preset is combined with other proxies. That setup is not supported: requests reach PHP through the other proxy, so CF-Connecting-IP and CF-IPCountry are ignored and every visitor gets the country "XX".'];
+        }
 
-        return [PreflightStatus::Pass, 'Trusting '.$description.(TrustedProxies::trustsCloudflare() ? ', including Cloudflare.' : '.')];
+        if ($proxies === '*') {
+            return [PreflightStatus::Warn, 'TRUSTED_PROXIES is "*", so any server that connects may set the visitor IP. Only safe when PHP is reachable through that proxy alone; prefer listing its IPs or "cloudflare".'];
+        }
+
+        return [PreflightStatus::Pass, 'Trusting '.count($proxies).' range(s)'.(TrustedProxies::trustsCloudflare() ? ', the Cloudflare edges.' : '.')];
     }
 
     /**
@@ -235,15 +242,28 @@ class PreflightCommand extends Command
     }
 
     /**
+     * Reads the effective mail settings the same way MailConfigurator applies them: once the admin Email settings
+     * page has been saved its values win, otherwise .env applies. This does not depend on the settings having been
+     * applied to config() when the command booted.
+     *
      * @return array{0: PreflightStatus, 1: string}
      */
     private function checkMail(): array
     {
-        $mailer = (string) config('mail.default');
+        $fromAdmin = MailConfigurator::isConfigured();
+        $mailer = $fromAdmin ? Settings::string('mail_mailer', 'log') : (string) config('mail.default');
+        $host = $fromAdmin ? Settings::string('mail_host') : (string) config('mail.mailers.smtp.host');
+        $source = $fromAdmin ? 'admin Email settings' : '.env';
 
-        return in_array($mailer, ['log', 'array'], true)
-            ? [PreflightStatus::Fail, 'The mailer is "'.$mailer.'", so password resets and notices are never delivered. Set up SMTP on the admin Email settings page.']
-            : [PreflightStatus::Pass, 'Mailer "'.$mailer.'".'];
+        if (in_array($mailer, ['log', 'array'], true)) {
+            return [PreflightStatus::Fail, 'The mailer is "'.$mailer.'" ('.$source.'), so password resets and notices are never delivered. Set up SMTP on the admin Email settings page.'];
+        }
+
+        if ($mailer === 'smtp' && $host === '') {
+            return [PreflightStatus::Fail, 'SMTP has no host ('.$source.'). Fill it in on the admin Email settings page.'];
+        }
+
+        return [PreflightStatus::Pass, 'Mailer "'.$mailer.'" from the '.$source.'.'];
     }
 
     /**

@@ -27,6 +27,7 @@ beforeEach(function () {
         'trustedproxy.proxies' => 'cloudflare',
         'queue.default' => 'database',
         'mail.default' => 'smtp',
+        'mail.mailers.smtp.host' => 'smtp.linkcash.example',
         'services.turnstile.site_key' => 'site-key',
         'services.turnstile.secret_key' => 'secret-key',
         'services.paypal.client_id' => 'client-id',
@@ -69,6 +70,8 @@ it('fails on a setting that breaks production', function (Closure $breakIt, stri
     'no storage link' => [fn () => File::deleteDirectory(test()->publicPath.'/storage'), 'FAIL  Storage link'],
     'no build' => [fn () => File::delete(test()->publicPath.'/build/manifest.json'), 'FAIL  Frontend build'],
     'log mailer' => [fn () => config(['mail.default' => 'log']), 'FAIL  Mail'],
+    'smtp without a host' => [fn () => config(['mail.mailers.smtp.host' => '']), 'FAIL  Mail: SMTP has no host (.env)'],
+    'log mailer saved by an admin' => [fn () => Settings::set('mail_mailer', 'log'), 'FAIL  Mail: The mailer is "log" (admin Email settings)'],
     'no captcha secret' => [fn () => config(['services.turnstile.secret_key' => '']), 'FAIL  Captcha'],
     'failing job' => [function () {
         test()->travel(1)->minutes();
@@ -95,6 +98,8 @@ it('warns without failing about optional or advisory settings', function (Closur
     'sync queue' => [fn () => config(['queue.default' => 'sync']), 'WARN  Queue'],
     'paypal sandbox' => [fn () => config(['services.paypal.mode' => 'sandbox']), 'WARN  PayPal'],
     'no sepay token' => [fn () => config(['services.sepay.api_token' => '']), 'WARN  SePay'],
+    'any proxy' => [fn () => config(['trustedproxy.proxies' => '*']), 'WARN  Trusted proxies: TRUSTED_PROXIES is "*"'],
+    'cloudflare behind another proxy' => [fn () => config(['trustedproxy.proxies' => 'cloudflare,10.0.0.0/8']), 'WARN  Trusted proxies: The cloudflare preset is combined with other proxies'],
     'no support email' => [fn () => Settings::set('support_email', ''), 'WARN  Support email'],
 ]);
 
@@ -107,6 +112,14 @@ it('warns when a scheduled job is late', function () {
     }
 
     $this->artisan('app:preflight')->expectsOutputToContain('WARN  Scheduler: Late or never run: views:aggregate')->assertSuccessful();
+});
+
+it('checks the SMTP server an admin saved over a log mailer in .env', function () {
+    config(['mail.default' => 'log']);
+    Settings::set('mail_mailer', 'smtp');
+    Settings::set('mail_host', 'smtp.linkcash.example');
+
+    $this->artisan('app:preflight')->expectsOutputToContain('PASS  Mail: Mailer "smtp" from the admin Email settings.')->assertSuccessful();
 });
 
 it('never prints secret values', function () {
