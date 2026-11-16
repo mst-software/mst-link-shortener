@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Settings\StorageSettingController;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Settings;
@@ -168,6 +169,24 @@ test('a failing connection test shows the storage error without the credentials'
         ->assertSessionHas('error', fn (string $message): bool => str_contains($message, 'The connection test failed:')
             && str_contains($message, 'Access Denied for ******** / ********')
             && ! str_contains($message, 'super-secret-access-key'));
+
+    Exceptions::assertReported(UnableToWriteFile::class);
+});
+
+test('a very short credential hides the storage error behind a generic message', function () {
+    Exceptions::fake();
+    config([
+        'filesystems.disks.s3.bucket' => 'linkcash-media',
+        'filesystems.disks.s3.key' => 'AK',
+        'filesystems.disks.s3.secret' => 'super-secret-access-key',
+    ]);
+    Storage::set('s3', Mockery::mock(Filesystem::class, function ($mock): void {
+        $mock->shouldReceive('put')->andThrow(UnableToWriteFile::atLocation('connection-test/x.txt', 'Access Denied for AK'));
+    }));
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.settings.storage.test'))
+        ->assertSessionHas('error', 'The connection test failed: '.StorageSettingController::GENERIC_FAILURE);
 
     Exceptions::assertReported(UnableToWriteFile::class);
 });

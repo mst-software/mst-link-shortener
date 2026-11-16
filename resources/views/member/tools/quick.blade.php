@@ -12,7 +12,11 @@
     <div class="box-body">
       <div class="callout callout-success">
         <h4>Your API token:</h4>
-        <pre>{{ $token }}</pre>
+        @if ($tokenError)
+          <p>Your API token could not be read. Generate a new token on the <a href="{{ route('member.tools.api') }}">Developers API</a> page.</p>
+        @else
+          <pre>{{ $token }}</pre>
+        @endif
       </div>
       <p>Anyone can use the shortest way to shorten links with {{ config('app.name') }}.</p>
       <p>Just copy the link below into your browser's address bar, replace yourdestinationlink.com with the link you want to shorten and press ENTER. {{ config('app.name') }} will shorten the link automatically. Copy it anywhere you want to share it and you will get paid for every valid view.</p>

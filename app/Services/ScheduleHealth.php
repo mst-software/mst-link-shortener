@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ScheduleStatus;
 use App\Models\Setting;
+use App\Support\SecretRedactor;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Support\Str;
@@ -47,13 +48,12 @@ class ScheduleHealth
     private const MESSAGE_LIMIT = 200;
 
     /**
-     * Patterns of secrets that may appear in command output (API responses, URLs, SQL bindings), with their replacement.
+     * Patterns of hashes and encoded blobs that may appear in command output, with their replacement.
+     * URL credentials, key=value pairs and Bearer values are redacted by SecretRedactor first.
      *
      * @var array<string, string>
      */
     private const SECRET_PATTERNS = [
-        '/\bBearer\s+\S+/i' => 'Bearer [redacted]',
-        '/\b(token|api[_-]?key|key|secret|password|passwd|pwd|authorization|signature)\b(\s*[=:]\s*["\']?)[^\s"\'&,;]+/i' => '$1$2[redacted]',
         '/\b[A-Fa-f0-9]{20,}\b/' => '[redacted]',
         '/(?=[A-Za-z0-9+\/_-]*\d)(?=[A-Za-z0-9+\/_-]*[A-Za-z])[A-Za-z0-9+\/_-]{32,}={0,2}/' => '[redacted]',
     ];
@@ -87,7 +87,7 @@ class ScheduleHealth
             ->map(fn (string $line): string => trim($line))
             ->first(fn (string $line): bool => $line !== '', '');
 
-        $redacted = preg_replace(array_keys(self::SECRET_PATTERNS), array_values(self::SECRET_PATTERNS), $firstLine);
+        $redacted = preg_replace(array_keys(self::SECRET_PATTERNS), array_values(self::SECRET_PATTERNS), SecretRedactor::redact($firstLine, mask: '[redacted]'));
 
         return Str::limit(Str::squish((string) $redacted), self::MESSAGE_LIMIT);
     }

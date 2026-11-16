@@ -10,6 +10,9 @@
 @section('content')
   <div class="box box-primary">
     <div class="box-body">
+      @if ($tokenError)
+        <div class="callout callout-warning">Your API token could not be read. Generate a new token on the <a href="{{ route('member.tools.api') }}">Developers API</a> page.</div>
+      @endif
       <p>If you have a website with hundreds or thousands of links you want to change over to {{ config('app.name') }}, please use the script below.</p>
       <p>Simply copy and paste the code below on to your webpage or blog and the links will be updated automatically!</p>
       <p>You can add or remove any domains for the code that you use on your website.</p>

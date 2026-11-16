@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Member\ToolController;
 use App\Models\Link;
 use App\Models\User;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -14,6 +17,57 @@ beforeEach(function () {
 it('shows the member token on every tool page', function (string $path) {
     $this->actingAs($this->member)->get($path)->assertOk()->assertSee($this->member->api_token);
 })->with(['/member/tools/quick', '/member/tools/full', '/member/tools/api']);
+
+it('regenerates the api token and the old token stops working', function () {
+    $oldToken = $this->member->api_token;
+
+    $this->actingAs($this->member)
+        ->post(route('member.tools.api.regenerate-token'), ['current_password' => 'password'])
+        ->assertRedirect(route('member.tools.api'))
+        ->assertSessionHas('success');
+
+    $newToken = $this->member->refresh()->api_token;
+
+    expect($newToken)->not->toBe($oldToken);
+    $this->get(route('member.tools.api'))->assertSee($newToken)->assertDontSee($oldToken);
+    $this->get("/st?api={$oldToken}&url=https://example.com/q")->assertStatus(422);
+    $this->getJson("/api?api={$oldToken}&url=https://example.com/a")->assertJson(['status' => 'error']);
+    $this->get("/st?api={$newToken}&url=https://example.com/q")->assertOk();
+});
+
+it('shows a notice instead of failing when the stored token cannot be decrypted', function (string $path) {
+    $ciphertext = (new Encrypter(random_bytes(32), 'AES-256-CBC'))->encryptString('foreignToken123456789012');
+    DB::table('users')->where('id', $this->member->id)->update(['api_token' => $ciphertext]);
+
+    $this->actingAs($this->member->fresh())->get($path)
+        ->assertOk()
+        ->assertSee('Your API token could not be read.')
+        ->assertDontSee($ciphertext);
+})->with(['/member/tools/quick', '/member/tools/full', '/member/tools/api']);
+
+it('regenerates a token that cannot be decrypted', function () {
+    $ciphertext = (new Encrypter(random_bytes(32), 'AES-256-CBC'))->encryptString('foreignToken123456789012');
+    DB::table('users')->where('id', $this->member->id)->update(['api_token' => $ciphertext, 'api_token_hash' => null]);
+
+    $this->actingAs($this->member->fresh())
+        ->post(route('member.tools.api.regenerate-token'), ['current_password' => 'password'])
+        ->assertRedirect(route('member.tools.api'));
+
+    $newToken = $this->member->fresh()->api_token;
+
+    $this->get(route('member.tools.api'))->assertSee($newToken)->assertDontSee(ToolController::UNREADABLE_TOKEN_MESSAGE);
+    $this->get("/st?api={$newToken}&url=https://example.com/q")->assertOk();
+});
+
+it('needs the current password to regenerate the api token', function (?string $currentPassword) {
+    $oldToken = $this->member->api_token;
+
+    $this->actingAs($this->member)
+        ->post(route('member.tools.api.regenerate-token'), ['current_password' => $currentPassword])
+        ->assertSessionHasErrors('current_password');
+
+    expect($this->member->refresh()->api_token)->toBe($oldToken);
+})->with(['wrong password' => 'wrong', 'missing' => null]);
 
 it('shows the full page script variables', function () {
     $this->actingAs($this->member)->get('/member/tools/full')

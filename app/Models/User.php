@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -61,6 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'api_token',
+        'api_token_hash',
         'remember_token',
         'two_factor_secret',
         'two_factor_recovery_codes',
@@ -68,14 +70,71 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Generate the API token and referral code when they are not provided.
+     * Generate the API token and referral code when they are not provided, and keep the
+     * lookup hash of the API token in step with the token itself.
      */
     protected static function booted(): void
     {
         static::creating(function (User $user): void {
-            $user->api_token ??= static::generateUnique('api_token', 24);
+            $user->api_token ??= static::generateApiToken();
+            $user->api_token_hash = static::hashApiToken($user->api_token);
             $user->referral_code ??= static::generateUnique('referral_code', 7);
         });
+
+        static::updating(function (User $user): void {
+            if ($user->isDirty('api_token')) {
+                $user->api_token_hash = static::hashApiToken($user->api_token);
+            }
+        });
+    }
+
+    /**
+     * Find the user an API token belongs to. Only the SHA-256 hash of the token is looked up.
+     */
+    public static function findByApiToken(string $token): ?self
+    {
+        $hash = static::hashApiToken($token);
+        $user = static::query()->where('api_token_hash', $hash)->first();
+
+        return $user !== null && hash_equals((string) $user->api_token_hash, $hash) ? $user : null;
+    }
+
+    /**
+     * The hash stored in api_token_hash for a plain API token.
+     */
+    public static function hashApiToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
+    /**
+     * Replace the API token with a new one. The old token stops working at once. The row is written
+     * directly so a stored token that can no longer be decrypted (after an APP_KEY change) is never read.
+     */
+    public function regenerateApiToken(): string
+    {
+        $token = static::generateApiToken();
+
+        static::query()->whereKey($this->getKey())->update([
+            'api_token' => Crypt::encryptString($token),
+            'api_token_hash' => static::hashApiToken($token),
+        ]);
+
+        $this->refresh();
+
+        return $token;
+    }
+
+    /**
+     * Generate a random API token whose hash is not used yet.
+     */
+    protected static function generateApiToken(): string
+    {
+        do {
+            $token = Str::random(24);
+        } while (static::query()->where('api_token_hash', static::hashApiToken($token))->exists());
+
+        return $token;
     }
 
     /**
@@ -100,6 +159,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'api_token' => 'encrypted',
             'role' => UserRole::class,
             'status' => UserStatus::class,
             'payout_method' => PayoutMethod::class,

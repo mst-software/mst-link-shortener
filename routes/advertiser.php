@@ -18,8 +18,8 @@ Route::middleware(['auth', 'active', 'advertiser'])->prefix('advertiser')->name(
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet');
 
     Route::get('profile', [ProfileController::class, 'show'])->name('profile');
-    Route::post('profile/password', [ProfileController::class, 'password'])->name('profile.password');
-    Route::post('profile/email', [ProfileController::class, 'email'])->name('profile.email');
+    Route::post('profile/password', [ProfileController::class, 'password'])->middleware('throttle:current-password')->name('profile.password');
+    Route::post('profile/email', [ProfileController::class, 'email'])->middleware('throttle:current-password')->name('profile.email');
 
     Route::post('topups/sepay', [TopUpController::class, 'sepay'])->name('topups.sepay');
     Route::post('topups/paypal', [TopUpController::class, 'paypal'])->name('topups.paypal');

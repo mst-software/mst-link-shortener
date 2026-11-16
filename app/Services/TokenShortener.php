@@ -24,7 +24,7 @@ class TokenShortener
         ?string $password = null,
         ?CarbonInterface $expiresAt = null,
     ): Link {
-        $user = $token ? User::query()->where('api_token', $token)->first() : null;
+        $user = $token ? User::findByApiToken($token) : null;
 
         if ($user === null || ! $user->isActive()) {
             throw new InvalidLinkException('Invalid API token.');

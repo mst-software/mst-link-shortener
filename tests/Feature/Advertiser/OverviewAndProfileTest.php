@@ -5,8 +5,12 @@ use App\Enums\ViewStatus;
 use App\Models\Campaign;
 use App\Models\User;
 use App\Models\View;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 uses(RefreshDatabase::class);
 
@@ -72,12 +76,34 @@ it('rejects a wrong current password', function () {
         ->assertSessionHasErrors('current_password');
 });
 
-it('changes the advertiser email', function () {
+it('changes the advertiser email, resets verification and sends a new verification mail', function () {
+    Notification::fake();
+
+    $this->actingAs($this->advertiser)
+        ->post(route('advertiser.profile.email'), ['email' => 'new@example.com', 'current_password' => 'password'])
+        ->assertRedirect(route('advertiser.profile'))
+        ->assertSessionHas('success');
+
+    $this->advertiser->refresh();
+
+    expect($this->advertiser->email)->toBe('new@example.com')
+        ->and($this->advertiser->hasVerifiedEmail())->toBeFalse();
+    Notification::assertSentToTimes($this->advertiser, VerifyEmail::class, 1);
+});
+
+it('saves the advertiser email change when the verification mail cannot be sent', function () {
+    Exceptions::fake();
+    Notification::shouldReceive('send')->andThrow(new TransportException('Mail server is down.'));
+
     $this->actingAs($this->advertiser)
         ->post(route('advertiser.profile.email'), ['email' => 'new@example.com', 'current_password' => 'password'])
         ->assertRedirect(route('advertiser.profile'));
 
-    expect($this->advertiser->refresh()->email)->toBe('new@example.com');
+    $this->advertiser->refresh();
+
+    expect($this->advertiser->email)->toBe('new@example.com')
+        ->and($this->advertiser->hasVerifiedEmail())->toBeFalse();
+    Exceptions::assertReported(TransportException::class);
 });
 
 it('shows the profile page', function () {

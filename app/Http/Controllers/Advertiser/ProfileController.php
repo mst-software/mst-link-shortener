@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Advertiser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\ChangeEmailRequest;
 use App\Http\Requests\Member\ChangePasswordRequest;
+use App\Models\User;
+use App\Services\AccountCredentialService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -15,17 +17,24 @@ class ProfileController extends Controller
         return view('advertiser.profile');
     }
 
-    public function password(ChangePasswordRequest $request): RedirectResponse
+    public function password(ChangePasswordRequest $request, AccountCredentialService $credentials): RedirectResponse
     {
-        $request->user()->update(['password' => $request->validated('password')]);
+        /** @var User $user */
+        $user = $request->user();
+
+        $credentials->changePassword($user, $request->validated('password'));
 
         return redirect()->route('advertiser.profile')->with('success', 'Password changed.');
     }
 
-    public function email(ChangeEmailRequest $request): RedirectResponse
+    public function email(ChangeEmailRequest $request, AccountCredentialService $credentials): RedirectResponse
     {
-        $request->user()->update(['email' => $request->validated('email')]);
+        /** @var User $user */
+        $user = $request->user();
 
-        return redirect()->route('advertiser.profile')->with('success', 'Email changed.');
+        $credentials->changeEmail($user, $request->validated('email'));
+
+        return redirect()->route('advertiser.profile')
+            ->with('success', 'Email changed. We sent a verification link to your new email address.');
     }
 }
