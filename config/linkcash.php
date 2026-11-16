@@ -35,6 +35,7 @@ return [
         'payout_methods' => 'paypal,bank_transfer,momo,usdt',
         'registration_open' => true,
         'maintenance_mode' => false,
+        'upload_disk' => 'public',
     ],
 
 ];

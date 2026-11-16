@@ -56,7 +56,8 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            // Throw so the admin "Test connection" button and the error log show the real S3 error.
+            'throw' => true,
             'report' => false,
         ],
 
