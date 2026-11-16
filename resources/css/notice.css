@@ -6,3 +6,4 @@
 .site-notice-text { flex: 1; max-width: 1140px; margin: 0 auto; overflow-wrap: anywhere; white-space: pre-line; }
 .site-notice-close { flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font-size: 20px; line-height: 28px; cursor: pointer; }
 .site-notice-close:hover { background: rgb(0 0 0 / .06); }
+.maintenance-notice { white-space: pre-line; }
