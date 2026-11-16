@@ -17,7 +17,7 @@
     <div class="box-body">
       <h4>
         <a href="{{ $shortUrl }}" target="_blank" rel="nofollow noopener noreferrer">
-          <span class="glyphicon glyphicon-link"></span> {{ $link->url }}
+          <i class="fa fa-link"></i> {{ $link->url }}
         </a>
       </h4>
       <p class="text-muted">
