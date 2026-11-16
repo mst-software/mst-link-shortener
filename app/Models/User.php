@@ -124,6 +124,16 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Browsers that may skip the two-factor step until they expire.
+     *
+     * @return HasMany<TrustedDevice, $this>
+     */
+    public function trustedDevices(): HasMany
+    {
+        return $this->hasMany(TrustedDevice::class);
+    }
+
+    /**
      * @return HasMany<TopUp, $this>
      */
     public function topUps(): HasMany
