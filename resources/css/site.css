@@ -39,7 +39,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px s
 
 /* ================= Navigation bar ================= */
 #mainNav { z-index: 1000 !important; padding: 10px 0; transition: padding .3s, background-color .3s, box-shadow .3s; }
-#mainNav.affix { padding: 4px 0; background-color: color-mix(in srgb, var(--color-brand-900) 90%, transparent); -webkit-backdrop-filter: saturate(160%) blur(12px); backdrop-filter: saturate(160%) blur(12px); box-shadow: 0 1px 0 rgb(255 255 255 / .06), 0 10px 30px -14px rgb(0 0 0 / .5); }
+#mainNav.affix { padding: 4px 0; background-color: rgb(2 58 14 / .9); background-color: color-mix(in srgb, var(--color-brand-900) 90%, transparent); -webkit-backdrop-filter: saturate(160%) blur(12px); backdrop-filter: saturate(160%) blur(12px); box-shadow: 0 1px 0 rgb(255 255 255 / .06), 0 10px 30px -14px rgb(0 0 0 / .5); }
 #mainNav .nav-link { display: block; padding: 8px 14px; border-radius: 10px; font-size: 15px; font-weight: 500; color: rgb(255 255 255 / .86); transition: color .2s, background-color .2s; }
 #mainNav .nav-link:hover { color: #fff; background-color: rgb(255 255 255 / .1); }
 #mainNav .nav-link.active { color: #fff; background-color: rgb(255 255 255 / .14); }
@@ -301,7 +301,7 @@ input[type=range].slider { width: 100%; accent-color: var(--color-brand-600); cu
 #postModal a { color: var(--color-brand-600); text-decoration: underline; text-underline-offset: 3px; }
 
 /* ================= Footer ================= */
-footer { position: relative; padding: 0; background: radial-gradient(40rem 20rem at 0% 0%, color-mix(in srgb, var(--color-brand-600) 35%, transparent), transparent 70%), var(--color-brand-950); color: rgb(255 255 255 / .75); }
+footer { position: relative; padding: 0; background: radial-gradient(40rem 20rem at 0% 0%, rgb(3 128 24 / .35), transparent 70%), var(--color-brand-950); background: radial-gradient(40rem 20rem at 0% 0%, color-mix(in srgb, var(--color-brand-600) 35%, transparent), transparent 70%), var(--color-brand-950); color: rgb(255 255 255 / .75); }
 .footer-top { padding: 72px 0 24px; }
 .footer-brand p { max-width: 400px; margin: 16px 0 24px; font-size: 15px; line-height: 1.7; color: rgb(255 255 255 / .72); }
 .footer-brand .footer-label { margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgb(255 255 255 / .55); }
