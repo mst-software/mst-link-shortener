@@ -124,6 +124,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(TopUp::class);
     }
 
+    /**
+     * @return HasMany<Link, $this>
+     */
+    public function links(): HasMany
+    {
+        return $this->hasMany(Link::class);
+    }
+
     public function isAdvertiser(): bool
     {
         return $this->role === UserRole::Advertiser;
