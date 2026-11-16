@@ -16,6 +16,7 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
     Route::get('fraud-flags', [FraudFlagController::class, 'index'])->name('fraud-flags.index');
     Route::patch('fraud-flags/{fraudFlag}/resolve', [FraudFlagController::class, 'resolve'])->name('fraud-flags.resolve');
     Route::post('fraud-flags/{fraudFlag}/ban-link', [FraudFlagController::class, 'banLink'])->name('fraud-flags.ban-link');
+    Route::post('fraud-flags/{fraudFlag}/pay-held-commission', [FraudFlagController::class, 'payHeldCommission'])->name('fraud-flags.pay-held-commission');
 
     Route::get('links', [LinkController::class, 'index'])->name('links.index');
     Route::post('links/{link}/ban', [LinkController::class, 'ban'])->name('links.ban');
