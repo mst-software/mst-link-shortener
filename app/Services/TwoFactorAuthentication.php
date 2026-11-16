@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -46,20 +47,15 @@ class TwoFactorAuthentication
 
         $step = $this->totp->verify($user->two_factor_secret, $code);
 
-        if ($step === null) {
+        if ($step === null || ! $this->claimTimeStep($user, $step, ['two_factor_confirmed_at' => now()], requireUnconfirmed: true)) {
             return null;
         }
-
-        $user->forceFill([
-            'two_factor_confirmed_at' => now(),
-            'two_factor_last_used_step' => $step,
-        ])->save();
 
         return $this->regenerateRecoveryCodes($user);
     }
 
     /**
-     * Replace the recovery codes; only their hashes are stored.
+     * Replace the recovery codes (only their hashes are stored) and forget the trusted devices.
      *
      * @return list<string> The plain codes to show once.
      */
@@ -71,9 +67,14 @@ class TwoFactorAuthentication
             $codes[] = Str::lower(Str::random(5).'-'.Str::random(5));
         }
 
-        $user->forceFill([
-            'two_factor_recovery_codes' => array_map(fn (string $code): string => Hash::make($code), $codes),
-        ])->save();
+        $hashes = array_map(fn (string $code): string => Hash::make($code), $codes);
+
+        DB::transaction(function () use ($user, $hashes): void {
+            /** @var User $locked */
+            $locked = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $locked->forceFill(['two_factor_recovery_codes' => $hashes])->save();
+            $user->setRawAttributes($locked->getAttributes(), true);
+        });
 
         return $codes;
     }
@@ -157,22 +158,30 @@ class TwoFactorAuthentication
     {
         $step = $this->totp->verify((string) $user->two_factor_secret, $code);
 
-        if ($step === null) {
-            return false;
-        }
+        return $step !== null && $this->claimTimeStep($user, $step);
+    }
 
+    /**
+     * Atomically record the time step as used, only if it is newer than the last one (compare-and-set).
+     *
+     * @param  array<string, mixed>  $extra  More columns to set in the same update.
+     */
+    private function claimTimeStep(User $user, int $step, array $extra = [], bool $requireUnconfirmed = false): bool
+    {
         $updated = User::query()
             ->whereKey($user->getKey())
-            ->where(function ($query) use ($step): void {
+            ->when($requireUnconfirmed, fn (Builder $query) => $query->whereNull('two_factor_confirmed_at'))
+            ->where(function (Builder $query) use ($step): void {
                 $query->whereNull('two_factor_last_used_step')->orWhere('two_factor_last_used_step', '<', $step);
             })
-            ->update(['two_factor_last_used_step' => $step]);
+            ->update(['two_factor_last_used_step' => $step, ...$extra]);
 
         if ($updated === 0) {
             return false;
         }
 
-        $user->forceFill(['two_factor_last_used_step' => $step])->syncOriginalAttribute('two_factor_last_used_step');
+        $columns = ['two_factor_last_used_step' => $step, ...$extra];
+        $user->forceFill($columns)->syncOriginalAttributes(array_keys($columns));
 
         return true;
     }

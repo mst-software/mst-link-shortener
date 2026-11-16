@@ -65,6 +65,25 @@ test('confirming with a valid code turns two-factor on and returns eight recover
         ->and($user->two_factor_recovery_codes)->not->toContain($codes[0]);
 });
 
+test('the code used to confirm the setup cannot be used again', function () {
+    $user = User::factory()->withPendingTwoFactor()->create();
+    $code = totpCode($user);
+
+    expect($this->twoFactor->confirm($user, $code))->toHaveCount(8)
+        ->and($this->twoFactor->confirm($user->fresh(), $code))->toBeNull()
+        ->and($this->twoFactor->verify($user->fresh(), $code))->toBeFalse();
+});
+
+test('a setup confirmed elsewhere in the meantime is not confirmed again', function () {
+    $user = User::factory()->withPendingTwoFactor()->create();
+    $stale = $user->fresh();
+    $this->twoFactor->confirm($user, totpCode($user));
+
+    $this->travel(Totp::PERIOD_SECONDS)->seconds();
+
+    expect($this->twoFactor->confirm($stale, totpCode($stale)))->toBeNull();
+});
+
 test('the secret is stored encrypted', function () {
     $user = User::factory()->withTwoFactor()->create();
 
