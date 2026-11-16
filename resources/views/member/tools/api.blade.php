@@ -19,6 +19,7 @@
       <p>All you have to do is to send a <b>GET</b> request with your API token and URL like the following:</p>
       <div class="well">{{ $baseUrl }}/api?api={{ $token }}&amp;url=yourdestinationlink.com</div>
       <p>Optional parameters: <code>alias</code>, <code>level</code> (1 to 3, defaults to your Settings level, currently {{ $level }}), <code>password</code> (4 to 64 characters, visitors must enter it before the link opens), <code>expires_at</code> (a future date in UTC such as <code>2027-01-31 23:59</code>, after which the link stops working) and <code>format=text</code> to get the short link as plain text.</p>
+      <p><b>Note:</b> the <code>password</code> parameter is sent in the query string, so it may be stored in server, proxy or browser logs. Do not reuse a password you use anywhere else.</p>
       <p>You will get a JSON response like the following:</p>
       <div class="well">{"status":"success","message":"","shortenedUrl":"{{ $baseUrl }}\/xxxxxx"}</div>
       <h3>Using the API in PHP</h3>
