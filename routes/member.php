@@ -11,6 +11,7 @@ use App\Http\Controllers\Member\ReferralController;
 use App\Http\Controllers\Member\StatisticController;
 use App\Http\Controllers\Member\SupportController;
 use App\Http\Controllers\Member\ToolController;
+use App\Http\Controllers\Member\TwoFactorController;
 use App\Http\Controllers\Member\WithdrawController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,7 +28,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
     Route::post('links/restore', [LinkController::class, 'restore'])->name('links.restore');
 
     Route::get('withdraws', [WithdrawController::class, 'index'])->name('withdraws');
-    Route::post('withdraws', [WithdrawController::class, 'store'])->middleware('verified')->name('withdraws.store');
+    Route::post('withdraws', [WithdrawController::class, 'store'])->middleware(['verified', 'throttle:two-factor-code'])->name('withdraws.store');
 
     Route::prefix('tools')->name('tools.')->group(function () {
         Route::get('quick', [ToolController::class, 'quick'])->name('quick');
@@ -46,6 +47,13 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
         Route::post('change-password', [PasswordController::class, 'update'])->middleware('verified')->name('change-password.update');
         Route::get('change-email', [EmailController::class, 'edit'])->name('change-email');
         Route::post('change-email', [EmailController::class, 'update'])->name('change-email.update');
+        Route::get('two-factor', [TwoFactorController::class, 'edit'])->name('two-factor');
+        Route::post('two-factor', [TwoFactorController::class, 'store'])->name('two-factor.store');
+        Route::middleware('throttle:two-factor-code')->group(function () {
+            Route::post('two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
+            Route::post('two-factor/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])->name('two-factor.recovery-codes');
+            Route::delete('two-factor', [TwoFactorController::class, 'destroy'])->name('two-factor.destroy');
+        });
     });
 
     Route::get('form/support', [SupportController::class, 'show'])->name('form.support');

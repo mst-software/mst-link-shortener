@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegalController;
@@ -23,6 +24,8 @@ Route::get('blog', [BlogController::class, 'index'])->name('blog');
 
 Route::get('auth/signin', [LoginController::class, 'show'])->name('login');
 Route::post('auth/signin', [LoginController::class, 'store']);
+Route::get('auth/two-factor', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+Route::post('auth/two-factor', [TwoFactorChallengeController::class, 'store'])->middleware('throttle:two-factor-challenge');
 Route::get('auth/signup', [RegisterController::class, 'show'])->name('register');
 Route::post('auth/signup', [RegisterController::class, 'store'])->middleware('throttle:register');
 Route::post('auth/signout', LogoutController::class)->name('logout');

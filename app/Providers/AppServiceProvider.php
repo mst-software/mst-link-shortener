@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\CaptchaVerifier;
 use App\Contracts\CountryResolver;
 use App\Enums\CaptchaProvider;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Models\User;
 use App\Services\Views\FakeCaptchaVerifier;
 use App\Services\Views\HeaderCountryResolver;
@@ -44,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('widget-start', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
         RateLimiter::for('link-password', fn (Request $request) => Limit::perMinute(5)->by($request->ip().'|'.strtolower((string) $request->route('alias'))));
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
+        RateLimiter::for('two-factor-challenge', fn (Request $request) => Limit::perMinute(5)->by($request->session()->get(TwoFactorChallengeController::SESSION_KEY.'.user_id').'|'.$request->ip()));
+        RateLimiter::for('two-factor-code', fn (Request $request) => Limit::perMinute(5)->by($request->user()?->getAuthIdentifier().'|'.$request->ip()));
 
         ResetPassword::toMailUsing(fn (User $user, string $token): MailMessage => $this->passwordResetMail($user, $token));
     }

@@ -23,11 +23,23 @@ class StoreWithdrawalRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'gt:0', 'max:1000000000'],
             'traffic_source' => ['required', 'string', 'max:2000'],
+            'code' => [$this->hasTwoFactor() ? 'required' : 'nullable', 'string', 'max:20'],
         ];
     }
 
     /**
-     * Business checks. The balance is checked again under a row lock when the money is reserved.
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'code' => 'authentication code',
+        ];
+    }
+
+    /**
+     * Business checks. The balance is checked again under a row lock when the money is reserved,
+     * and the two-factor code is checked there too so it is only used up by a created withdrawal.
      *
      * @return list<callable(Validator): void>
      */
@@ -57,6 +69,13 @@ class StoreWithdrawalRequest extends FormRequest
                 }
             },
         ];
+    }
+
+    private function hasTwoFactor(): bool
+    {
+        $user = $this->user();
+
+        return $user instanceof User && $user->hasTwoFactorEnabled();
     }
 
     /**
