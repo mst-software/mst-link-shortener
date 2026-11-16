@@ -5,6 +5,7 @@ namespace App\Services\Views;
 use App\Contracts\CaptchaVerifier;
 use App\Enums\LinkStatus;
 use App\Enums\TokenResult;
+use App\Enums\UserStatus;
 use App\Enums\VisitMode;
 use App\Enums\VisitStatus;
 use App\Models\Campaign;
@@ -41,13 +42,15 @@ class VisitFlow
     ) {}
 
     /**
-     * Find a link that visitors may open; hidden, banned and expired links are treated as missing.
+     * Find a link that visitors may open; hidden, banned and expired links, and links whose owner
+     * is banned, are treated as missing. Unbanning the owner makes the links reachable again.
      */
     public function findActiveLink(string $alias): ?Link
     {
         return Link::query()
             ->where('alias', $alias)
             ->where('status', LinkStatus::Active)
+            ->whereHas('user', fn (Builder $owner) => $owner->where('status', UserStatus::Active))
             ->notExpired()
             ->first();
     }
