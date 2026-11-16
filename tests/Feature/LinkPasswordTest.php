@@ -66,6 +66,14 @@ it('limits password attempts to 5 per minute per link and ip', function () {
     $this->post('/go/Locked1/unlock', ['password' => 'open-sesame'])->assertStatus(429);
 });
 
+it('shares one password attempt limit across case variants of the alias', function () {
+    foreach (['Locked1', 'locked1', 'LOCKED1', 'lOcKeD1', 'Locked1'] as $alias) {
+        $this->post("/go/{$alias}/unlock", ['password' => 'wrong']);
+    }
+
+    $this->post('/go/locked1/unlock', ['password' => 'open-sesame'])->assertStatus(429);
+});
+
 it('never exposes the password hash when the link is serialized', function () {
     expect($this->link->toArray())->not->toHaveKey('password');
 });
