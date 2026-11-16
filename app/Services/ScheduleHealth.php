@@ -26,6 +26,7 @@ class ScheduleHealth
         'views:aggregate' => 5,
         'earnings:release' => 1440,
         'views:purge' => 1440,
+        'logins:purge' => 1440,
         'fraud:scan' => 60,
         'sepay:sync' => 1,
         'db:backup' => 1440,
