@@ -88,7 +88,7 @@ it('falls back to 30 days for an invalid range on the page and rejects it with 4
     $this->actingAs($this->member)
         ->getJson(route('member.statistic', ['range' => $range]))
         ->assertStatus(422)
-        ->assertJson(['success' => false]);
+        ->assertJson(['success' => false, 'info' => 'The range must be one of: 7, 30, 90 days.']);
 })->with(['14', 'abc', '-7', '7.5']);
 
 it('keeps the range when changing the month and the month when changing the range', function () {

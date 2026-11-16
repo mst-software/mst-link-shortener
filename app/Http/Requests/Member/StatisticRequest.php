@@ -27,8 +27,7 @@ class StatisticRequest extends MonthRequest
     public function messages(): array
     {
         return [
-            'range.integer' => 'The range must be one of: '.implode(', ', DashboardStats::BREAKDOWN_RANGES).' days.',
-            'range.in' => 'The range must be one of: '.implode(', ', DashboardStats::BREAKDOWN_RANGES).' days.',
+            'range' => 'The range must be one of: '.implode(', ', DashboardStats::BREAKDOWN_RANGES).' days.',
         ];
     }
 
