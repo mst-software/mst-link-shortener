@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Confirms to the member that their withdrawal request was received.
- * Sent synchronously: the default queue connection is "database" and no worker is guaranteed.
+ * Sent synchronously during the request: the app runs without a queue worker.
  */
 class WithdrawalRequested extends Notification
 {

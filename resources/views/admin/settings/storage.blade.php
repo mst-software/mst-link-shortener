@@ -29,7 +29,7 @@
               <option value="{{ $value }}" @selected(old('upload_disk', $values['upload_disk']) === $value)>{{ $label }}</option>
             @endforeach
           </select>
-          <span class="help-block">@error('upload_disk'){{ $message }}@else This server is the simplest choice. Use S3-compatible storage to keep files off the server or serve them from a CDN.@enderror</span>
+          <span class="help-block">@error('upload_disk'){{ $message }}@else This server is the simplest choice. Use S3-compatible storage (e.g. Cloudfly) to keep files off the hosting account or serve them from a CDN.@enderror</span>
         </div>
       </div>
     </div>
@@ -37,20 +37,20 @@
     <div class="box box-primary">
       <div class="box-header with-border"><h3 class="box-title">S3-compatible storage</h3></div>
       <div class="box-body">
-        <p class="text-muted">Only needed when files are saved on S3-compatible storage. Your storage provider gives you these details. The bucket must allow public reads (or use a public address below), because visitors load the images directly.</p>
+        <p class="text-muted">Only needed when files are saved on S3-compatible storage such as Cloudfly. Your storage provider gives you these details in its S3 API or access key section. The bucket must allow public reads (or use a public address below), because visitors load the images directly.</p>
         <p class="text-muted">A field left empty keeps the value set on the server (in the .env file), if there is one.</p>
         <x-admin.setting-input name="s3_key" label="Access key ID" help="The ID of an access key that may read and write this bucket." :value="$values['s3_key']" maxlength="255" autocomplete="off" />
         <x-admin.secret-input name="s3_secret" label="Secret access key" help="The secret that belongs to the access key." :saved="$hasSecret" :server-default="$hasServerSecret && ! $hasSecret" />
-        <x-admin.setting-input name="s3_region" label="Region" help='For example us-east-1. Use "auto" for Cloudflare R2.' :value="$values['s3_region']" maxlength="32" autocomplete="off" />
+        <x-admin.setting-input name="s3_region" label="Region" help='The region your provider names for the bucket, for example us-east-1. Use "auto" for Cloudflare R2; if your provider names no region, us-east-1 usually works.' :value="$values['s3_region']" maxlength="32" autocomplete="off" />
         <x-admin.setting-input name="s3_bucket" label="Bucket" help="The name of the bucket the files go in." :value="$values['s3_bucket']" maxlength="63" autocomplete="off" />
-        <x-admin.setting-input name="s3_endpoint" label="Endpoint (optional)" help="Leave blank for Amazon S3. For Cloudflare R2, MinIO and other providers, enter the API address they give you, for example https://ACCOUNT_ID.r2.cloudflarestorage.com." type="url" :value="$values['s3_endpoint']" maxlength="255" placeholder="https://" />
+        <x-admin.setting-input name="s3_endpoint" label="Endpoint (optional)" help="Leave blank for Amazon S3. For Cloudfly, Cloudflare R2 and other S3-compatible providers, enter the S3 API address they give you, starting with https://." type="url" :value="$values['s3_endpoint']" maxlength="255" placeholder="https://" />
         <x-admin.setting-input name="s3_url" label="Public address (optional)" help="The address files are shown from, such as a CDN or the public bucket address (for example https://cdn.example.com). Leave blank to use the bucket address." type="url" :value="$values['s3_url']" maxlength="255" placeholder="https://" />
         <div @class(['form-group', 'has-error' => $errors->has('s3_use_path_style')])>
           <input type="hidden" name="s3_use_path_style" value="0">
           <div class="checkbox">
             <label><input type="checkbox" name="s3_use_path_style" value="1" @checked(old('s3_use_path_style', $values['s3_use_path_style']))> Use path-style addresses</label>
           </div>
-          <span class="help-block">@error('s3_use_path_style'){{ $message }}@else Usually needed for MinIO and some other self-hosted providers. Leave it off for Amazon S3 and Cloudflare R2.@enderror</span>
+          <span class="help-block">@error('s3_use_path_style'){{ $message }}@else Turn it on when your provider asks for path-style requests (bucket in the path, not in the host name), or when the connection test fails to find the bucket. Leave it off for Amazon S3 and Cloudflare R2.@enderror</span>
         </div>
       </div>
       <div class="box-footer">

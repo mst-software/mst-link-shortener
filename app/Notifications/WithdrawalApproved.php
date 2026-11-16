@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Tells the member that an admin approved and paid their withdrawal.
- * Sent synchronously: the default queue connection is "database" and no worker is guaranteed.
+ * Sent synchronously during the request: the app runs without a queue worker.
  */
 class WithdrawalApproved extends Notification
 {

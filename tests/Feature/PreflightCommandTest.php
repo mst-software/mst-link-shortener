@@ -25,7 +25,7 @@ beforeEach(function () {
         'app.url' => 'https://linkcash.example',
         'session.secure' => true,
         'trustedproxy.proxies' => 'cloudflare',
-        'queue.default' => 'database',
+        'queue.default' => 'sync',
         'mail.default' => 'smtp',
         'mail.mailers.smtp.host' => 'smtp.linkcash.example',
         'services.turnstile.site_key' => 'site-key',
@@ -50,6 +50,7 @@ it('passes on a production ready server', function () {
     $this->artisan('app:preflight')
         ->expectsOutputToContain('PASS  Debug mode')
         ->expectsOutputToContain('PASS  Migrations: No pending migrations.')
+        ->expectsOutputToContain('PASS  Queue: QUEUE_CONNECTION is sync')
         ->expectsOutputToContain('PASS  Scheduler')
         ->expectsOutputToContain('All checks passed.')
         ->assertSuccessful();
@@ -95,7 +96,7 @@ it('warns without failing about optional or advisory settings', function (Closur
 })->with([
     'local environment' => [fn () => app()->instance('env', 'local'), 'WARN  Environment'],
     'no trusted proxy' => [fn () => config(['trustedproxy.proxies' => '']), 'WARN  Trusted proxies'],
-    'sync queue' => [fn () => config(['queue.default' => 'sync']), 'WARN  Queue'],
+    'queue that needs a worker' => [fn () => config(['queue.default' => 'database']), 'WARN  Queue: QUEUE_CONNECTION is "database"'],
     'paypal sandbox' => [fn () => config(['services.paypal.mode' => 'sandbox']), 'WARN  PayPal'],
     'no sepay token' => [fn () => config(['services.sepay.api_token' => '']), 'WARN  SePay'],
     'any proxy' => [fn () => config(['trustedproxy.proxies' => '*']), 'WARN  Trusted proxies: TRUSTED_PROXIES is "*"'],

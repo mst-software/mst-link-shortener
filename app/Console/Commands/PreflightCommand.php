@@ -196,7 +196,7 @@ class PreflightCommand extends Command
     {
         return file_exists(public_path('storage'))
             ? [PreflightStatus::Pass, 'public/storage exists.']
-            : [PreflightStatus::Fail, 'public/storage is missing, so uploaded campaign images do not load. Run php artisan storage:link.'];
+            : [PreflightStatus::Fail, 'public/storage is missing, so uploaded images saved on this server do not load. Run php artisan storage:link (or create the symlink in the cPanel File Manager), or save uploads on S3-compatible storage.'];
     }
 
     /**
@@ -206,7 +206,7 @@ class PreflightCommand extends Command
     {
         return is_file(public_path('build/manifest.json'))
             ? [PreflightStatus::Pass, 'public/build is present.']
-            : [PreflightStatus::Fail, 'public/build/manifest.json is missing. Run npm ci && npm run build.'];
+            : [PreflightStatus::Fail, 'public/build/manifest.json is missing. Run npm run build locally and upload the public/build folder.'];
     }
 
     /**
@@ -217,8 +217,8 @@ class PreflightCommand extends Command
         $connection = (string) config('queue.default');
 
         return $connection === 'sync'
-            ? [PreflightStatus::Warn, 'QUEUE_CONNECTION is sync, so queued work runs inside web requests. Use database or redis with a queue worker.']
-            : [PreflightStatus::Pass, 'Connection "'.$connection.'". Keep php artisan queue:work running (supervisor) and run php artisan queue:restart after each deploy and after saving mail or payment settings.'];
+            ? [PreflightStatus::Pass, 'QUEUE_CONNECTION is sync, so any queued work runs right away without a worker.']
+            : [PreflightStatus::Warn, 'QUEUE_CONNECTION is "'.$connection.'", but shared hosting runs no queue worker, so queued work would never run. Set QUEUE_CONNECTION=sync.'];
     }
 
     /**
@@ -235,7 +235,7 @@ class PreflightCommand extends Command
         }
 
         if ($late !== []) {
-            return [PreflightStatus::Warn, 'Late or never run: '.implode(', ', array_column($late, 'command')).'. Is the cron entry "* * * * * php artisan schedule:run" installed?'];
+            return [PreflightStatus::Warn, 'Late or never run: '.implode(', ', array_column($late, 'command')).'. Is the cPanel cron job running php artisan schedule:run every minute?'];
         }
 
         return [PreflightStatus::Pass, 'Every scheduled job reported in on time.'];
