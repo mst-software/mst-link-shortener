@@ -5,6 +5,10 @@
 @section('content')
   <h3>Statistics <span class="small">(<a href="{{ route('member.statistic', ['month' => $month]) }}">View details</a>)</span></h3>
 
+  @if ($statsAreDelayed)
+    <p class="text-muted"><i class="fa fa-clock"></i> Stats may be delayed. Recent views will appear shortly.</p>
+  @endif
+
   <div class="row">
     <div class="col-lg-3 col-xs-6">
       <x-member.stat-box color="orange" label="Today" :value="$today" icon="chart-bar" />

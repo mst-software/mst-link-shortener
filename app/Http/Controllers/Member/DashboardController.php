@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\DashboardDataRequest;
 use App\Models\Notice;
 use App\Services\DashboardStats;
+use App\Services\ScheduleHealth;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -16,7 +17,7 @@ class DashboardController extends Controller
 {
     public function __construct(private readonly DashboardStats $stats) {}
 
-    public function index(Request $request): View
+    public function index(Request $request, ScheduleHealth $scheduleHealth): View
     {
         $member = $request->user();
         $income = $this->stats->overview($member, CarbonImmutable::now('UTC'));
@@ -28,6 +29,7 @@ class DashboardController extends Controller
             'balance' => DashboardStats::display($member->balance_micro),
             'month' => CarbonImmutable::now('UTC')->format('m/Y'),
             'notices' => Notice::query()->published()->limit(5)->get(),
+            'statsAreDelayed' => $scheduleHealth->isOverdue(ScheduleHealth::STATS_JOB),
         ]);
     }
 
