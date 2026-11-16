@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\TrustedDevice;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 
 uses(RefreshDatabase::class);
 
@@ -66,6 +68,19 @@ test('the new password works after a reset', function () {
 
     $this->post(route('login'), ['username' => $user->username, 'password' => 'brand-new-pass'])
         ->assertRedirect(route('member.dashboard'));
+});
+
+test('a password reset forgets the trusted devices', function () {
+    $user = User::factory()->withTwoFactor()->create();
+    TrustedDevice::factory()->for($user)->create();
+
+    $this->post(route('password.update'), [
+        'token' => Password::createToken($user),
+        'email' => $user->email,
+        'password' => 'brand-new-pass',
+    ])->assertRedirect(route('login'));
+
+    expect($user->trustedDevices()->count())->toBe(0);
 });
 
 test('an invalid token is rejected', function () {
