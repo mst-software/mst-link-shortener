@@ -19,7 +19,7 @@
 .lk-container { width: 100%; max-width: 1170px; margin: 0 auto; padding: 0 16px; }
 
 /* Navigation bar: a slim solid green bar */
-.lk-navbar { background: #038018; border-bottom: 1px solid #026812; }
+.lk-navbar { background: var(--color-brand-600, #038018); border-bottom: 1px solid var(--color-brand-700, #026812); }
 .lk-navbar-inner { display: flex; align-items: center; justify-content: space-between; min-height: 52px; }
 .lk-brand { display: block; padding: 6px 0; }
 .lk-brand img { display: block; height: 28px; width: auto; }
@@ -29,13 +29,13 @@
   align-items: center;
   min-height: 40px;
   padding: 0 12px;
-  color: #fff !important;
+  color: var(--color-brand-contrast, #fff) !important;
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
 }
 .lk-nav a:hover { text-decoration: underline; }
-.lk-brand:focus-visible, .lk-nav a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.lk-brand:focus-visible, .lk-nav a:focus-visible { outline: 2px solid var(--color-brand-contrast, #fff); outline-offset: 2px; }
 
 /* Main card: one white bordered box holding the whole flow */
 .lk-box-main { margin: 24px 0 0; }
@@ -55,7 +55,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid #ddd;
-  border-top-color: #038018;
+  border-top-color: var(--color-brand-600, #038018);
   border-radius: 50%;
   animation: lk-spin 0.8s linear infinite;
 }
@@ -87,7 +87,7 @@
   text-align: left;
 }
 .lk-input::placeholder { color: #767676; }
-.lk-input:focus { outline: 2px solid #038018; outline-offset: -1px; border-color: #038018; }
+.lk-input:focus { outline: 2px solid var(--color-brand-600, #038018); outline-offset: -1px; border-color: var(--color-brand-600, #038018); }
 .lk-input.is-error { border-color: #c9302c; }
 .lk-input.is-error:focus { outline-color: #c9302c; }
 
@@ -115,8 +115,8 @@
 }
 .lk-btn:focus-visible, .lk-linkbtn:focus-visible, .lk-mini:focus-visible, .lk-modal-x:focus-visible { outline: 2px solid #1f6feb; outline-offset: 2px; }
 .lk-btn:disabled { background: #e9ecef !important; border-color: #ccc !important; color: #6c757d !important; cursor: not-allowed; }
-.lk-btn-success { background: #038018; border-color: #026812; color: #fff !important; }
-.lk-btn-success:hover:not(:disabled) { background: #026812; }
+.lk-btn-success { background: var(--color-brand-600, #038018); border-color: var(--color-brand-700, #026812); color: var(--color-brand-contrast, #fff) !important; }
+.lk-btn-success:hover:not(:disabled) { background: var(--color-brand-700, #026812); }
 .lk-btn-danger { background: #c9302c; border-color: #ac2925; color: #fff !important; }
 .lk-btn-danger:hover { background: #ac2925; }
 .lk-btn-primary, .lk-btn-blue { background: #286090; border-color: #204d74; color: #fff !important; }
@@ -212,7 +212,7 @@
 .lk-modal-body { padding: 16px; font-size: 15px; text-align: left; }
 .lk-modal-label { margin: 0 0 6px; font-weight: 700; color: #333; }
 .lk-modal-body label { display: flex; align-items: center; min-height: 40px; margin: 0; font-weight: 400; color: #333; cursor: pointer; }
-.lk-modal-body input[type=radio] { width: 16px; height: 16px; margin: 0 10px 0 0; accent-color: #038018; }
+.lk-modal-body input[type=radio] { width: 16px; height: 16px; margin: 0 10px 0 0; accent-color: var(--color-brand-600, #038018); }
 .lk-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #e5e5e5; }
 .lk-modal-footer .lk-btn { margin: 0; }
 
@@ -222,9 +222,9 @@
   max-width: 750px;
   margin: 0 auto;
   padding: 24px 16px;
-  border: 1px solid #cfe5d3;
+  border: 1px solid var(--color-brand-100, #cfe5d3);
   border-radius: 4px;
-  background: #eef7f0;
+  background: var(--color-brand-50, #eef7f0);
   text-align: center;
 }
 .lk-cta-band h3 { margin: 0 0 6px; font-size: 20px; font-weight: 700; color: #333; }
@@ -234,16 +234,16 @@
   align-items: center;
   min-height: 40px;
   padding: 0 20px;
-  border: 1px solid #026812;
+  border: 1px solid var(--color-brand-700, #026812);
   border-radius: 4px;
-  background: #038018;
-  color: #fff !important;
+  background: var(--color-brand-600, #038018);
+  color: var(--color-brand-contrast, #fff) !important;
   font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
 }
-.lk-btn-cta:hover { background: #026812; }
+.lk-btn-cta:hover { background: var(--color-brand-700, #026812); }
 .lk-btn-cta:focus-visible { outline: 2px solid #1f6feb; outline-offset: 2px; }
 
 .lk-footer { margin-top: 32px; color: #e6e6e6; background: #2b2f2c; }

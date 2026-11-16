@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title') - {{ config('app.name') }} Advertiser</title>
-  <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/favicon.png') }}">
+  <link rel="icon" type="image/png" href="{{ \App\Services\Branding::imageUrl(\App\Enums\BrandAsset::Favicon) }}">
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic&display=swap" rel="stylesheet">
   @vite(['resources/css/member.css', 'resources/js/member.js'])
 </head>
@@ -23,7 +23,7 @@
         <span class="sr-only">Toggle navigation</span>
       </a>
       <a href="{{ route('home') }}" class="member-brand hidden-xs">
-        <img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}">
+        <img src="{{ \App\Services\Branding::imageUrl(\App\Enums\BrandAsset::LogoDark) }}" alt="{{ config('app.name') }}">
       </a>
       <div class="navbar-custom-menu">
         <ul class="nav navbar-nav">

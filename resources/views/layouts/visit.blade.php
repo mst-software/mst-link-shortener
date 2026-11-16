@@ -7,18 +7,19 @@
   <meta name="robots" content="noindex,nofollow">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>@yield('title')</title>
-  <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/favicon.png') }}">
+  <link rel="icon" type="image/png" href="{{ \App\Services\Branding::imageUrl(\App\Enums\BrandAsset::Favicon) }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
   @vite(['resources/css/visit.css', 'resources/js/visit.js'])
+  <x-site.brand-style />
 </head>
 <body class="lk-body captcha-page">
 
 <nav id="mainNav" class="lk-navbar">
   <div class="lk-container lk-navbar-inner">
     <a class="lk-brand" href="{{ route('home') }}" aria-label="{{ config('app.name') }} home">
-      <img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}" width="150" height="32">
+      <img src="{{ \App\Services\Branding::imageUrl(\App\Enums\BrandAsset::LogoDark) }}" alt="{{ config('app.name') }}" width="150" height="32">
     </a>
     <ul class="lk-nav">
       <li><a href="{{ route('home') }}">Home</a></li>
@@ -43,7 +44,7 @@
     <div class="lk-container">
       <div class="lk-footer-cols">
         <div class="lk-footer-brand">
-          <a href="{{ route('home') }}"><img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}" height="44"></a>
+          <a href="{{ route('home') }}"><img src="{{ \App\Services\Branding::imageUrl(\App\Enums\BrandAsset::LogoDark) }}" alt="{{ config('app.name') }}" height="44"></a>
           <p>Shorten your links, share them anywhere and get paid for every valid view. Clear rates, fast payouts and a support team that answers.</p>
           <div class="lk-pay-icons">
             <img src="{{ Vite::asset('resources/images/banktransfer.png') }}" alt="Bank transfer">
