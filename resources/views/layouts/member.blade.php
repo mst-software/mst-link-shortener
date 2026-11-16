@@ -88,6 +88,10 @@
     <section class="content">
       <x-member.shorten-box :default-level="$member->default_level" />
 
+      <x-verify-email-banner :user="$member">
+        You need a verified email to request withdrawals or change your password.
+      </x-verify-email-banner>
+
       @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif

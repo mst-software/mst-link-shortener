@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -29,6 +30,12 @@ Route::get('auth/forgot-password', [ForgotPasswordController::class, 'show'])->n
 Route::post('auth/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
 Route::get('auth/reset-password/{token}', [ResetPasswordController::class, 'show'])->name('password.reset');
 Route::post('auth/reset-password', [ResetPasswordController::class, 'update'])->name('password.update');
+
+Route::middleware(['auth', 'active'])->group(function () {
+    Route::get('auth/verify-email', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('auth/verify-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('auth/verify-email/resend', [EmailVerificationController::class, 'send'])->middleware('throttle:6,1')->name('verification.send');
+});
 
 Route::get('pages/privacy', [LegalController::class, 'privacy'])->name('privacy');
 Route::get('pages/terms', [LegalController::class, 'terms'])->name('terms');

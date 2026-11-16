@@ -20,8 +20,14 @@ class EmailController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $user->update(['email' => $request->validated('email')]);
+        $user->forceFill([
+            'email' => $request->validated('email'),
+            'email_verified_at' => null,
+        ])->save();
 
-        return redirect()->route('member.user.change-email')->with('success', 'Saved.');
+        rescue(fn () => $user->sendEmailVerificationNotification());
+
+        return redirect()->route('member.user.change-email')
+            ->with('success', 'Saved. We sent a verification link to your new email address.');
     }
 }
