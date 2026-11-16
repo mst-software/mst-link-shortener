@@ -37,7 +37,7 @@
           </div>
           <div class="col-sm-6">
             <div class="form-group">
-              <label for="expires_at">Expiry date</label>
+              <label for="expires_at">Expiry date (UTC)</label>
               <input type="datetime-local" name="expires_at" class="form-control input-sm" id="expires_at" value="{{ old('expires_at') }}">
             </div>
           </div>

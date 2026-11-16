@@ -87,7 +87,7 @@ it('shows password and expiry badges in the link list', function () {
 
     $this->actingAs($this->member)->get('/member/links')
         ->assertOk()
-        ->assertSeeInOrder(['plain-one', 'later-one', 'Expires', 'old-locked', 'Password', 'Expired']);
+        ->assertSeeInOrder(['plain-one', 'later-one', 'Expires', 'UTC', 'old-locked', 'Password', 'Expired']);
 });
 
 it('hides and restores a link', function () {
