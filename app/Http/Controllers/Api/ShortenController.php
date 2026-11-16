@@ -9,6 +9,7 @@ use App\Services\TokenShortener;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 
 class ShortenController extends Controller
 {
@@ -17,6 +18,7 @@ class ShortenController extends Controller
     public function __invoke(ShortenRequest $request): JsonResponse|Response
     {
         $isText = $request->query('format') === 'text';
+        $options = $request->validated();
 
         try {
             $link = $this->tokenShortener->shorten(
@@ -24,8 +26,8 @@ class ShortenController extends Controller
                 $this->stringInput($request, 'url'),
                 $this->stringInput($request, 'alias'),
                 $request->integer('level') ?: null,
-                $this->stringInput($request, 'password'),
-                $this->stringInput($request, 'expires_at') !== null ? $request->date('expires_at') : null,
+                $options['password'] ?? null,
+                isset($options['expires_at']) ? Carbon::parse($options['expires_at']) : null,
             );
         } catch (InvalidLinkException $exception) {
             return $this->respond($isText ? response($exception->getMessage()) : response()->json([
