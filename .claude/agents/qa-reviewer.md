@@ -1,7 +1,7 @@
 ---
 name: qa-reviewer
 description: Reviews changes to the LinkCash Laravel app: runs the Pest tests and Pint, checks adherence to mst-laravel-conventions, and checks the rendered pages for layout, console errors and responsive behaviour with playwright-cli. Reports problems only; never edits files.
-model: sonnet # Clear checklist, speed matters
+model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 

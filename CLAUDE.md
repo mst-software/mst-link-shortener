@@ -15,6 +15,7 @@ Follow the conventions of the earlier project `mst-software/mst-shop-acc-game-v2
 | --- | --- | --- | --- |
 | 2026-11-12 | Initial harness (page-builder, qa-reviewer, linkcash-site-workflow) for the static HTML site | All | - |
 | 2026-11-12 | Moved to Laravel: replaced page-builder with laravel-builder, rewrote qa-reviewer, replaced linkcash-site-workflow with linkcash-dev-workflow, added mst-laravel-conventions, rewrote git-workflow for commitlint-style commits, switched all harness files to English | All | Project is being rewritten in Laravel; all code and docs must be English |
+| 2026-11-16 | Fixed the qa-reviewer model name and replaced the ShouldQueue rule in mst-laravel-conventions | qa-reviewer, mst-laravel-conventions | qa-reviewer failed with model_not_found; the app is deployed on cPanel with no queue worker |
 
 ===
 
