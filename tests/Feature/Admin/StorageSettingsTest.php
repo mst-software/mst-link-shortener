@@ -6,6 +6,7 @@ use App\Services\Settings;
 use App\Support\MediaStorage;
 use App\Support\SettingsConfigurator;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
@@ -111,6 +112,32 @@ test('invalid storage settings are rejected', function (array $overrides, string
     'endpoint without a scheme' => [['s3_endpoint' => 'account.r2.cloudflarestorage.com'], 's3_endpoint'],
     'public address with a javascript scheme' => [['s3_url' => 'javascript:alert(1)'], 's3_url'],
 ]);
+
+test('the endpoint and public address must use https outside a local environment', function () {
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.storage.update'), storageSettingsPayload([
+            's3_endpoint' => 'http://minio.example.com:9000',
+            's3_url' => 'http://cdn.example.com',
+        ]))
+        ->assertSessionHasErrors(['s3_endpoint', 's3_url']);
+
+    expect(Settings::has('upload_disk'))->toBeFalse();
+});
+
+test('a local environment may use a plain http endpoint for minio', function () {
+    $this->app->detectEnvironment(fn () => 'local');
+    $this->withoutMiddleware(ValidateCsrfToken::class);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.storage.update'), storageSettingsPayload([
+            's3_endpoint' => 'http://localhost:9000',
+            's3_url' => 'http://localhost:9000/linkcash-media',
+            's3_use_path_style' => '1',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect(Settings::get('s3_endpoint'))->toBe('http://localhost:9000');
+});
 
 test('the connection test writes, reads and deletes a file', function () {
     config(['filesystems.disks.s3.bucket' => 'linkcash-media']);

@@ -44,10 +44,19 @@ class UpdateStorageSettingsRequest extends FormRequest
             'clear_s3_secret' => ['nullable', 'boolean'],
             's3_region' => ['required_if:upload_disk,s3', 'nullable', 'string', 'regex:'.self::REGION_PATTERN],
             's3_bucket' => ['required_if:upload_disk,s3', 'nullable', 'string', 'regex:'.self::BUCKET_PATTERN],
-            's3_endpoint' => ['nullable', 'string', 'max:255', 'url:https,http'],
-            's3_url' => ['nullable', 'string', 'max:255', 'url:https,http'],
+            's3_endpoint' => ['nullable', 'string', 'max:255', 'url:'.$this->allowedSchemes()],
+            's3_url' => ['nullable', 'string', 'max:255', 'url:'.$this->allowedSchemes()],
             's3_use_path_style' => ['required', 'boolean'],
         ];
+    }
+
+    /**
+     * Credentials and files must travel over HTTPS. Plain HTTP is only allowed in a local environment,
+     * for a MinIO server on the developer's machine.
+     */
+    private function allowedSchemes(): string
+    {
+        return app()->isLocal() ? 'https,http' : 'https';
     }
 
     /**
