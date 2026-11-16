@@ -14,6 +14,7 @@ enum AdminAction: string
     case PasswordResetSent = 'password_reset_sent';
     case RoleChanged = 'role_changed';
     case BalanceAdjusted = 'balance_adjusted';
+    case HeldCommissionPaid = 'held_commission_paid';
 
     public function label(): string
     {
@@ -25,6 +26,7 @@ enum AdminAction: string
             self::PasswordResetSent => 'Sent password reset link',
             self::RoleChanged => 'Changed role',
             self::BalanceAdjusted => 'Adjusted balance',
+            self::HeldCommissionPaid => 'Paid held referral commission',
         };
     }
 }
