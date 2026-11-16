@@ -14,7 +14,7 @@
         <h4>Your API token:</h4>
         <pre>{{ $token }}</pre>
       </div>
-      <p>For developers LinkCash prepared an <b>API</b> which returns responses in <b>JSON</b>.</p>
+      <p>For developers {{ config('app.name') }} prepared an <b>API</b> which returns responses in <b>JSON</b>.</p>
       <p>Currently there is one method which can be used to shorten links on behalf of your account.</p>
       <p>All you have to do is to send a <b>GET</b> request with your API token and URL like the following:</p>
       <div class="well">{{ $baseUrl }}/api?api={{ $token }}&amp;url=yourdestinationlink.com</div>

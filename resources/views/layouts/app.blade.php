@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>@yield('title', 'LinkCash - Best URL Shortener To Earn Money')</title>
+  <title>@yield('title', config('app.name').' - Best URL Shortener To Earn Money')</title>
   <meta name="description" content="@yield('description', 'Free URL shortener where every valid visit earns you money.')">
   <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/favicon.png') }}">
   <meta name="theme-color" content="#038018">

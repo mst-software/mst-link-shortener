@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 test('blog page lists every post with its category filter', function () {
     $this->get(route('blog'))
         ->assertOk()

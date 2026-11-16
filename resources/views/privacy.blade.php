@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Privacy Policy - LinkCash')
+@section('title', 'Privacy Policy - '.config('app.name'))
 @section('description', 'How we collect, use and protect your information.')
 @section('page', 'privacy')
 
 @section('content')
   <x-legal-document title="Privacy Policy" subtitle="How we collect, use and protect your information." updated="November 12, 2026">
     <h3 id="intro">1. Introduction</h3>
-    <p>LinkCash ("we", "us" or "our") provides a link shortening service that lets members earn money when their shortened links are visited. This Privacy Policy explains what information we collect, how we use it and the choices you have. By using the website, you agree to this policy.</p>
+    <p>{{ config('app.name') }} ("we", "us" or "our") provides a link shortening service that lets members earn money when their shortened links are visited. This Privacy Policy explains what information we collect, how we use it and the choices you have. By using the website, you agree to this policy.</p>
 
     <h3 id="collect">2. Information We Collect</h3>
     <p>We only collect the information needed to operate the service:</p>
@@ -52,6 +52,10 @@
     <p>We may update this policy from time to time. The "Last updated" date at the top of this page shows when it was last changed. Continuing to use the service after a change means you accept the updated policy.</p>
 
     <h3 id="contact">12. Contact Us</h3>
-    <p>If you have any questions about this policy, email us at <a href="mailto:support@yourdomain.com">support@yourdomain.com</a> or use our <a href="{{ route('home') }}#contact">contact form</a>.</p>
+    @if ($supportEmail !== '')
+      <p>If you have any questions about this policy, email us at <a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a> or use our <a href="{{ route('home') }}#contact">contact form</a>.</p>
+    @else
+      <p>If you have any questions about this policy, use our <a href="{{ route('home') }}#contact">contact form</a>.</p>
+    @endif
   </x-legal-document>
 @endsection

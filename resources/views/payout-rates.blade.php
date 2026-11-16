@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Publisher Rates - LinkCash')
-@section('description', 'See how much you earn for every 1,000 valid views on LinkCash.')
+@section('title', 'Publisher Rates - '.config('app.name'))
+@section('description', 'See how much you earn for every 1,000 valid views on '.config('app.name').'.')
 @section('page', 'rates')
 
 @section('content')

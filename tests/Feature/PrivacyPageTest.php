@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 test('privacy page renders the policy inside the legal document layout', function () {
     $this->get(route('privacy'))
         ->assertOk()
