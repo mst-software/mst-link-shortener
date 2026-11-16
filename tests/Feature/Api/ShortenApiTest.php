@@ -62,6 +62,7 @@ it('returns an api error for invalid link options', function (array $options, st
     'short password' => [['password' => 'abc'], 'The password field must be at least 4 characters.'],
     'password over 72 bytes' => [['password' => str_repeat('é', 40)], 'The password must not be longer than 72 bytes.'],
     'past expiry' => [['expires_at' => '2020-01-01'], 'The expiry date must be in the future.'],
+    'array password' => [['password' => ['x']], 'The password field must be a string.'],
 ]);
 
 it('returns a plain text validation error for format=text', function () {
