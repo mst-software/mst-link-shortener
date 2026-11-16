@@ -14,6 +14,7 @@ enum TransactionAction: string
     case Topup = 'topup';
     case CampaignCharge = 'campaign_charge';
     case ChargeRefund = 'charge_refund';
+    case AdminAdjustment = 'admin_adjustment';
 
     public function label(): string
     {
@@ -28,6 +29,7 @@ enum TransactionAction: string
             self::Topup => 'Top up',
             self::CampaignCharge => 'Campaign charge',
             self::ChargeRefund => 'Charge refund',
+            self::AdminAdjustment => 'Admin adjustment',
         };
     }
 }

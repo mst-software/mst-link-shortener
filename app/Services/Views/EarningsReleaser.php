@@ -39,6 +39,11 @@ class EarningsReleaser
         return $released;
     }
 
+    /**
+     * Banned users are skipped: their views stay pending, so unbanning them lets a later run release them.
+     * The user row is locked after the views (the same order LinkBanService uses, so the two cannot
+     * deadlock) and before anything changes, so a ban that happens during the run is respected.
+     */
     private function releaseForUser(int $userId): int
     {
         return DB::transaction(function () use ($userId): int {
@@ -53,6 +58,12 @@ class EarningsReleaser
                 return 0;
             }
 
+            $owner = User::query()->whereKey($userId)->lockForUpdate()->first();
+
+            if ($owner === null || ! $owner->isActive()) {
+                return 0;
+            }
+
             $total = (int) $views->sum('earn_micro');
 
             View::query()
@@ -61,11 +72,10 @@ class EarningsReleaser
                 ->update(['status' => ViewStatus::Released]);
 
             if ($total > 0) {
-                $user = User::query()->findOrFail($userId);
                 $reference = 'release:'.$userId.':'.now()->utc()->format('YmdHis');
 
-                $this->wallet->credit($user, $total, TransactionAction::ViewEarnings, $reference, 'Released view earnings');
-                $this->payReferrer($user, $total, $reference);
+                $this->wallet->credit($owner, $total, TransactionAction::ViewEarnings, $reference, 'Released view earnings');
+                $this->payReferrer($owner, $total, $reference);
             }
 
             return $views->count();

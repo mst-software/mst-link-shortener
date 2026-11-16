@@ -2,6 +2,7 @@
   $menu = [
       ['label' => 'Dashboard', 'icon' => 'tachometer-alt', 'route' => 'admin.dashboard'],
       ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings.edit', 'active' => 'admin.settings.*'],
+      ['label' => 'Users', 'icon' => 'user', 'route' => 'admin.users.index'],
       ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates.index'],
       ['label' => 'Campaigns', 'icon' => 'bullhorn', 'route' => 'admin.campaigns.index'],
       ['label' => 'Advertisers', 'icon' => 'users', 'route' => 'admin.advertisers.index'],
@@ -12,6 +13,8 @@
       ['label' => 'Withdrawals', 'icon' => 'dollar-sign', 'route' => 'admin.withdrawals.index'],
       ['label' => 'Notices', 'icon' => 'bell', 'route' => 'admin.notices'],
       ['label' => 'Support', 'icon' => 'life-ring', 'route' => 'admin.support'],
+      ['label' => 'Audit log', 'icon' => 'history', 'route' => 'admin.audit-logs.index'],
+      ['label' => 'Two-factor auth', 'icon' => 'shield-alt', 'route' => 'member.user.two-factor'],
   ];
 @endphp
 

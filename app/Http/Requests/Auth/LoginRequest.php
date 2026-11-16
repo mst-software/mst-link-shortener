@@ -5,7 +5,6 @@ namespace App\Http\Requests\Auth;
 use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -42,11 +41,11 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Sign the user in with a username or an email address.
+     * Check the username or email address and the password, without signing the user in yet.
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function validateCredentials(): User
     {
         $this->ensureIsNotRateLimited();
 
@@ -69,9 +68,9 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        Auth::guard('web')->login($user, $this->boolean('remember_me'));
-
         RateLimiter::clear($this->throttleKey());
+
+        return $user;
     }
 
     /**

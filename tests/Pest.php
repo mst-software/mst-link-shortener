@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+use App\Services\Totp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -48,4 +50,27 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * The authenticator code for the user's two-factor secret at the current (test) time.
+ */
+function totpCode(User $user): string
+{
+    return (new Totp)->codeAt((string) $user->two_factor_secret, now()->getTimestamp());
+}
+
+/**
+ * A well-formed six-digit code that is not accepted for the user's secret at the current (test) time.
+ */
+function wrongTotpCode(User $user): string
+{
+    $totp = new Totp;
+    $candidate = 0;
+
+    do {
+        $code = str_pad((string) $candidate++, Totp::DIGITS, '0', STR_PAD_LEFT);
+    } while ($totp->verify((string) $user->two_factor_secret, $code) !== null);
+
+    return $code;
 }

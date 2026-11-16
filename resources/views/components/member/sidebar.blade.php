@@ -20,6 +20,7 @@
           ['label' => 'Profile', 'route' => 'member.user.profile'],
           ['label' => 'Change Password', 'route' => 'member.user.change-password'],
           ['label' => 'Change Email', 'route' => 'member.user.change-email'],
+          ['label' => 'Two-Factor Auth', 'route' => 'member.user.two-factor'],
       ]],
       ['label' => 'Support', 'icon' => 'life-ring', 'route' => 'member.form.support'],
   ];

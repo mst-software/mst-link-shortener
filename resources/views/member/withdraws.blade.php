@@ -53,6 +53,12 @@
                     <p>Where did you share your links? Please be specific so the payment team can review and pay you as fast as possible (for example a YouTube channel link, a website address, a Facebook or Telegram group link).</p>
                     <textarea id="traffic_source" name="traffic_source" class="form-control" rows="5" maxlength="2000" required placeholder="Example: https://www.youtube.com/channel/..., https://www.facebook.com/groups/...">{{ old('traffic_source') }}</textarea>
                   </div>
+                  @if ($needsTwoFactorCode)
+                    <div class="form-group @error('code') has-error @enderror">
+                      <label for="code">Authentication code</label>
+                      <input type="text" id="code" name="code" class="form-control" placeholder="Code from your authenticator app" autocomplete="one-time-code" maxlength="20" required>
+                    </div>
+                  @endif
                 </div>
                 <div class="modal-footer">
                   <button type="submit" class="btn btn-primary">Withdraw</button>
