@@ -14,6 +14,7 @@
       ['label' => 'Notices', 'icon' => 'bell', 'route' => 'admin.notices'],
       ['label' => 'Support', 'icon' => 'life-ring', 'route' => 'admin.support'],
       ['label' => 'Audit log', 'icon' => 'history', 'route' => 'admin.audit-logs.index'],
+      ['label' => 'Two-factor auth', 'icon' => 'shield-alt', 'route' => 'member.user.two-factor'],
   ];
 @endphp
 

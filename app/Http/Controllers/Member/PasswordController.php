@@ -21,6 +21,7 @@ class PasswordController extends Controller
         $user = $request->user();
 
         $user->update(['password' => $request->validated('password')]);
+        $user->trustedDevices()->delete();
 
         return redirect()->route('member.user.change-password')->with('success', 'Saved.');
     }
