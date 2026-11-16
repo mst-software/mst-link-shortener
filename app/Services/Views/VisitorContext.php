@@ -3,6 +3,7 @@
 namespace App\Services\Views;
 
 use App\Contracts\CountryResolver;
+use App\Support\TrustedProxies;
 use Illuminate\Http\Request;
 
 final readonly class VisitorContext
@@ -15,8 +16,9 @@ final readonly class VisitorContext
     ) {}
 
     /**
-     * Build the context from a request. Only Request::ip() is trusted for the address
-     * (the app trusts Cloudflare proxies); the country comes from the resolver.
+     * Build the context from a request. Only Request::ip() is trusted for the address (it honours
+     * forwarding headers of TRUSTED_PROXIES only). The CF-IPCountry header is passed to the resolver
+     * only when the request came from a trusted Cloudflare edge, so a direct client cannot pick its country.
      */
     public static function fromRequest(Request $request, CountryResolver $countries): self
     {
@@ -26,7 +28,7 @@ final readonly class VisitorContext
         return new self(
             ip: $ip,
             uaHash: hash('sha256', $userAgent),
-            country: $countries->resolve($ip, $request->header('CF-IPCountry')),
+            country: $countries->resolve($ip, TrustedProxies::trustsCountryHeader($request) ? $request->header('CF-IPCountry') : null),
             userAgent: $userAgent,
         );
     }
