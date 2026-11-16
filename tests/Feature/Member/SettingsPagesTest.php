@@ -2,6 +2,7 @@
 
 use App\Enums\PayoutMethod;
 use App\Models\User;
+use App\Services\Settings;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
@@ -181,4 +182,27 @@ test('an email that is already used is rejected', function () {
     $this->actingAs(User::factory()->create())
         ->post(route('member.user.change-email.update'), ['current_password' => 'password', 'email' => 'taken@example.com'])
         ->assertSessionHasErrors('email');
+});
+
+test('the profile only offers the payout methods the admin switched on', function () {
+    Settings::set('payout_methods', 'bank_transfer,usdt');
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('member.user.profile'))
+        ->assertOk()
+        ->assertSee('value="bank_transfer"', false)
+        ->assertSee('value="usdt"', false)
+        ->assertDontSee('value="paypal"', false)
+        ->assertDontSee('value="momo"', false);
+});
+
+test('a payout method the admin switched off cannot be chosen', function () {
+    Settings::set('payout_methods', 'bank_transfer');
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('member.user.profile.update'), profileData())
+        ->assertSessionHasErrors('payout_method');
+
+    expect($user->refresh()->payout_method)->toBeNull();
 });

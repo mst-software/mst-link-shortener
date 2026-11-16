@@ -17,7 +17,7 @@ class ProfileController extends Controller
     {
         return view('member.user.profile', [
             'countries' => config('countries'),
-            'payoutMethods' => PayoutMethod::cases(),
+            'payoutMethods' => PayoutMethod::enabled(),
             'minimumWithdrawal' => Money::format(Settings::int('min_withdraw_micro'), 0),
         ]);
     }

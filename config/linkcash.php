@@ -32,6 +32,7 @@ return [
         'sepay_bank_name' => '',
         'sepay_account_number' => '',
         'sepay_account_name' => '',
+        'payout_methods' => 'paypal,bank_transfer,momo,usdt',
     ],
 
 ];

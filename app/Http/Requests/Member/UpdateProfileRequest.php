@@ -39,7 +39,7 @@ class UpdateProfileRequest extends FormRequest
             'country' => ['nullable', 'string', Rule::in(array_keys(config('countries')))],
             'traffic_source' => ['nullable', 'string', 'max:1000'],
             'default_level' => ['required', 'integer', 'in:1,2,3'],
-            'payout_method' => ['nullable', Rule::enum(PayoutMethod::class)],
+            'payout_method' => ['nullable', Rule::enum(PayoutMethod::class)->only(PayoutMethod::enabled())],
             'paypal_email' => ['nullable', 'string', 'email', 'max:254'],
             'bank_name' => ['nullable', 'string', 'max:100'],
             'account_number' => ['nullable', 'string', 'max:64'],

@@ -29,6 +29,7 @@
           'usdt_address' => ['USDT wallet address', 'text'],
       ],
   ];
+  $detailFields = array_intersect_key($detailFields, array_flip(array_map(fn ($method) => $method->value, $payoutMethods)));
   $billingFields = [
       'fullname' => ['Your name', 'Your name'],
       'phone_number' => ['Phone', 'Phone'],
