@@ -84,6 +84,8 @@ test('invalid email settings are rejected', function (array $overrides, string $
     'port zero' => [['mail_port' => 0], 'mail_port'],
     'unknown encryption' => [['mail_encryption' => 'starttls'], 'mail_encryption'],
     'invalid sender address' => [['mail_from_address' => 'not-an-email'], 'mail_from_address'],
+    'sender name with a line break' => [['mail_from_name' => "Example\r\nBcc: x@example.com"], 'mail_from_name'],
+    'password over 1000 characters' => [['mail_password' => str_repeat('a', 1001)], 'mail_password'],
 ]);
 
 test('the log mailer needs no SMTP server', function () {

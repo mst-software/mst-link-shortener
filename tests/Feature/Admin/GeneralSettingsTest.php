@@ -63,6 +63,8 @@ test('invalid general settings are rejected', function (array $overrides, string
     expect(Settings::has('site_name'))->toBeFalse();
 })->with([
     'missing site name' => [['site_name' => ''], 'site_name'],
+    'site name with a line break' => [['site_name' => "Short\nPay"], 'site_name'],
+    'site name with a tab' => [['site_name' => "Short\tPay"], 'site_name'],
     'invalid support email' => [['support_email' => 'not-an-email'], 'support_email'],
     'social link that is not a URL' => [['social_facebook' => 'facebook.com/shortpay'], 'social_facebook'],
     'social link with another scheme' => [['social_facebook' => 'javascript:alert(1)'], 'social_facebook'],

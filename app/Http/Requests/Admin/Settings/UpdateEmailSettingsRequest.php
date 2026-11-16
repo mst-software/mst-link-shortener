@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Settings;
 
+use App\Services\Settings;
 use App\Support\MailConfigurator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,10 +30,10 @@ class UpdateEmailSettingsRequest extends FormRequest
             'mail_port' => ['required_if:mail_mailer,smtp', 'nullable', 'integer', 'between:1,65535'],
             'mail_encryption' => ['required', Rule::in(array_keys(MailConfigurator::ENCRYPTIONS))],
             'mail_username' => ['nullable', 'string', 'max:255'],
-            'mail_password' => ['nullable', 'string', 'max:255'],
+            'mail_password' => ['nullable', 'string', 'max:'.Settings::SECRET_MAX_LENGTH],
             'clear_mail_password' => ['nullable', 'boolean'],
             'mail_from_address' => ['required', 'email', 'max:254'],
-            'mail_from_name' => ['required', 'string', 'max:100'],
+            'mail_from_name' => ['required', 'string', 'max:100', 'not_regex:'.UpdateGeneralSettingsRequest::CONTROL_CHARACTERS],
         ];
     }
 
@@ -45,6 +46,7 @@ class UpdateEmailSettingsRequest extends FormRequest
             'mail_host.required_if' => 'Enter the SMTP server address to send real emails.',
             'mail_host.regex' => 'Enter a server address such as smtp.example.com, without http:// or a port.',
             'mail_port.required_if' => 'Enter the SMTP port to send real emails.',
+            'mail_from_name.not_regex' => 'The sender name must be a single line without tabs or line breaks.',
         ];
     }
 
