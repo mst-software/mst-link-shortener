@@ -38,7 +38,7 @@ return [
         'login_purge_days' => 90,
         'multi_account_shared_ip_limit' => 10,
         'referral_hold_on_suspicion' => false,
-        'signups_per_ip_per_day' => 5,
+        'signups_per_ip_per_day' => 10,
     ],
 
 ];
