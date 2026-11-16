@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\LinkStatus;
 use Database\Factories\LinkFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,6 +26,15 @@ class Link extends Model
         'url',
         'level',
         'status',
+        'password',
+        'expires_at',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
     ];
 
     /**
@@ -49,7 +59,36 @@ class Link extends Model
             'level' => 'integer',
             'views_count' => 'integer',
             'status' => LinkStatus::class,
+            'password' => 'hashed',
+            'expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether visitors must enter a password before the visit flow starts.
+     */
+    public function isPasswordProtected(): bool
+    {
+        return $this->password !== null;
+    }
+
+    /**
+     * Whether the expiry date has passed; a link without one never expires.
+     */
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /**
+     * Keep only links without an expiry date or with one still in the future.
+     *
+     * @param  Builder<Link>  $query
+     * @return Builder<Link>
+     */
+    public function scopeNotExpired(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 
     /**
