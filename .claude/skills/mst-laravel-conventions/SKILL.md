@@ -52,7 +52,7 @@ PHP 8.4, Laravel 12, Pest 4 (PHPUnit 12), Laravel Pint, Tailwind CSS 4 with Vite
 - **Config:** never call `env()` outside `config/`; use `config('...')`. Admin-editable settings live in the `settings` table via `ConfigHelper::getConfig/setConfig` (cached 1 hour); env-only config goes through `app/Config/AppConfig.php`.
 - **Routes:** named routes and `route()`. Split files: `routes/web.php`, `routes/admin.php` (middleware `admin` + `admin.2fa`), `routes/console.php`.
 - **Bootstrap:** register middleware, exceptions and routing in `bootstrap/app.php` (Laravel 12 has no `Http/Kernel.php`). Console commands in `app/Console/Commands` load automatically.
-- **Heavy work** goes in `ShouldQueue` jobs. APIs use Eloquent API Resources and versioning unless existing routes do not. JSON controller responses use the `ApiResponse` trait (`success`, `error`, `systemError`).
+- **Heavy work** runs from scheduled commands (cPanel hosting has no queue worker, so `QUEUE_CONNECTION=sync` and no `ShouldQueue` jobs). APIs use Eloquent API Resources and versioning unless existing routes do not. JSON controller responses use the `ApiResponse` trait (`success`, `error`, `systemError`).
 - **Authorization:** use built-in gates, policies and middleware.
 
 ## Directory layout
