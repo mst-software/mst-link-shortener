@@ -25,7 +25,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Hash;
 
 class VisitController extends Controller
 {
@@ -109,17 +108,11 @@ class VisitController extends Controller
     }
 
     /**
-     * Check the password of a protected link and, when it matches, let the visitor start the flow.
+     * Let the visitor start the flow once the request has accepted the password of a protected link.
      */
     public function unlock(UnlockLinkRequest $request, string $alias): RedirectResponse
     {
         $link = $this->activeLinkOrFail($alias);
-
-        if ($link->isPasswordProtected() && ! Hash::check($request->string('password')->toString(), $link->password)) {
-            return redirect()
-                ->route('visit.show', ['alias' => $link->alias])
-                ->withErrors(['password' => 'The password is incorrect.']);
-        }
 
         $request->session()->push(self::UNLOCKED_SESSION_KEY, $link->getKey());
 
