@@ -50,15 +50,14 @@ function visitSettingsPayload(array $overrides = []): array
         'dwell_seconds' => 12,
         'unique_window_hours' => 24,
         'review_days' => 3,
-        'min_withdraw_usd' => 5,
         'referral_percent' => 12,
         'session_minutes' => 30,
         'view_purge_days' => 60,
         'alias_length' => 6,
-        'captcha_provider' => 'turnstile',
         'visit_mode' => 'auto',
         'code_session_seconds' => 600,
         'tutorial_video_url' => '',
+        'advertiser_default_price_usd' => '0.01',
     ], $overrides);
 }
 
@@ -164,12 +163,12 @@ test('admins can delete a campaign', function () {
 
 test('admins can store the visit mode, code session length and tutorial video', function () {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), visitSettingsPayload([
+        ->put(route('admin.settings.traffic.update'), visitSettingsPayload([
             'visit_mode' => 'keyword',
             'code_session_seconds' => 900,
             'tutorial_video_url' => 'https://www.youtube.com/watch?v=abc123',
         ]))
-        ->assertRedirect(route('admin.settings.edit'));
+        ->assertRedirect(route('admin.settings.traffic.edit'));
 
     expect(Settings::get('visit_mode'))->toBe('keyword')
         ->and(Settings::int('code_session_seconds'))->toBe(900)
@@ -178,7 +177,7 @@ test('admins can store the visit mode, code session length and tutorial video', 
 
 test('invalid visit settings are rejected', function (array $overrides, string $field) {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), visitSettingsPayload($overrides))
+        ->put(route('admin.settings.traffic.update'), visitSettingsPayload($overrides))
         ->assertSessionHasErrors($field);
 })->with([
     'unknown mode' => [['visit_mode' => 'random'], 'visit_mode'],
@@ -264,7 +263,7 @@ test('the campaign list runs the same number of queries for any number of campai
 
 test('a Vimeo tutorial video link is accepted and the visitor script can embed it', function () {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), visitSettingsPayload(['tutorial_video_url' => 'https://vimeo.com/123456789']))
+        ->put(route('admin.settings.traffic.update'), visitSettingsPayload(['tutorial_video_url' => 'https://vimeo.com/123456789']))
         ->assertSessionHasNoErrors();
 
     expect(Settings::get('tutorial_video_url'))->toBe('https://vimeo.com/123456789')

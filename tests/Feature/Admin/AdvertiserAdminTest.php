@@ -22,7 +22,7 @@ beforeEach(function () {
 });
 
 /**
- * A settings form payload with the advertiser fields, plus optional overrides.
+ * A traffic settings form payload with the advertiser price, plus optional overrides.
  *
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
@@ -33,18 +33,31 @@ function advertiserSettingsPayload(array $overrides = []): array
         'dwell_seconds' => 12,
         'unique_window_hours' => 24,
         'review_days' => 3,
-        'min_withdraw_usd' => 5,
         'referral_percent' => 12,
         'session_minutes' => 30,
         'view_purge_days' => 60,
         'alias_length' => 6,
-        'captcha_provider' => 'turnstile',
         'visit_mode' => 'auto',
         'code_session_seconds' => 600,
         'tutorial_video_url' => '',
         'advertiser_default_price_usd' => '0.012',
+    ], $overrides);
+}
+
+/**
+ * A payments settings form payload with the advertiser top up fields, plus optional overrides.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function advertiserPaymentPayload(array $overrides = []): array
+{
+    return array_merge([
+        'min_withdraw_usd' => 5,
+        'payout_methods' => ['paypal', 'bank_transfer'],
         'advertiser_min_topup_usd' => '10',
         'vnd_per_usd' => 26_000,
+        'paypal_mode' => 'sandbox',
         'sepay_bank_name' => 'MBBank',
         'sepay_account_number' => '0123456789',
         'sepay_account_name' => 'LINKCASH CO',
@@ -145,8 +158,12 @@ it('forbids non-admins', function () {
 
 it('saves the advertiser settings', function () {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), advertiserSettingsPayload())
-        ->assertRedirect(route('admin.settings.edit'));
+        ->put(route('admin.settings.traffic.update'), advertiserSettingsPayload())
+        ->assertRedirect(route('admin.settings.traffic.edit'));
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.payments.update'), advertiserPaymentPayload())
+        ->assertRedirect(route('admin.settings.payments.edit'));
 
     expect(Settings::int('advertiser_default_price_micro'))->toBe(12_000)
         ->and(Settings::int('advertiser_min_topup_micro'))->toBe(10_000_000)
@@ -158,17 +175,25 @@ it('saves the advertiser settings', function () {
 
 it('rejects invalid advertiser settings', function () {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), advertiserSettingsPayload(['advertiser_default_price_usd' => '0', 'vnd_per_usd' => 0]))
-        ->assertSessionHasErrors(['advertiser_default_price_usd', 'vnd_per_usd']);
+        ->put(route('admin.settings.traffic.update'), advertiserSettingsPayload(['advertiser_default_price_usd' => '0']))
+        ->assertSessionHasErrors(['advertiser_default_price_usd']);
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.payments.update'), advertiserPaymentPayload(['vnd_per_usd' => 0]))
+        ->assertSessionHasErrors(['vnd_per_usd']);
 });
 
-it('shows the advertiser settings on the settings page', function () {
+it('shows the advertiser settings on the settings pages', function () {
     Settings::set('sepay_account_number', '555666777');
 
     $this->actingAs($this->admin)
-        ->get(route('admin.settings.edit'))
+        ->get(route('admin.settings.payments.edit'))
         ->assertOk()
-        ->assertSee('555666777')
+        ->assertSee('555666777');
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.settings.traffic.edit'))
+        ->assertOk()
         ->assertSee('advertiser_default_price_usd');
 });
 
@@ -176,11 +201,11 @@ it('warns when the price is below the highest publisher rate', function () {
     CpmRate::factory()->create(['country' => 'US', 'level' => 3, 'rate_per_1000_micro' => 20_000_000]);
 
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), advertiserSettingsPayload(['advertiser_default_price_usd' => '0.01']))
+        ->put(route('admin.settings.traffic.update'), advertiserSettingsPayload(['advertiser_default_price_usd' => '0.01']))
         ->assertSessionHas('warning');
 
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), advertiserSettingsPayload(['advertiser_default_price_usd' => '0.05']))
+        ->put(route('admin.settings.traffic.update'), advertiserSettingsPayload(['advertiser_default_price_usd' => '0.05']))
         ->assertSessionMissing('warning');
 });
 

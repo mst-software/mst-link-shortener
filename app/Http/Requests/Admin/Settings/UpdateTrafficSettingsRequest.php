@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Http\Requests\Admin;
+namespace App\Http\Requests\Admin\Settings;
 
-use App\Enums\CaptchaProvider;
 use App\Enums\VisitMode;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateSettingsRequest extends FormRequest
+class UpdateTrafficSettingsRequest extends FormRequest
 {
     /**
      * Settings stored as plain integers, keyed as in the settings table.
@@ -46,24 +45,17 @@ class UpdateSettingsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $rules = [
+        return [
             'dwell_seconds' => ['required', 'integer', 'min:5', 'max:60'],
             'unique_window_hours' => ['required', 'integer', 'min:1', 'max:720'],
             'review_days' => ['required', 'integer', 'min:0', 'max:60'],
-            'min_withdraw_usd' => ['required', 'numeric', 'min:1', 'max:10000'],
             'referral_percent' => ['required', 'integer', 'min:0', 'max:50'],
             'session_minutes' => ['required', 'integer', 'min:5', 'max:240'],
             'view_purge_days' => ['required', 'integer', 'min:7', 'max:365'],
             'alias_length' => ['required', 'integer', 'min:6', 'max:12'],
-            'captcha_provider' => ['required', Rule::enum(CaptchaProvider::class)],
             'visit_mode' => ['required', Rule::in(['auto', ...array_column(VisitMode::cases(), 'value')])],
             'code_session_seconds' => ['required', 'integer', 'min:120', 'max:3600'],
-            'advertiser_default_price_usd' => ['sometimes', 'required', 'numeric', 'min:0.0001', 'max:100'],
-            'advertiser_min_topup_usd' => ['sometimes', 'required', 'numeric', 'min:1', 'max:10000'],
-            'vnd_per_usd' => ['sometimes', 'required', 'integer', 'min:1', 'max:1000000'],
-            'sepay_bank_name' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'sepay_account_number' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'sepay_account_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'advertiser_default_price_usd' => ['required', 'numeric', 'min:0.0001', 'max:100'],
             'tutorial_video_url' => [
                 'nullable', 'string', 'max:255', 'url:https',
                 fn (string $attribute, mixed $value, Closure $fail) => in_array(strtolower((string) parse_url((string) $value, PHP_URL_HOST)), self::VIDEO_HOSTS, true)
@@ -71,13 +63,6 @@ class UpdateSettingsRequest extends FormRequest
                     : $fail('The tutorial video link must be a YouTube or Vimeo link.'),
             ],
         ];
-
-        foreach (CaptchaProvider::cases() as $provider) {
-            $rules[$provider->value.'_site_key'] = ['nullable', 'string', 'max:255'];
-            $rules[$provider->value.'_secret_key'] = ['nullable', 'string', 'max:255'];
-        }
-
-        return $rules;
     }
 
     /**
@@ -89,21 +74,14 @@ class UpdateSettingsRequest extends FormRequest
             'dwell_seconds' => 'seconds on each step',
             'unique_window_hours' => 'unique visitor window',
             'review_days' => 'review days',
-            'min_withdraw_usd' => 'minimum withdrawal',
             'referral_percent' => 'referral commission',
             'session_minutes' => 'visit session length',
             'view_purge_days' => 'raw view retention',
             'alias_length' => 'generated alias length',
-            'captcha_provider' => 'captcha provider',
             'visit_mode' => 'visit mode',
             'code_session_seconds' => 'code session length',
             'tutorial_video_url' => 'tutorial video link',
             'advertiser_default_price_usd' => 'default price per view',
-            'advertiser_min_topup_usd' => 'minimum top up',
-            'vnd_per_usd' => 'exchange rate',
-            'sepay_bank_name' => 'bank name',
-            'sepay_account_number' => 'account number',
-            'sepay_account_name' => 'account name',
         ];
     }
 }
