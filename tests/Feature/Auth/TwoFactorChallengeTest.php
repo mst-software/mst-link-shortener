@@ -134,6 +134,24 @@ test('challenge attempts are limited to five a minute', function () {
     $this->assertGuest();
 });
 
+test('ten wrong codes from any ip address lock the account out of the challenge', function () {
+    $user = User::factory()->withTwoFactor()->create(['username' => 'jane']);
+
+    foreach (['10.0.0.1', '10.0.0.2'] as $ip) {
+        $this->withServerVariables(['REMOTE_ADDR' => $ip])->post(route('login'), ['username' => 'jane', 'password' => 'password']);
+
+        foreach (range(1, 5) as $attempt) {
+            $this->post(route('two-factor.challenge'), ['code' => wrongTotpCode($user)]);
+        }
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.3'])->post(route('login'), ['username' => 'jane', 'password' => 'password']);
+    $this->post(route('two-factor.challenge'), ['code' => totpCode($user)])
+        ->assertSessionHasErrors(['code' => 'Too many wrong authentication codes. Please try again in 15 minute(s).']);
+
+    $this->assertGuest();
+});
+
 test('a banned user cannot finish the challenge', function () {
     $user = User::factory()->withTwoFactor()->create(['username' => 'jane']);
 

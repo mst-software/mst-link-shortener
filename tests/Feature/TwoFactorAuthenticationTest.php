@@ -1,11 +1,13 @@
 <?php
 
+use App\Models\TrustedDevice;
 use App\Models\User;
 use App\Services\Totp;
 use App\Services\TwoFactorAuthentication;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -65,6 +67,46 @@ test('confirming with a valid code turns two-factor on and returns eight recover
         ->and($user->two_factor_recovery_codes)->not->toContain($codes[0]);
 });
 
+test('ten wrong codes lock the account out of code checks for fifteen minutes', function () {
+    $user = User::factory()->withTwoFactor()->create();
+
+    foreach (range(1, 10) as $attempt) {
+        expect($this->twoFactor->verify($user, wrongTotpCode($user)))->toBeFalse();
+    }
+
+    expect(fn () => $this->twoFactor->verify($user, totpCode($user)))
+        ->toThrow(ValidationException::class, 'Too many wrong authentication codes');
+
+    $this->travel(15)->minutes();
+    $this->travel(1)->seconds();
+
+    expect($this->twoFactor->verify($user, totpCode($user)))->toBeTrue();
+});
+
+test('only wrong codes count towards the lockout', function () {
+    $user = User::factory()->withTwoFactor()->create();
+
+    foreach (range(1, 9) as $attempt) {
+        $this->twoFactor->verify($user, wrongTotpCode($user));
+    }
+
+    expect($this->twoFactor->verify($user, totpCode($user)))->toBeTrue();
+
+    $this->travel(Totp::PERIOD_SECONDS)->seconds();
+    expect($this->twoFactor->verify($user, totpCode($user)))->toBeTrue();
+});
+
+test('wrong codes while confirming the setup count towards the lockout', function () {
+    $user = User::factory()->withPendingTwoFactor()->create();
+
+    foreach (range(1, 10) as $attempt) {
+        expect($this->twoFactor->confirm($user, wrongTotpCode($user)))->toBeNull();
+    }
+
+    expect(fn () => $this->twoFactor->confirm($user, totpCode($user)))->toThrow(ValidationException::class);
+    expect($user->fresh()->hasTwoFactorEnabled())->toBeFalse();
+});
+
 test('the code used to confirm the setup cannot be used again', function () {
     $user = User::factory()->withPendingTwoFactor()->create();
     $code = totpCode($user);
@@ -82,6 +124,16 @@ test('a setup confirmed elsewhere in the meantime is not confirmed again', funct
     $this->travel(Totp::PERIOD_SECONDS)->seconds();
 
     expect($this->twoFactor->confirm($stale, totpCode($stale)))->toBeNull();
+});
+
+test('regenerating the recovery codes forgets the trusted devices', function () {
+    $user = User::factory()->withTwoFactor()->create();
+    TrustedDevice::factory()->for($user)->create();
+
+    $codes = $this->twoFactor->regenerateRecoveryCodes($user);
+
+    expect($user->trustedDevices()->count())->toBe(0)
+        ->and(Hash::check($codes[0], $user->fresh()->two_factor_recovery_codes[0]))->toBeTrue();
 });
 
 test('the secret is stored encrypted', function () {

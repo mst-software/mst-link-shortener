@@ -6,7 +6,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Turns authenticator-app two-factor authentication on and off for a user and checks their codes.
@@ -18,6 +20,13 @@ class TwoFactorAuthentication
     public const TRUSTED_DEVICE_DAYS = 30;
 
     public const TRUSTED_DEVICE_COOKIE = 'trusted_device';
+
+    /**
+     * Wrong codes allowed per account within the decay window, across all IP addresses and forms.
+     */
+    public const MAX_FAILED_ATTEMPTS = 10;
+
+    public const FAILED_ATTEMPTS_DECAY_SECONDS = 900;
 
     public function __construct(private Totp $totp) {}
 
@@ -45,9 +54,13 @@ class TwoFactorAuthentication
             return null;
         }
 
+        $this->ensureNotLockedOut($user);
+
         $step = $this->totp->verify($user->two_factor_secret, $code);
 
         if ($step === null || ! $this->claimTimeStep($user, $step, ['two_factor_confirmed_at' => now()], requireUnconfirmed: true)) {
+            $this->recordFailure($user);
+
             return null;
         }
 
@@ -135,13 +148,49 @@ class TwoFactorAuthentication
             return false;
         }
 
+        $this->ensureNotLockedOut($user);
+
         $code = Str::lower(trim($code));
 
-        if (preg_match('/^\d[\d ]*$/', $code) === 1) {
-            return $this->verifyTotp($user, $code);
+        $isValid = preg_match('/^\d[\d ]*$/', $code) === 1
+            ? $this->verifyTotp($user, $code)
+            : $this->consumeRecoveryCode($user, $code);
+
+        if (! $isValid) {
+            $this->recordFailure($user);
         }
 
-        return $this->consumeRecoveryCode($user, $code);
+        return $isValid;
+    }
+
+    /**
+     * Refuse code checks after too many wrong codes for this account, from any IP address.
+     *
+     * @throws ValidationException
+     */
+    public function ensureNotLockedOut(User $user): void
+    {
+        $key = $this->failuresKey($user);
+
+        if (! RateLimiter::tooManyAttempts($key, self::MAX_FAILED_ATTEMPTS)) {
+            return;
+        }
+
+        $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
+        throw ValidationException::withMessages([
+            'code' => "Too many wrong authentication codes. Please try again in {$minutes} minute(s).",
+        ]);
+    }
+
+    private function recordFailure(User $user): void
+    {
+        RateLimiter::hit($this->failuresKey($user), self::FAILED_ATTEMPTS_DECAY_SECONDS);
+    }
+
+    private function failuresKey(User $user): string
+    {
+        return 'two-factor-failures:'.$user->getKey();
     }
 
     /**
