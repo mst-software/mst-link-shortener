@@ -38,6 +38,7 @@
       <div class="box-header with-border"><h3 class="box-title">S3-compatible storage</h3></div>
       <div class="box-body">
         <p class="text-muted">Only needed when files are saved on S3-compatible storage. Your storage provider gives you these details. The bucket must allow public reads (or use a public address below), because visitors load the images directly.</p>
+        <p class="text-muted">A field left empty keeps the value set on the server (in the .env file), if there is one.</p>
         <x-admin.setting-input name="s3_key" label="Access key ID" help="The ID of an access key that may read and write this bucket." :value="$values['s3_key']" maxlength="255" autocomplete="off" />
         <x-admin.secret-input name="s3_secret" label="Secret access key" help="The secret that belongs to the access key." :saved="$hasSecret" :server-default="$hasServerSecret && ! $hasSecret" />
         <x-admin.setting-input name="s3_region" label="Region" help='For example us-east-1. Use "auto" for Cloudflare R2.' :value="$values['s3_region']" maxlength="32" autocomplete="off" />
