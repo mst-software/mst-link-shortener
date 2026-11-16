@@ -36,6 +36,12 @@ it('shows no exception details on a server error', function () {
         ->assertDontSee('RuntimeException');
 });
 
+it('shows the message an access denial was given for visitors', function () {
+    Route::get('testing/closed', fn () => abort(403, 'Sign-ups are <closed>.'));
+
+    $this->get('testing/closed')->assertForbidden()->assertSee('Sign-ups are &lt;closed&gt;.', false);
+});
+
 it('renders the not found page for an unknown address', function () {
     $this->get('testing/no/such/page')->assertNotFound()->assertSee('Page not found');
 });
