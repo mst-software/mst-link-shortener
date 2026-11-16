@@ -24,6 +24,8 @@ class LinkShortenController extends Controller
                 (string) $request->input('url'),
                 $request->input('alias'),
                 $level,
+                $request->filled('password') ? $request->string('password')->toString() : null,
+                $request->filled('expires_at') ? $request->date('expires_at') : null,
             );
         } catch (InvalidLinkException $exception) {
             return $this->error($exception->getMessage());

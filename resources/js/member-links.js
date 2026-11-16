@@ -40,6 +40,8 @@ $(function () {
       showSuccess(response.data.short_url);
       $('#url').val('');
       $('#alias').val('');
+      $('#link_password').val('');
+      $('#expires_at').val('');
     }).fail(function (xhr) {
       var message = xhr.responseJSON && xhr.responseJSON.message;
 

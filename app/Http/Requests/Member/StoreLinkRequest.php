@@ -25,6 +25,8 @@ class StoreLinkRequest extends FormRequest
             'url' => ['required', 'string', 'max:2048'],
             'alias' => ['nullable', 'string', 'max:32'],
             'ad_type' => ['nullable', 'integer', 'between:1,3'],
+            'password' => ['nullable', 'string', 'min:4', 'max:64'],
+            'expires_at' => ['nullable', 'date', 'after:now'],
         ];
     }
 
@@ -36,6 +38,17 @@ class StoreLinkRequest extends FormRequest
         return [
             'url' => 'URL',
             'ad_type' => 'level',
+            'expires_at' => 'expiry date',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'expires_at.after' => 'The expiry date must be in the future.',
         ];
     }
 

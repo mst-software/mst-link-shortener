@@ -28,6 +28,20 @@
             </div>
           </div>
         </div>
+        <div class="row">
+          <div class="col-sm-6">
+            <div class="form-group">
+              <label for="link_password">Password</label>
+              <input type="password" name="password" placeholder="Password (optional)" class="form-control input-sm" id="link_password" minlength="4" maxlength="64" autocomplete="new-password">
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="form-group">
+              <label for="expires_at">Expiry date</label>
+              <input type="datetime-local" name="expires_at" class="form-control input-sm" id="expires_at" value="{{ old('expires_at') }}">
+            </div>
+          </div>
+        </div>
         <button class="btn btn-submit btn-primary" type="submit">Shorten</button>
       </form>
       <div class="shorten add-link-result"></div>
