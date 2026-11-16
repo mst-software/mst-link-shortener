@@ -25,6 +25,7 @@ class AdvertiserRegisterController extends Controller
         $user->role = UserRole::Advertiser;
         $user->terms_accepted_at = now();
         $user->save();
+        $request->countSignup();
 
         rescue(fn () => event(new Registered($user)));
 
