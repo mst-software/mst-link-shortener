@@ -13,6 +13,14 @@ it('replaces the longest secret first and the url-encoded form', function () {
         ->toBe('key ********, secret ********, sent ********');
 });
 
+it('replaces the base64 form of a secret echoed by an smtp auth exchange', function () {
+    $encoded = base64_encode('smtp-password-value');
+
+    expect(SecretRedactor::redact('Expected response code "235" but got "535" for "'.$encoded.'"', ['smtp-password-value']))
+        ->toBe('Expected response code "235" but got "535" for "********"')
+        ->and(SecretRedactor::redact('got '.rtrim($encoded, '='), ['smtp-password-value']))->toBe('got ********');
+});
+
 it('ignores empty secrets', function () {
     expect(SecretRedactor::redact('Connection refused', ['', null]))->toBe('Connection refused');
 });

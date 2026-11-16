@@ -30,7 +30,7 @@ class SecretRedactor
     ];
 
     /**
-     * Replace every occurrence of the given secrets (of any length, longest first, also URL-encoded)
+     * Replace every occurrence of the given secrets (of any length, longest first, also URL-encoded and base64-encoded)
      * and every secret-looking pattern with the mask.
      *
      * @param  array<int, string|null>  $secrets
@@ -38,7 +38,7 @@ class SecretRedactor
     public static function redact(string $message, array $secrets = [], string $mask = self::MASK): string
     {
         $values = collect(self::filled($secrets))
-            ->flatMap(fn (string $secret): array => [$secret, rawurlencode($secret), urlencode($secret)])
+            ->flatMap(fn (string $secret): array => [$secret, rawurlencode($secret), urlencode($secret), base64_encode($secret), rtrim(base64_encode($secret), '=')])
             ->unique()
             ->sortByDesc(fn (string $value): int => strlen($value))
             ->values()
