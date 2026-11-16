@@ -55,7 +55,7 @@ class Totp
             return null;
         }
 
-        $currentStep = $this->timeStep($timestamp ?? time());
+        $currentStep = $this->timeStep($timestamp ?? now()->getTimestamp());
 
         for ($offset = -self::WINDOW; $offset <= self::WINDOW; $offset++) {
             $step = $currentStep + $offset;
