@@ -73,7 +73,7 @@
             <label for="{{ $name }}">{{ $label }}</label>
             @if ($campaign->{$name})
               <div style="margin-bottom: 8px">
-                <img src="{{ Storage::disk('public')->url($campaign->{$name}) }}" alt="{{ $label }}" style="max-width: 240px; max-height: 160px">
+                <img src="{{ \App\Support\MediaStorage::url($campaign->{$name}) }}" alt="{{ $label }}" style="max-width: 240px; max-height: 160px">
                 <label class="checkbox-inline" style="margin-left: 12px">
                   <input type="checkbox" name="remove_{{ $name }}" value="1"> Remove
                 </label>
