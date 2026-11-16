@@ -10,14 +10,18 @@ use App\Services\Settings;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
-    public function edit(): View
+    public function edit(Request $request): View
     {
+        /** @var User $user */
+        $user = $request->user();
+
         return view('member.user.profile', [
             'countries' => config('countries'),
-            'payoutMethods' => PayoutMethod::cases(),
+            'payoutMethods' => PayoutMethod::selectableFor($user->payout_method),
             'minimumWithdrawal' => Money::format(Settings::int('min_withdraw_micro'), 0),
         ]);
     }

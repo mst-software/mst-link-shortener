@@ -60,6 +60,12 @@ class StoreWithdrawalRequest extends FormRequest
                     return;
                 }
 
+                if (! $user->payout_method->isEnabled()) {
+                    $validator->errors()->add('amount', 'Payouts by '.$user->payout_method->label().' are not available right now. Choose another payment method in your profile.');
+
+                    return;
+                }
+
                 $minimum = Settings::int('min_withdraw_micro');
 
                 if ($this->amountMicro() < $minimum) {

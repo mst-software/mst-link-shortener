@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Blog - LinkCash')
-@section('description', 'News, tips and guides for LinkCash users.')
+@section('title', 'Blog - '.config('app.name'))
+@section('description', 'News, tips and guides for '.config('app.name').' users.')
 @section('page', 'blog')
 
 @section('content')

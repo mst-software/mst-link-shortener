@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Terms of Use - LinkCash')
-@section('description', 'Please read these terms before using LinkCash.')
+@section('title', 'Terms of Use - '.config('app.name'))
+@section('description', 'Please read these terms before using '.config('app.name').'.')
 @section('page', 'terms')
 
 @section('content')
-  <x-legal-document title="Terms of Use" subtitle="Please read these terms before using LinkCash." updated="November 12, 2026">
+  <x-legal-document title="Terms of Use" subtitle="Please read these terms before using {{ config('app.name') }}." updated="November 12, 2026">
     <h3 id="accept">1. Acceptance of Terms</h3>
-    <p>By creating an account or using LinkCash, you agree to these Terms of Use and our <a href="{{ route('privacy') }}">Privacy Policy</a>. If you do not agree, please do not use the service. You must be at least 18 years old.</p>
+    <p>By creating an account or using {{ config('app.name') }}, you agree to these Terms of Use and our <a href="{{ route('privacy') }}">Privacy Policy</a>. If you do not agree, please do not use the service. You must be at least 18 years old.</p>
 
     <h3 id="accounts">2. Your Account</h3>
     <ul>
@@ -17,7 +17,7 @@
     </ul>
 
     <h3 id="service">3. The Service</h3>
-    <p>LinkCash lets you shorten URLs and earn money when visitors view your shortened links. We may change, suspend or discontinue any part of the service at any time, including features, rates and limits.</p>
+    <p>{{ config('app.name') }} lets you shorten URLs and earn money when visitors view your shortened links. We may change, suspend or discontinue any part of the service at any time, including features, rates and limits.</p>
 
     <h3 id="content">4. Prohibited Content</h3>
     <p>You may not shorten or promote links that lead to content that is:</p>
@@ -65,6 +65,10 @@
     <p>We may update these terms from time to time. Continuing to use the service after the changes take effect means you accept the new terms.</p>
 
     <h3 id="contact">13. Contact Us</h3>
-    <p>Questions about these terms? Email us at <a href="mailto:support@yourdomain.com">support@yourdomain.com</a>.</p>
+    @if ($supportEmail !== '')
+      <p>Questions about these terms? Email us at <a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a>.</p>
+    @else
+      <p>Questions about these terms? Use our <a href="{{ route('home') }}#contact">contact form</a>.</p>
+    @endif
   </x-legal-document>
 @endsection

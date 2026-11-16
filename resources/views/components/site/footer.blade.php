@@ -3,7 +3,7 @@
     <div class="container">
       <div class="flex flex-wrap -mx-[15px]">
         <div class="w-full md:w-5/12 px-[15px] mb-10 footer-brand">
-          <a href="{{ route('home') }}"><img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="LinkCash" class="h-[40px] w-auto"></a>
+          <a href="{{ route('home') }}"><img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}" class="h-[40px] w-auto"></a>
           <p>Shorten your links, share them anywhere and get paid for every valid view. Clear rates, fast payouts and a support team that answers.</p>
           <p class="footer-label">We pay via</p>
           <div class="pay-icons">
@@ -11,6 +11,17 @@
             <img src="{{ Vite::asset('resources/images/paypal.png') }}" alt="PayPal">
             <img src="{{ Vite::asset('resources/images/bitcoin.png') }}" alt="Bitcoin">
           </div>
+          @if ($supportEmail !== '' || $socialLinks !== [])
+            <p class="footer-label footer-contact-label">Contact us</p>
+            <ul class="footer-contact">
+              @if ($supportEmail !== '')
+                <li><a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a></li>
+              @endif
+              @foreach ($socialLinks as $label => $url)
+                <li><a href="{{ $url }}" target="_blank" rel="noopener noreferrer">{{ $label }}</a></li>
+              @endforeach
+            </ul>
+          @endif
         </div>
         <div class="w-1/2 md:w-3/12 px-[15px] mb-8">
           <h2 class="footer-heading">Quick links</h2>
@@ -37,7 +48,7 @@
 
   <div class="footer-bottom">
     <div class="container flex flex-col md:flex-row items-center justify-between gap-3">
-      <div class="copyright">Copyright &copy; LinkCash <span id="year">{{ now()->year }}</span>. All rights reserved.</div>
+      <div class="copyright">Copyright &copy; {{ config('app.name') }} <span id="year">{{ now()->year }}</span>. All rights reserved.</div>
       <div class="dev-credit">Developed by <a href="https://www.facebook.com/mstsoftware.vn" target="_blank" rel="noopener">MST Software</a></div>
     </div>
   </div>

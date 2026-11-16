@@ -6,6 +6,9 @@
 @section('content')
   <p class="login-box-msg">Register an advertiser account</p>
 
+  @if (! $registrationOpen)
+    <div class="alert alert-warning">{{ \App\Http\Middleware\EnsureRegistrationIsOpen::CLOSED_MESSAGE }}</div>
+  @else
   <div id="flash">@include('auth.partials.status')</div>
   <form method="post" accept-charset="utf-8" id="signup-form" action="{{ route('advertiser.register') }}" novalidate>
     @csrf
@@ -24,6 +27,7 @@
 
     <button class="btn btn-primary btn-block btn-flat" type="submit">Register as advertiser</button>
   </form>
+  @endif
   <div class="social-auth-links text-center">
     <p>- OR -</p>
   </div>

@@ -8,7 +8,7 @@
       <h3 class="box-title"><i class="fa fa-exchange"></i> My Referrals</h3>
     </div>
     <div class="box-body">
-      <p>The LinkCash referral program is a great way to spread the word about this service and earn even more with your short links. Refer friends and receive {{ $commissionPercent }}% of their earnings for life.</p>
+      <p>The {{ config('app.name') }} referral program is a great way to spread the word about this service and earn even more with your short links. Refer friends and receive {{ $commissionPercent }}% of their earnings for life.</p>
 
       <h3>Your referral link</h3>
       <pre>{{ $referralLink }}</pre>

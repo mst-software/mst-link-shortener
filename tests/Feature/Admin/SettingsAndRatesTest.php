@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\CaptchaProvider;
+use App\Enums\SettingsPage;
 use App\Models\CpmRate;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -8,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 /**
- * A valid payload for the settings form, with optional overrides.
+ * A valid payload for the traffic and earnings settings form, with optional overrides.
  *
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
@@ -19,15 +22,14 @@ function settingsPayload(array $overrides = []): array
         'dwell_seconds' => 12,
         'unique_window_hours' => 24,
         'review_days' => 3,
-        'min_withdraw_usd' => 5,
         'referral_percent' => 12,
         'session_minutes' => 30,
         'view_purge_days' => 60,
         'alias_length' => 6,
-        'captcha_provider' => 'turnstile',
         'visit_mode' => 'auto',
         'code_session_seconds' => 600,
         'tutorial_video_url' => '',
+        'advertiser_default_price_usd' => '0.01',
     ], $overrides);
 }
 
@@ -39,23 +41,28 @@ test('members cannot open the settings and rates pages', function () {
     $member = User::factory()->create();
 
     $this->actingAs($member)->get(route('admin.settings.edit'))->assertForbidden();
-    $this->actingAs($member)->put(route('admin.settings.update'), settingsPayload())->assertForbidden();
+    $this->actingAs($member)->put(route('admin.settings.traffic.update'), settingsPayload())->assertForbidden();
     $this->actingAs($member)->get(route('admin.rates.index'))->assertForbidden();
     $this->actingAs($member)->post(route('admin.rates.store'), [])->assertForbidden();
 });
 
+test('the old settings address opens the first settings page', function () {
+    $this->actingAs($this->admin)
+        ->get(route('admin.settings.edit'))
+        ->assertRedirect(route(SettingsPage::cases()[0]->routeName()));
+});
+
 test('admins can change the dwell time', function () {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), settingsPayload(['dwell_seconds' => 15, 'min_withdraw_usd' => 7.5]))
-        ->assertRedirect(route('admin.settings.edit'));
+        ->put(route('admin.settings.traffic.update'), settingsPayload(['dwell_seconds' => 15]))
+        ->assertRedirect(route('admin.settings.traffic.edit'));
 
-    expect(Settings::int('dwell_seconds'))->toBe(15)
-        ->and(Settings::int('min_withdraw_micro'))->toBe(7_500_000);
+    expect(Settings::int('dwell_seconds'))->toBe(15);
 });
 
 test('dwell seconds outside 5 to 60 are rejected', function (int $value) {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), settingsPayload(['dwell_seconds' => $value]))
+        ->put(route('admin.settings.traffic.update'), settingsPayload(['dwell_seconds' => $value]))
         ->assertSessionHasErrors('dwell_seconds');
 
     expect(Settings::int('dwell_seconds'))->toBe(10);
@@ -63,33 +70,60 @@ test('dwell seconds outside 5 to 60 are rejected', function (int $value) {
 
 test('an unknown captcha provider is rejected', function () {
     $this->actingAs($this->admin)
-        ->put(route('admin.settings.update'), settingsPayload(['captcha_provider' => 'nope']))
+        ->put(route('admin.settings.captcha.update'), ['captcha_provider' => 'nope'])
         ->assertSessionHasErrors('captcha_provider');
 });
 
-test('captcha secrets are stored but never shown again, and a blank secret keeps the old one', function () {
-    $this->actingAs($this->admin)->put(route('admin.settings.update'), settingsPayload([
+test('captcha secrets are stored encrypted but never shown again, and a blank secret keeps the old one', function () {
+    $this->actingAs($this->admin)->put(route('admin.settings.captcha.update'), [
         'captcha_provider' => 'hcaptcha',
         'hcaptcha_site_key' => 'site-key-1',
         'hcaptcha_secret_key' => 'super-secret-value',
-    ]));
+    ])->assertRedirect(route('admin.settings.captcha.edit'));
 
     expect(Settings::get('hcaptcha_secret_key'))->toBe('super-secret-value')
+        ->and(Setting::query()->where('key', 'hcaptcha_secret_key')->value('value'))->not->toContain('super-secret-value')
         ->and(Settings::get('captcha_provider'))->toBe('hcaptcha');
 
-    $this->actingAs($this->admin)->get(route('admin.settings.edit'))
+    $this->actingAs($this->admin)->get(route('admin.settings.captcha.edit'))
         ->assertOk()
         ->assertSee('site-key-1')
+        ->assertSee('Saved')
         ->assertDontSee('super-secret-value');
 
-    $this->actingAs($this->admin)->put(route('admin.settings.update'), settingsPayload([
+    $this->actingAs($this->admin)->put(route('admin.settings.captcha.update'), [
         'captcha_provider' => 'hcaptcha',
         'hcaptcha_site_key' => 'site-key-2',
         'hcaptcha_secret_key' => '',
-    ]));
+    ]);
 
     expect(Settings::get('hcaptcha_secret_key'))->toBe('super-secret-value')
         ->and(Settings::get('hcaptcha_site_key'))->toBe('site-key-2');
+});
+
+test('a saved captcha secret can be removed so the server default applies again', function () {
+    config(['services.hcaptcha.secret_key' => 'env-secret']);
+    Settings::set('hcaptcha_secret_key', 'old-secret');
+
+    $this->actingAs($this->admin)->put(route('admin.settings.captcha.update'), [
+        'captcha_provider' => 'hcaptcha',
+        'clear_hcaptcha_secret_key' => '1',
+    ]);
+
+    expect(Settings::has('hcaptcha_secret_key'))->toBeFalse()
+        ->and(CaptchaProvider::HCaptcha->secretKey())->toBe('env-secret');
+});
+
+test('a blank captcha site key falls back to the server default', function () {
+    config(['services.turnstile.site_key' => 'env-site-key']);
+    Settings::set('turnstile_site_key', 'old-site-key');
+
+    $this->actingAs($this->admin)->put(route('admin.settings.captcha.update'), [
+        'captcha_provider' => 'turnstile',
+        'turnstile_site_key' => '',
+    ]);
+
+    expect(CaptchaProvider::Turnstile->siteKey())->toBe('env-site-key');
 });
 
 test('admins can add, update and delete a country rate', function () {

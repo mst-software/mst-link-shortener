@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>@yield('title') - Admin - LinkCash</title>
+  <title>@yield('title') - Admin - {{ config('app.name') }}</title>
   <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/favicon.png') }}">
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic&display=swap" rel="stylesheet">
   @vite(['resources/css/admin.css', 'resources/js/member.js'])
@@ -67,7 +67,7 @@
   </div>
 
   <footer class="main-footer">
-    <strong>Copyright &copy; {{ now()->year }} <a href="{{ route('home') }}">LinkCash</a>.</strong>
+    <strong>Copyright &copy; {{ now()->year }} <a href="{{ route('home') }}">{{ config('app.name') }}</a>.</strong>
   </footer>
 
 </div>

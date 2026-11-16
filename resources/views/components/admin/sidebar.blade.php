@@ -1,7 +1,7 @@
 @php
   $menu = [
       ['label' => 'Dashboard', 'icon' => 'tachometer-alt', 'route' => 'admin.dashboard'],
-      ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings.edit'],
+      ['label' => 'Settings', 'icon' => 'cogs', 'route' => 'admin.settings.edit', 'active' => 'admin.settings.*'],
       ['label' => 'Users', 'icon' => 'user', 'route' => 'admin.users.index'],
       ['label' => 'Rates', 'icon' => 'percentage', 'route' => 'admin.rates.index'],
       ['label' => 'Campaigns', 'icon' => 'bullhorn', 'route' => 'admin.campaigns.index'],
@@ -23,7 +23,7 @@
     <ul class="sidebar-menu">
       @foreach ($menu as $item)
         @if (Route::has($item['route']))
-          <li @class(['active' => request()->routeIs($item['route'])])>
+          <li @class(['active' => request()->routeIs($item['active'] ?? $item['route'])])>
             <a href="{{ route($item['route']) }}">
               <i class="fa fa-{{ $item['icon'] }}"></i>
               <span>{{ $item['label'] }}</span>

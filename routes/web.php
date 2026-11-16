@@ -27,7 +27,7 @@ Route::post('auth/signin', [LoginController::class, 'store']);
 Route::get('auth/two-factor', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
 Route::post('auth/two-factor', [TwoFactorChallengeController::class, 'store'])->middleware('throttle:two-factor-challenge');
 Route::get('auth/signup', [RegisterController::class, 'show'])->name('register');
-Route::post('auth/signup', [RegisterController::class, 'store'])->middleware('throttle:register');
+Route::post('auth/signup', [RegisterController::class, 'store'])->middleware(['registration-open', 'throttle:register']);
 Route::post('auth/signout', LogoutController::class)->name('logout');
 Route::get('auth/forgot-password', [ForgotPasswordController::class, 'show'])->name('password.request');
 Route::post('auth/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');

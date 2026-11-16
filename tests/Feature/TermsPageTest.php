@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 test('terms page renders the terms inside the legal document layout', function () {
     $this->get(route('terms'))
         ->assertOk()

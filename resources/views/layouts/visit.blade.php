@@ -17,8 +17,8 @@
 
 <nav id="mainNav" class="lk-navbar">
   <div class="lk-container lk-navbar-inner">
-    <a class="lk-brand" href="{{ route('home') }}" aria-label="LinkCash home">
-      <img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="LinkCash" width="150" height="32">
+    <a class="lk-brand" href="{{ route('home') }}" aria-label="{{ config('app.name') }} home">
+      <img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}" width="150" height="32">
     </a>
     <ul class="lk-nav">
       <li><a href="{{ route('home') }}">Home</a></li>
@@ -43,7 +43,7 @@
     <div class="lk-container">
       <div class="lk-footer-cols">
         <div class="lk-footer-brand">
-          <a href="{{ route('home') }}"><img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="LinkCash" height="44"></a>
+          <a href="{{ route('home') }}"><img src="{{ Vite::asset('resources/images/logo-poppins-white.png') }}" alt="{{ config('app.name') }}" height="44"></a>
           <p>Shorten your links, share them anywhere and get paid for every valid view. Clear rates, fast payouts and a support team that answers.</p>
           <div class="lk-pay-icons">
             <img src="{{ Vite::asset('resources/images/banktransfer.png') }}" alt="Bank transfer">
@@ -78,7 +78,7 @@
 
   <div class="lk-footer-bottom">
     <div class="lk-container lk-footer-bottom-inner">
-      <div>Copyright &copy; LinkCash {{ now()->year }}. All rights reserved.</div>
+      <div>Copyright &copy; {{ config('app.name') }} {{ now()->year }}. All rights reserved.</div>
       <div class="lk-dev">Developed by <a href="https://www.facebook.com/mstsoftware.vn" target="_blank" rel="noopener">MST Software</a></div>
     </div>
   </div>

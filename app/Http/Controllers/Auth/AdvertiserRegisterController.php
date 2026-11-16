@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Services\Settings;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ class AdvertiserRegisterController extends Controller
 {
     public function show(): View
     {
-        return view('auth.advertiser-register');
+        return view('auth.advertiser-register', ['registrationOpen' => Settings::bool('registration_open')]);
     }
 
     public function store(RegisterRequest $request): RedirectResponse

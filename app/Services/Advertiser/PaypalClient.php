@@ -28,7 +28,7 @@ class PaypalClient
                     'intent' => 'CAPTURE',
                     'purchase_units' => [[
                         'amount' => ['currency_code' => 'USD', 'value' => number_format($usdMicro / 1_000_000, 2, '.', '')],
-                        'description' => 'LinkCash advertiser wallet top up',
+                        'description' => config('app.name').' advertiser wallet top up',
                     ]],
                     'application_context' => [
                         'return_url' => $returnUrl,

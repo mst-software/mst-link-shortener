@@ -1,0 +1,9 @@
+/*
+ * Admin notice banner (components/site/notice-banner.blade.php), shared by app.css and auth.css.
+ * Fixed to the bottom so it never hides under the fixed public navbar.
+ */
+.site-notice { position: fixed; right: 0; bottom: 0; left: 0; z-index: 95; display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border-top: 1px solid #f0c36d; background: #fff8e1; box-shadow: 0 -4px 16px -8px rgb(0 0 0 / .25); color: #5c4400; font-size: 14px; line-height: 1.5; }
+.site-notice-text { flex: 1; max-width: 1140px; margin: 0 auto; overflow-wrap: anywhere; white-space: pre-line; }
+.site-notice-close { flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; font-size: 20px; line-height: 28px; cursor: pointer; }
+.site-notice-close:hover { background: rgb(0 0 0 / .06); }
+.maintenance-notice { white-space: pre-line; }

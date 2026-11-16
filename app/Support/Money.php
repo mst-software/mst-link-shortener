@@ -40,6 +40,14 @@ class Money
     }
 
     /**
+     * Micro-USD as a plain USD number for form fields, without trailing zeros, for example "7.5".
+     */
+    public static function toUsdString(int $micro): string
+    {
+        return rtrim(rtrim(number_format($micro / self::MICRO_PER_USD, 6, '.', ''), '0'), '.');
+    }
+
+    /**
      * Format micro-USD as a dollar string, for example "$0.050".
      */
     public static function format(int $micro, int $decimals = 3): string

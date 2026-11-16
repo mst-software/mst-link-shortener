@@ -7,6 +7,7 @@ use App\Exceptions\InsufficientBalanceException;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Services\Settings;
 use App\Services\WalletService;
 use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -294,4 +295,16 @@ test('the withdraw button is disabled below the minimum', function () {
     $this->actingAs(withdrawingMember(6_000_000))
         ->get(route('member.withdraws'))
         ->assertSee('id="withdraw-open"', false);
+});
+
+test('a withdrawal to a payout method the admin switched off is refused', function () {
+    Settings::set('payout_methods', 'bank_transfer,usdt');
+    $member = withdrawingMember();
+
+    $this->actingAs($member)
+        ->post(route('member.withdraws.store'), withdrawalPayload())
+        ->assertSessionHasErrors(['amount' => 'Payouts by PayPal are not available right now. Choose another payment method in your profile.']);
+
+    expect(Withdrawal::query()->count())->toBe(0)
+        ->and($member->refresh()->balance_micro)->toBe(20_000_000);
 });

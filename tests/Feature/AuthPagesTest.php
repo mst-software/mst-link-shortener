@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
 dataset('auth pages', [
     'login' => ['login', 'Sign In - LinkCash', 'Sign in to start your session', 'signin-form'],
     'register' => ['register', 'Sign Up - LinkCash', 'Register a new membership', 'signup-form'],
