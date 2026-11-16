@@ -65,6 +65,15 @@ Tests never touch the database in `.env`: `phpunit.xml` switches to an in-memory
   of `.env.example` lists them.
 - On every deploy: `composer install --no-dev --optimize-autoloader`, `npm ci && npm run build`,
   `php artisan migrate --force`, `php artisan optimize`, `php artisan queue:restart`.
+- API tokens are stored encrypted with a SHA-256 hash for the lookup (migration
+  `hash_and_encrypt_user_api_tokens`). On the deploy that ships it, run `php artisan down`, switch the code, run
+  `php artisan migrate --force`, then `php artisan up`, so nobody signs up on the old code with a plain token in
+  between. If sign-ups did happen during the switch, run the migration's `up()` once more; it only converts rows that
+  still hold a plain token and leaves converted rows alone:
+  `php artisan tinker --execute '(require database_path("migrations/2026_11_16_030934_hash_and_encrypt_user_api_tokens.php"))->up();'`.
+  Tokens it cannot decrypt (encrypted with another `APP_KEY`) are skipped and logged; those members see a notice and
+  can generate a new token on the Developers API page. Keep `APP_KEY` stable: changing it makes every stored API
+  token unreadable.
 
 ### 2. Queue worker
 
