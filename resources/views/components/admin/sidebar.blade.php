@@ -12,6 +12,7 @@
       ['label' => 'Withdrawals', 'icon' => 'dollar-sign', 'route' => 'admin.withdrawals.index'],
       ['label' => 'Notices', 'icon' => 'bell', 'route' => 'admin.notices'],
       ['label' => 'Support', 'icon' => 'life-ring', 'route' => 'admin.support'],
+      ['label' => 'Two-factor auth', 'icon' => 'shield-alt', 'route' => 'member.user.two-factor'],
   ];
 @endphp
 
