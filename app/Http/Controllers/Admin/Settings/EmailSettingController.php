@@ -9,6 +9,7 @@ use App\Mail\SettingsTestMail;
 use App\Models\User;
 use App\Services\Settings;
 use App\Support\MailConfigurator;
+use App\Support\SecretRedactor;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ class EmailSettingController extends Controller
 {
     use SavesSecretSettings;
 
-    private const MIN_REDACTED_PASSWORD_LENGTH = 4;
+    /**
+     * Shown instead of the mail server error when the password is too short to be redacted from it reliably.
+     */
+    public const GENERIC_FAILURE = 'The mail server refused the connection or the login. Check the host, port, username and password.';
 
     public function edit(): View
     {
@@ -75,21 +79,14 @@ class EmailSettingController extends Controller
             report($exception);
 
             return redirect()->route('admin.settings.email.edit')
-                ->with('error', 'The test email could not be sent: '.$this->withoutPassword($exception->getMessage()));
+                ->with('error', 'The test email could not be sent: '.SecretRedactor::forDisplay(
+                    $exception->getMessage(),
+                    [(string) config('mail.mailers.smtp.password')],
+                    self::GENERIC_FAILURE,
+                ));
         }
 
         return redirect()->route('admin.settings.email.edit')
             ->with('success', 'A test email was sent to '.$admin->email.'. Check the inbox (and the spam folder).');
-    }
-
-    /**
-     * Hide the SMTP password if the mail server echoed it back in its error message. Very short
-     * passwords are left alone, because replacing them would mangle ordinary words in the message.
-     */
-    private function withoutPassword(string $message): string
-    {
-        $password = (string) config('mail.mailers.smtp.password');
-
-        return mb_strlen($password) < self::MIN_REDACTED_PASSWORD_LENGTH ? $message : str_replace($password, '********', $message);
     }
 }

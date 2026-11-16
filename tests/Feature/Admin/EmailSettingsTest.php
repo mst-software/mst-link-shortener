@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Settings\EmailSettingController;
 use App\Mail\SettingsTestMail;
 use App\Models\Setting;
 use App\Models\User;
@@ -179,12 +180,22 @@ test('a failing test email is reported to the log', function () {
     Exceptions::assertReported(TransportException::class);
 });
 
-test('a very short password is not redacted from the error message', function () {
-    failSmtpWith('ab', 'Unable to connect to the server.');
+test('a very short password hides the mail server error behind a generic message', function () {
+    Exceptions::fake();
+    failSmtpWith('ab', 'Unable to authenticate as user ab with ab.');
 
     $this->actingAs($this->admin)->post(route('admin.settings.email.test'));
 
-    expect(session('error'))->toBe('The test email could not be sent: Unable to connect to the server.');
+    expect(session('error'))->toBe('The test email could not be sent: '.EmailSettingController::GENERIC_FAILURE);
+    Exceptions::assertReported(fn (TransportException $exception): bool => str_contains($exception->getMessage(), 'Unable to authenticate'));
+});
+
+test('credentials in a server url and password pairs are redacted from the error message', function () {
+    failSmtpWith('smtp-password-value', 'Cannot connect to smtp://mailer:other-pass@smtp.example.com (password=leaked-value)');
+
+    $this->actingAs($this->admin)->post(route('admin.settings.email.test'));
+
+    expect(session('error'))->toBe('The test email could not be sent: Cannot connect to smtp://********@smtp.example.com (password=********)');
 });
 
 test('the mail server error is shown escaped', function () {

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Settings\UpdateStorageSettingsRequest;
 use App\Services\Settings;
 use App\Support\MediaStorage;
+use App\Support\SecretRedactor;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -19,10 +20,9 @@ class StorageSettingController extends Controller
     use SavesSecretSettings;
 
     /**
-     * Credentials shorter than this are not redacted from error messages, because replacing them would
-     * mangle ordinary words.
+     * Shown instead of the storage error when a credential is too short to be redacted from it reliably.
      */
-    private const MIN_REDACTED_LENGTH = 4;
+    public const GENERIC_FAILURE = 'The storage service refused the request. Check the access key, secret, bucket, region and endpoint.';
 
     public function edit(): View
     {
@@ -90,26 +90,14 @@ class StorageSettingController extends Controller
             report($exception);
 
             return redirect()->route('admin.settings.storage.edit')
-                ->with('error', 'The connection test failed: '.$this->withoutCredentials($exception->getMessage()));
+                ->with('error', 'The connection test failed: '.SecretRedactor::forDisplay(
+                    $exception->getMessage(),
+                    [(string) config('filesystems.disks.s3.key'), (string) config('filesystems.disks.s3.secret')],
+                    self::GENERIC_FAILURE,
+                ));
         }
 
         return redirect()->route('admin.settings.storage.edit')
             ->with('success', 'Connected to the bucket "'.$bucket.'": a test file was written, read back and deleted.');
-    }
-
-    /**
-     * Hide the access key and secret if the storage service echoed them back in its error message.
-     */
-    private function withoutCredentials(string $message): string
-    {
-        foreach (['key', 'secret'] as $credential) {
-            $value = (string) config('filesystems.disks.s3.'.$credential);
-
-            if (mb_strlen($value) >= self::MIN_REDACTED_LENGTH) {
-                $message = str_replace($value, '********', $message);
-            }
-        }
-
-        return $message;
     }
 }
