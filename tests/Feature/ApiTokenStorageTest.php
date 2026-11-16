@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
@@ -22,6 +24,14 @@ function rawUserRow(User $user): object
 function apiTokenMigration(): object
 {
     return require database_path('migrations/2026_11_16_030934_hash_and_encrypt_user_api_tokens.php');
+}
+
+/**
+ * A token encrypted with a key other than the application key.
+ */
+function foreignCiphertext(string $token): string
+{
+    return (new Encrypter(random_bytes(32), 'AES-256-CBC'))->encryptString($token);
 }
 
 it('stores the api token encrypted with a sha256 hash for the lookup', function () {
@@ -92,6 +102,35 @@ it('backfills plain tokens and leaves converted ones alone when run again', func
         ->and(rawUserRow($legacy))->toEqual($legacyRow)
         ->and(rawUserRow($converted))->toEqual($convertedRow)
         ->and(User::findByApiToken('legacyPlainToken12345678')?->is($legacy))->toBeTrue();
+});
+
+it('skips and logs a token encrypted with another key instead of encrypting it again', function () {
+    Log::spy();
+    $user = User::factory()->create();
+    $foreignCiphertext = foreignCiphertext('foreignToken123456789012');
+    DB::table('users')->where('id', $user->id)->update(['api_token' => $foreignCiphertext, 'api_token_hash' => null]);
+
+    apiTokenMigration()->up();
+
+    expect(rawUserRow($user)->api_token)->toBe($foreignCiphertext)
+        ->and(rawUserRow($user)->api_token_hash)->toBeNull();
+    Log::shouldHaveReceived('warning')->twice()->withArgs(fn (string $message): bool => ! str_contains($message, 'foreignToken')
+        && ! str_contains($message, $foreignCiphertext));
+});
+
+it('replaces a token encrypted with another key with a short plain token when rolled back', function () {
+    Log::spy();
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+    DB::table('users')->where('id', $user->id)->update(['api_token' => foreignCiphertext('foreignToken123456789012')]);
+
+    apiTokenMigration()->down();
+
+    expect(rawUserRow($user)->api_token)->toHaveLength(24)
+        ->and(rawUserRow($other)->api_token)->toBe($other->api_token);
+    Log::shouldHaveReceived('warning')->twice();
+
+    apiTokenMigration()->up();
 });
 
 it('restores plain tokens when rolled back', function () {
