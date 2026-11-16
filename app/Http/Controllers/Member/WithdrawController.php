@@ -35,6 +35,7 @@ class WithdrawController extends Controller
                 ->sum('amount_micro'),
             'minimum' => $minimum,
             'canWithdraw' => $user->balance_micro >= $minimum,
+            'needsTwoFactorCode' => $user->hasTwoFactorEnabled(),
         ]);
     }
 

@@ -6,6 +6,7 @@ use App\Enums\WithdrawalStatus;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Withdrawal;
+use Database\Factories\UserFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -13,9 +14,9 @@ uses(RefreshDatabase::class);
 /**
  * A member with a payout method and the given available balance in micro-USD.
  */
-function withdrawingMember(int $balanceMicro = 20_000_000, bool $withPayout = true): User
+function withdrawingMember(int $balanceMicro = 20_000_000, bool $withPayout = true, bool $withTwoFactor = false): User
 {
-    return User::factory()->create([
+    return User::factory()->when($withTwoFactor, fn (UserFactory $factory) => $factory->withTwoFactor())->create([
         'balance_micro' => $balanceMicro,
         'payout_method' => $withPayout ? PayoutMethod::Paypal : null,
         'payout_details' => $withPayout ? ['paypal_email' => 'me@example.com'] : null,
@@ -50,6 +51,43 @@ test('a valid request reserves the amount and creates a pending withdrawal', fun
         ->and($withdrawal->details)->toBe(['paypal_email' => 'me@example.com'])
         ->and(Transaction::query()->where('action', TransactionAction::WithdrawRequest)->where('reference_id', (string) $withdrawal->id)->count())->toBe(1);
 });
+
+test('a two-factor member needs a valid code to request a withdrawal', function () {
+    $this->freezeSecond();
+    $member = withdrawingMember(withTwoFactor: true);
+
+    $this->actingAs($member)
+        ->post(route('member.withdraws.store'), withdrawalPayload())
+        ->assertSessionHasErrors('code');
+    $this->post(route('member.withdraws.store'), withdrawalPayload(['code' => wrongTotpCode($member)]))
+        ->assertSessionHasErrors('code');
+
+    expect(Withdrawal::query()->count())->toBe(0);
+
+    $this->post(route('member.withdraws.store'), withdrawalPayload(['code' => totpCode($member)]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('member.withdraws'));
+
+    expect(Withdrawal::query()->count())->toBe(1);
+});
+
+test('a rejected withdrawal does not use up the recovery code', function () {
+    $member = withdrawingMember(withTwoFactor: true);
+
+    $this->actingAs($member)
+        ->post(route('member.withdraws.store'), withdrawalPayload(['amount' => '999', 'code' => UserFactory::RECOVERY_CODES[0]]))
+        ->assertSessionHasErrors('amount');
+
+    expect($member->fresh()->two_factor_recovery_codes)->toHaveCount(count(UserFactory::RECOVERY_CODES));
+});
+
+test('the withdraw form asks for a code only when two-factor is on', function (bool $hasTwoFactor) {
+    $member = withdrawingMember(withTwoFactor: $hasTwoFactor);
+
+    $response = $this->actingAs($member)->get(route('member.withdraws'))->assertOk();
+
+    $hasTwoFactor ? $response->assertSee('name="code"', false) : $response->assertDontSee('name="code"', false);
+})->with([true, false]);
 
 test('an unverified member cannot request a withdrawal', function () {
     $member = withdrawingMember();

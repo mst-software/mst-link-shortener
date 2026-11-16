@@ -28,7 +28,7 @@ Route::middleware(['auth', 'active', 'not-advertiser'])->prefix('member')->name(
     Route::post('links/restore', [LinkController::class, 'restore'])->name('links.restore');
 
     Route::get('withdraws', [WithdrawController::class, 'index'])->name('withdraws');
-    Route::post('withdraws', [WithdrawController::class, 'store'])->middleware('verified')->name('withdraws.store');
+    Route::post('withdraws', [WithdrawController::class, 'store'])->middleware(['verified', 'throttle:two-factor-code'])->name('withdraws.store');
 
     Route::prefix('tools')->name('tools.')->group(function () {
         Route::get('quick', [ToolController::class, 'quick'])->name('quick');

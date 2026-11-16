@@ -4,6 +4,7 @@ namespace App\Http\Requests\Member;
 
 use App\Models\User;
 use App\Services\Settings;
+use App\Services\TwoFactorAuthentication;
 use App\Support\Money;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,6 +24,17 @@ class StoreWithdrawalRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'gt:0', 'max:1000000000'],
             'traffic_source' => ['required', 'string', 'max:2000'],
+            'code' => [$this->hasTwoFactor() ? 'required' : 'nullable', 'string', 'max:20'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'code' => 'authentication code',
         ];
     }
 
@@ -55,8 +67,21 @@ class StoreWithdrawalRequest extends FormRequest
                 } elseif ($this->amountMicro() > $user->balance_micro) {
                     $validator->errors()->add('amount', 'The amount is more than your available balance.');
                 }
+
+                // Checked last so a rejected request does not use up a recovery code.
+                if ($validator->errors()->isEmpty() && $this->hasTwoFactor()
+                    && ! app(TwoFactorAuthentication::class)->verify($user, (string) $this->input('code'))) {
+                    $validator->errors()->add('code', 'The authentication code is invalid.');
+                }
             },
         ];
+    }
+
+    private function hasTwoFactor(): bool
+    {
+        $user = $this->user();
+
+        return $user instanceof User && $user->hasTwoFactorEnabled();
     }
 
     /**
