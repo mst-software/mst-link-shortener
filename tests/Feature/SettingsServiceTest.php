@@ -142,5 +142,9 @@ it('exposes the project defaults in config', function (): void {
         'payout_methods' => 'paypal,bank_transfer,momo,usdt',
         'registration_open' => true,
         'maintenance_mode' => false,
+        'login_purge_days' => 90,
+        'multi_account_shared_ip_limit' => 10,
+        'referral_hold_on_suspicion' => false,
+        'signups_per_ip_per_day' => 5,
     ]);
 });
