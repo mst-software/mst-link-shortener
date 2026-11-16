@@ -5,6 +5,8 @@
 @section('content')
   <x-admin.settings-nav />
 
+  <x-admin.queue-restart-note />
+
   <form action="{{ route('admin.settings.payments.update') }}" method="post">
     @csrf
     @method('PUT')

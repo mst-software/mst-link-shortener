@@ -35,3 +35,10 @@ test('the admin sidebar has a single settings entry that stays active on every s
     expect($html)->toMatch('#<li class="active">\s*<a href="'.preg_quote(route('admin.settings.edit'), '#').'">#')
         ->and(substr_count($html, 'href="'.route('admin.settings.edit').'"'))->toBe(1);
 });
+
+test('the email and payments pages tell operators to restart the queue workers', function (string $route) {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route($route))
+        ->assertOk()
+        ->assertSee('php artisan queue:restart');
+})->with(['admin.settings.email.edit', 'admin.settings.payments.edit']);

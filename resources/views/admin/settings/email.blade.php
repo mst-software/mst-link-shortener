@@ -13,6 +13,9 @@
     @endif
   </div>
 
+  <x-admin.queue-restart-note />
+
+
   <form action="{{ route('admin.settings.email.update') }}" method="post">
     @csrf
     @method('PUT')
