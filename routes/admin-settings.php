@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CpmRateController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\Settings\CaptchaSettingController;
+use App\Http\Controllers\Admin\Settings\EmailSettingController;
 use App\Http\Controllers\Admin\Settings\PaymentSettingController;
 use App\Http\Controllers\Admin\Settings\TrafficSettingController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,10 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
     Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
 
     Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('email', [EmailSettingController::class, 'edit'])->name('email.edit');
+        Route::put('email', [EmailSettingController::class, 'update'])->name('email.update');
+        Route::post('email/test', [EmailSettingController::class, 'test'])->middleware('throttle:6,1')->name('email.test');
+
         Route::get('payments', [PaymentSettingController::class, 'edit'])->name('payments.edit');
         Route::put('payments', [PaymentSettingController::class, 'update'])->name('payments.update');
 

@@ -1,0 +1,148 @@
+<?php
+
+use App\Mail\SettingsTestMail;
+use App\Models\Setting;
+use App\Models\User;
+use App\Services\Settings;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\AbstractTransport;
+
+uses(RefreshDatabase::class);
+
+/**
+ * A valid payload for the email settings form, with optional overrides.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function emailSettingsPayload(array $overrides = []): array
+{
+    return array_merge([
+        'mail_mailer' => 'smtp',
+        'mail_host' => 'smtp.example.com',
+        'mail_port' => 587,
+        'mail_encryption' => 'tls',
+        'mail_username' => 'mailer-user',
+        'mail_password' => '',
+        'mail_from_address' => 'noreply@example.com',
+        'mail_from_name' => 'Example Site',
+    ], $overrides);
+}
+
+beforeEach(function () {
+    $this->admin = User::factory()->admin()->create(['email' => 'admin@example.com']);
+});
+
+test('admins save the email settings', function () {
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.email.update'), emailSettingsPayload(['mail_password' => 'smtp-password-value']))
+        ->assertRedirect(route('admin.settings.email.edit'))
+        ->assertSessionHas('success');
+
+    expect(Settings::get('mail_mailer'))->toBe('smtp')
+        ->and(Settings::get('mail_host'))->toBe('smtp.example.com')
+        ->and(Settings::int('mail_port'))->toBe(587)
+        ->and(Settings::get('mail_encryption'))->toBe('tls')
+        ->and(Settings::get('mail_username'))->toBe('mailer-user')
+        ->and(Settings::get('mail_password'))->toBe('smtp-password-value')
+        ->and(Setting::query()->where('key', 'mail_password')->value('value'))->not->toContain('smtp-password-value')
+        ->and(Settings::get('mail_from_address'))->toBe('noreply@example.com')
+        ->and(Settings::get('mail_from_name'))->toBe('Example Site');
+});
+
+test('the password is write-only and a blank password keeps the saved one', function () {
+    Settings::set('mail_password', 'smtp-password-value');
+
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.email.update'), emailSettingsPayload())
+        ->assertSessionHasNoErrors();
+
+    expect(Settings::get('mail_password'))->toBe('smtp-password-value');
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.settings.email.edit'))
+        ->assertOk()
+        ->assertSee('Saved')
+        ->assertDontSee('smtp-password-value');
+});
+
+test('invalid email settings are rejected', function (array $overrides, string $field) {
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.email.update'), emailSettingsPayload($overrides))
+        ->assertSessionHasErrors($field);
+
+    expect(Settings::has('mail_mailer'))->toBeFalse();
+})->with([
+    'unknown mailer' => [['mail_mailer' => 'sendmail'], 'mail_mailer'],
+    'host with a scheme' => [['mail_host' => 'https://smtp.example.com'], 'mail_host'],
+    'missing host for SMTP' => [['mail_host' => ''], 'mail_host'],
+    'port too high' => [['mail_port' => 70000], 'mail_port'],
+    'port zero' => [['mail_port' => 0], 'mail_port'],
+    'unknown encryption' => [['mail_encryption' => 'starttls'], 'mail_encryption'],
+    'invalid sender address' => [['mail_from_address' => 'not-an-email'], 'mail_from_address'],
+]);
+
+test('the log mailer needs no SMTP server', function () {
+    $this->actingAs($this->admin)
+        ->put(route('admin.settings.email.update'), emailSettingsPayload(['mail_mailer' => 'log', 'mail_host' => '', 'mail_port' => '']))
+        ->assertSessionHasNoErrors();
+
+    expect(Settings::get('mail_mailer'))->toBe('log');
+});
+
+test('the test email is sent to the signed-in admin', function () {
+    Mail::fake();
+
+    $this->actingAs($this->admin)
+        ->post(route('admin.settings.email.test'))
+        ->assertRedirect(route('admin.settings.email.edit'))
+        ->assertSessionHas('success', 'A test email was sent to admin@example.com. Check the inbox (and the spam folder).');
+
+    Mail::assertSent(SettingsTestMail::class, fn (SettingsTestMail $mail): bool => $mail->hasTo('admin@example.com'));
+});
+
+test('a failing test email shows the mail server error without the password', function () {
+    Settings::set('mail_mailer', 'smtp');
+    Settings::set('mail_host', 'smtp.example.com');
+    Settings::set('mail_port', 587);
+    Settings::set('mail_encryption', 'tls');
+    Settings::set('mail_password', 'smtp-password-value');
+    Settings::set('mail_from_address', 'noreply@example.com');
+
+    Mail::extend('smtp', fn () => new class extends AbstractTransport
+    {
+        protected function doSend(SentMessage $message): void
+        {
+            throw new TransportException('Failed to authenticate on SMTP server with password "smtp-password-value": 535 Authentication failed.');
+        }
+
+        public function __toString(): string
+        {
+            return 'failing-smtp';
+        }
+    });
+
+    $response = $this->actingAs($this->admin)
+        ->post(route('admin.settings.email.test'))
+        ->assertRedirect(route('admin.settings.email.edit'))
+        ->assertSessionHas('error');
+
+    expect(session('error'))->toContain('The test email could not be sent: Failed to authenticate on SMTP server')
+        ->toContain('535 Authentication failed.')
+        ->not->toContain('smtp-password-value');
+
+    $this->followRedirects($response)->assertDontSee('smtp-password-value');
+});
+
+test('members cannot send a test email', function () {
+    Mail::fake();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.settings.email.test'))
+        ->assertForbidden();
+
+    Mail::assertNothingSent();
+});
