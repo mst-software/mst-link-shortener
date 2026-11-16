@@ -80,6 +80,16 @@ it('lists only the member links and filters by alias', function () {
         ->assertOk()->assertSee('mine-one')->assertDontSee('other-two')->assertDontSee('mine-three');
 });
 
+it('shows password and expiry badges in the link list', function () {
+    Link::factory()->for($this->member)->passwordProtected()->expired()->create(['alias' => 'old-locked']);
+    Link::factory()->for($this->member)->create(['alias' => 'later-one', 'expires_at' => now()->addWeek()]);
+    Link::factory()->for($this->member)->create(['alias' => 'plain-one']);
+
+    $this->actingAs($this->member)->get('/member/links')
+        ->assertOk()
+        ->assertSeeInOrder(['plain-one', 'later-one', 'Expires', 'old-locked', 'Password', 'Expired']);
+});
+
 it('hides and restores a link', function () {
     $link = Link::factory()->for($this->member)->create();
 
